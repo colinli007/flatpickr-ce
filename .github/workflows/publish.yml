@@ -1,7 +1,6 @@
 name: 'Publish'
 
-# Stages the package on npm through trusted publishing (OIDC). A maintainer
-# then approves it with 2FA: npm stage approve <stage-id>
+# Publishes the package to npm through trusted publishing (OIDC)
 on:
   push:
     tags:
@@ -13,7 +12,7 @@ permissions:
 
 jobs:
   publish:
-    name: 'stage publish'
+    name: 'publish'
     runs-on: ubuntu-latest
 
     steps:
@@ -25,4 +24,4 @@ jobs:
     - run: npm install -g npm@12
     - run: npm ci
     # prepublishOnly runs the tests and the build
-    - run: npm stage publish
+    - run: npm publish
