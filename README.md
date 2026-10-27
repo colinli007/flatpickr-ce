@@ -1,5 +1,6 @@
 ## flatpickr-ce - community edition of flatpickr
 [![Actions Status](https://github.com/colinli007/flatpickr-ce/workflows/GitHub%20Actions/badge.svg)](https://github.com/colinli007/flatpickr-ce/actions)
+[![npm version](https://img.shields.io/npm/v/flatpickr-ce.svg)](https://www.npmjs.com/package/flatpickr-ce)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=plastic)](https://raw.githubusercontent.com/colinli007/flatpickr-ce/main/LICENSE.md)
 
 flatpickr-ce is a community-maintained edition of [flatpickr](https://github.com/flatpickr/flatpickr), the lightweight, dependency-free datetime picker created by [Gregory Petrosyan (chmln)](https://github.com/chmln). The upstream repository hasn't had a release since 2022, so this repo picks up its open fixes and pull requests ([context](https://github.com/flatpickr/flatpickr/issues/1646)).
@@ -18,8 +19,6 @@ flatpickr-ce is a community-maintained edition of [flatpickr](https://github.com
 
 
 ## Install
-
-> The `flatpickr-ce` npm package hasn't been published yet. The commands below apply once it is.
 
 ```sh
 npm install flatpickr-ce
