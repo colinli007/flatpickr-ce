@@ -1,10 +1,14 @@
-## flatpickr - javascript datetime picker
-[![Actions Status](https://github.com/flatpickr/flatpickr/workflows/GitHub%20Actions/badge.svg)](https://github.com/flatpickr/flatpickr/actions)
+## flatpickr-ce - community edition of flatpickr
+[![Actions Status](https://github.com/colinli007/flatpickr-ce/workflows/GitHub%20Actions/badge.svg)](https://github.com/colinli007/flatpickr-ce/actions)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=plastic)](https://raw.githubusercontent.com/colinli007/flatpickr-ce/main/LICENSE.md)
 
-[![Coverage](https://coveralls.io/repos/github/chmln/flatpickr/badge.svg?branch=master)](https://coveralls.io/github/chmln/flatpickr)
-[![npm version](https://badge.fury.io/js/flatpickr.svg)](https://www.npmjs.com/package/flatpickr)
-[![CDNJS](https://img.shields.io/cdnjs/v/flatpickr.svg)](https://cdnjs.com/libraries/flatpickr)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=plastic)](https://raw.githubusercontent.com/flatpickr/flatpickr/master/LICENSE.md)
+flatpickr-ce is a community-maintained edition of [flatpickr](https://github.com/flatpickr/flatpickr), created by [Gregory (chmln)](https://github.com/chmln). The upstream repository hasn't had a release since 2022, so this repo picks up its open fixes and pull requests ([context](https://github.com/flatpickr/flatpickr/issues/1646)).
+
+- Drop-in replacement: same API and options; only the package name changes.
+- Full git history, with the original MIT license and credits.
+- Issues and pull requests are welcome [here](https://github.com/colinli007/flatpickr-ce/issues).
+
+The `flatpickr-ce` npm package hasn't been published yet. Everything below is from the original README.
 
 
 ![blue](https://cloud.githubusercontent.com/assets/11352152/14549371/3cbb65da-028d-11e6-976d-a6f63f32061f.PNG)
