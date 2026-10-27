@@ -1,0 +1,28 @@
+name: 'Publish'
+
+# Stages the package on npm through trusted publishing (OIDC). A maintainer
+# then approves it with 2FA: npm stage approve <stage-id>
+on:
+  push:
+    tags:
+    - 'v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: 'stage publish'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-node@v5
+      with:
+        node-version: 24
+        registry-url: 'https://registry.npmjs.org'
+    - run: npm install -g npm@12
+    - run: npm ci
+    # prepublishOnly runs the tests and the build
+    - run: npm stage publish
