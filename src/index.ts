@@ -55,8 +55,10 @@ function FlatpickrInstance(
 
   // The element may live in another document than the one flatpickr was
   // loaded in (an iframe, or a window.open() popup), each with its own globals.
-  const doc = element.ownerDocument;
-  const win = doc.defaultView || window;
+  // A document without a window (e.g. a <template> clone not yet inserted)
+  // can't render anything, so fall back to ours.
+  const win = element.ownerDocument.defaultView || window;
+  const doc = win.document;
   self.parseDate = createDateParser({ config: self.config, l10n: self.l10n });
 
   self._handlers = [];

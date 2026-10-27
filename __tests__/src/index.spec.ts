@@ -828,6 +828,20 @@ describe("flatpickr", () => {
         destroyInstance();
         iframe.remove();
       });
+
+      it("should work with an element whose document has no window", () => {
+        const template = document.createElement("template");
+        template.innerHTML = "<input>";
+        const clone = template.content.cloneNode(true) as DocumentFragment;
+        const input = clone.querySelector("input") as HTMLInputElement;
+        expect(input.ownerDocument.defaultView).toBe(null);
+
+        createInstance({}, input);
+        expect(fp.calendarContainer.ownerDocument).toBe(document);
+        expect(document.body.contains(fp.calendarContainer)).toBe(true);
+
+        destroyInstance();
+      });
     });
 
     it("onKeyDown", () => {
