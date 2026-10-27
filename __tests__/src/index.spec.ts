@@ -805,6 +805,29 @@ describe("flatpickr", () => {
         destroyInstance();
         host.remove();
       });
+
+      it("should work with an element from another window #3138", () => {
+        const iframe = document.createElement("iframe");
+        document.body.appendChild(iframe);
+        const frameDoc = iframe.contentDocument as Document;
+        const frameInput = frameDoc.createElement("input");
+        frameDoc.body.appendChild(frameInput);
+        expect(frameInput instanceof HTMLElement).toBe(false);
+
+        createInstance({}, frameInput);
+        expect(fp.calendarContainer.ownerDocument).toBe(frameDoc);
+        expect(frameDoc.body.contains(fp.calendarContainer)).toBe(true);
+
+        fp.open();
+        expect(fp.isOpen).toBe(true);
+        frameDoc.body.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true })
+        );
+        expect(fp.isOpen).toBe(false);
+
+        destroyInstance();
+        iframe.remove();
+      });
     });
 
     it("onKeyDown", () => {
