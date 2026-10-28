@@ -59,6 +59,9 @@ export const Mandarin: CustomLocale = {
   scrollTitle: "滚动切换",
   toggleTitle: "点击切换 12/24 小时时制",
   yearAriaLabel: "年",
+  monthAriaLabel: "月",
+  hourAriaLabel: "小时",
+  minuteAriaLabel: "分钟",
 };
 
 fp.l10ns.zh = Mandarin;

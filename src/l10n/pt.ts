@@ -57,6 +57,9 @@ export const Portuguese: CustomLocale = {
   rangeSeparator: " até ",
   time_24hr: true,
   yearAriaLabel: "ano",
+  monthAriaLabel: "mês",
+  hourAriaLabel: "hora",
+  minuteAriaLabel: "minuto",
 };
 
 fp.l10ns.pt = Portuguese;

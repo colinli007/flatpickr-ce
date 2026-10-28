@@ -60,6 +60,9 @@ export const Polish: CustomLocale = {
   firstDayOfWeek: 1,
   time_24hr: true,
   yearAriaLabel: "rok",
+  monthAriaLabel: "miesiąc",
+  hourAriaLabel: "godzina",
+  minuteAriaLabel: "minuta",
 
   ordinal: () => {
     return ".";

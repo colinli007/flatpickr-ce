@@ -67,6 +67,9 @@ export const French: CustomLocale = {
   toggleTitle: "Cliquer pour basculer",
   time_24hr: true,
   yearAriaLabel: "année",
+  monthAriaLabel: "mois",
+  hourAriaLabel: "heure",
+  minuteAriaLabel: "minute",
 };
 
 fp.l10ns.fr = French;

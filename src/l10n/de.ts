@@ -61,6 +61,9 @@ export const German: CustomLocale = {
   toggleTitle: "Zum Umschalten klicken",
   time_24hr: true,
   yearAriaLabel: "Jahr",
+  monthAriaLabel: "Monat",
+  hourAriaLabel: "Stunde",
+  minuteAriaLabel: "Minute",
 };
 
 fp.l10ns.de = German;

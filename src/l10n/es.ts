@@ -62,6 +62,9 @@ export const Spanish: CustomLocale = {
   rangeSeparator: " a ",
   time_24hr: true,
   yearAriaLabel: "año",
+  monthAriaLabel: "mes",
+  hourAriaLabel: "hora",
+  minuteAriaLabel: "minuto",
 };
 
 fp.l10ns.es = Spanish;

@@ -61,6 +61,9 @@ export const Finnish: CustomLocale = {
   },
   time_24hr: true,
   yearAriaLabel: "vuosi",
+  monthAriaLabel: "kuukausi",
+  hourAriaLabel: "tunti",
+  minuteAriaLabel: "minuutti",
 };
 
 fp.l10ns.fi = Finnish;

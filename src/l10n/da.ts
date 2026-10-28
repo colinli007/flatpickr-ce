@@ -63,6 +63,9 @@ export const Danish: CustomLocale = {
   weekAbbreviation: "uge",
   time_24hr: true,
   yearAriaLabel: "år",
+  monthAriaLabel: "måned",
+  hourAriaLabel: "time",
+  minuteAriaLabel: "minut",
 };
 
 fp.l10ns.da = Danish;
