@@ -55,8 +55,6 @@ function monthSelectPlugin(pluginConfig?: Partial<Config>): Plugin {
 
       self.monthsContainer.tabIndex = -1;
 
-      buildMonths();
-
       fp.rContainer.appendChild(self.monthsContainer);
 
       fp.calendarContainer.classList.add(
@@ -110,8 +108,6 @@ function monthSelectPlugin(pluginConfig?: Partial<Config>): Plugin {
         e.stopPropagation();
 
         fp.changeYear(fp.currentYear - 1);
-        selectYear();
-        buildMonths();
       });
 
       fp._bind(fp.nextMonthNav, "click", (e) => {
@@ -119,8 +115,6 @@ function monthSelectPlugin(pluginConfig?: Partial<Config>): Plugin {
         e.stopPropagation();
 
         fp.changeYear(fp.currentYear + 1);
-        selectYear();
-        buildMonths();
       });
 
       fp._bind(
@@ -136,61 +130,24 @@ function monthSelectPlugin(pluginConfig?: Partial<Config>): Plugin {
       );
     }
 
-    function setCurrentlySelected() {
-      if (!fp.rContainer) return;
-      if (!fp.selectedDates.length) return;
+    function render() {
+      if (!self.monthsContainer) return;
 
-      const currentlySelected = fp.rContainer.querySelectorAll(
-        ".flatpickr-monthSelect-month.selected"
-      );
+      buildMonths();
 
-      for (let index = 0; index < currentlySelected.length; index++) {
-        currentlySelected[index].classList.remove("selected");
+      // createDay only marks selected dates that fall on the 1st, so mark the
+      // month of the first selected date instead
+      const selected = self.monthsContainer.querySelectorAll(".selected");
+      for (let index = 0; index < selected.length; index++) {
+        selected[index].classList.remove("selected");
       }
 
-      const targetMonth = fp.selectedDates[0].getMonth();
-      const month = fp.rContainer.querySelector(
-        `.flatpickr-monthSelect-month:nth-child(${targetMonth + 1})`
-      );
-
-      if (month) {
-        month.classList.add("selected");
-      }
-    }
-
-    function selectYear() {
-      let selectedDate = fp.selectedDates[0];
-      if (selectedDate) {
-        selectedDate = new Date(selectedDate);
-        selectedDate.setFullYear(fp.currentYear);
-        if (fp.config.minDate && selectedDate < fp.config.minDate) {
-          selectedDate = fp.config.minDate;
-        }
-        if (fp.config.maxDate && selectedDate > fp.config.maxDate) {
-          selectedDate = fp.config.maxDate;
-        }
-        fp.currentYear = selectedDate.getFullYear();
-      }
-
-      fp.currentYearElement.value = String(fp.currentYear);
-
-      if (fp.rContainer) {
-        const months: NodeListOf<ElementDate> = fp.rContainer.querySelectorAll(
-          ".flatpickr-monthSelect-month"
+      const selectedDate = fp.selectedDates[0];
+      if (selectedDate && selectedDate.getFullYear() === fp.currentYear) {
+        self.monthsContainer.children[selectedDate.getMonth()].classList.add(
+          "selected"
         );
-        months.forEach((month) => {
-          month.dateObj.setFullYear(fp.currentYear);
-          if (
-            (fp.config.minDate && month.dateObj < fp.config.minDate) ||
-            (fp.config.maxDate && month.dateObj > fp.config.maxDate)
-          ) {
-            month.classList.add("flatpickr-disabled");
-          } else {
-            month.classList.remove("flatpickr-disabled");
-          }
-        });
       }
-      setCurrentlySelected();
     }
 
     function selectMonth(e: Event) {
@@ -215,6 +172,14 @@ function monthSelectPlugin(pluginConfig?: Partial<Config>): Plugin {
     }
 
     function setMonth(date: Date) {
+      if (!self.monthsContainer) return;
+
+      // setDate rebuilds the month cells, so carry the focus over to the new one
+      const focusedIndex = Array.prototype.indexOf.call(
+        self.monthsContainer.children,
+        document.activeElement
+      );
+
       const selectedDate = new Date(
         fp.currentYear,
         date.getMonth(),
@@ -243,7 +208,9 @@ function monthSelectPlugin(pluginConfig?: Partial<Config>): Plugin {
       }
 
       fp.setDate(selectedDates, true);
-      setCurrentlySelected();
+
+      if (focusedIndex !== -1)
+        (self.monthsContainer.children[focusedIndex] as HTMLElement).focus();
     }
 
     const shifts: Record<number, number> = {
@@ -292,8 +259,6 @@ function monthSelectPlugin(pluginConfig?: Partial<Config>): Plugin {
     function closeHook() {
       if (fp.config?.mode === "range" && fp.selectedDates.length === 1)
         fp.clear(false);
-
-      if (!fp.selectedDates.length) buildMonths();
     }
 
     // Help the prev/next year nav honor config.minDate (see 3fa5a69)
@@ -328,14 +293,14 @@ function monthSelectPlugin(pluginConfig?: Partial<Config>): Plugin {
       onParseConfig() {
         fp.config.enableTime = false;
       },
-      onValueUpdate: setCurrentlySelected,
+      onDaysBuilt: render,
       onKeyDown,
       onReady: [
         stubCurrentMonth,
         clearUnnecessaryDOMElements,
         build,
         bindEvents,
-        setCurrentlySelected,
+        render,
         () => {
           fp.config.onClose.push(closeHook);
           fp.loadedPlugins.push("monthSelect");

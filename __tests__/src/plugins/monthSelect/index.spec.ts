@@ -347,4 +347,217 @@ describe("monthSelect", () => {
       });
     });
   });
+
+  describe("syncing with the instance state", () => {
+    const thisYear = new Date().getFullYear();
+
+    const monthCells = (instance: Instance) =>
+      Array.from(
+        instance.rContainer!.querySelectorAll<HTMLElement>(
+          ".flatpickr-monthSelect-month"
+        )
+      );
+
+    const selectedMonths = (instance: Instance) =>
+      monthCells(instance)
+        .filter((cell) => cell.classList.contains("selected"))
+        .map((cell) => cell.textContent);
+
+    const disabledMonths = (instance: Instance) =>
+      monthCells(instance)
+        .map((cell, i) =>
+          cell.classList.contains("flatpickr-disabled") ? i : -1
+        )
+        .filter((i) => i !== -1);
+
+    const cellYears = (instance: Instance) =>
+      monthCells(instance).map((cell) =>
+        (cell as HTMLElement & { dateObj: Date }).dateObj.getFullYear()
+      );
+
+    const keyEvent = (
+      type: string,
+      target: EventTarget,
+      keyCode: number,
+      init: KeyboardEventInit = {}
+    ) => {
+      const event = new KeyboardEvent(type, { bubbles: true, ...init });
+      Object.defineProperty(event, "keyCode", { value: keyCode });
+      target.dispatchEvent(event);
+    };
+
+    it("follows setDate to another year without triggerChange", () => {
+      const fp = createInstance({ defaultDate: new Date(2024, 0, 1) });
+
+      fp.setDate(new Date(2026, 4, 1));
+
+      expect(fp.currentYearElement.value).toEqual("2026");
+      expect(cellYears(fp)).toEqual(Array(12).fill(2026));
+      expect(selectedMonths(fp)).toEqual(["May"]);
+    });
+
+    it("follows setDate in inline mode", () => {
+      const fp = createInstance({
+        inline: true,
+        defaultDate: new Date(2024, 0, 1),
+      });
+
+      fp.setDate(new Date(2026, 4, 1));
+
+      expect(cellYears(fp)).toEqual(Array(12).fill(2026));
+      expect(selectedMonths(fp)).toEqual(["May"]);
+    });
+
+    it("follows a typed value from a past year (#3109)", () => {
+      const fp = createInstance({ allowInput: true, maxDate: new Date() });
+
+      fp._input.value = "August 1939";
+      keyEvent("keydown", fp._input, 13);
+      fp.open();
+
+      expect(fp.currentYearElement.value).toEqual("1939");
+      expect(disabledMonths(fp)).toEqual([]);
+      expect(selectedMonths(fp)).toEqual(["August"]);
+    });
+
+    it("clears the selection on clear()", () => {
+      const fp = createInstance({ defaultDate: new Date(2024, 2, 1) });
+
+      fp.clear();
+
+      expect(selectedMonths(fp)).toEqual([]);
+    });
+
+    it("applies a maxDate changed through set()", () => {
+      const fp = createInstance();
+
+      fp.set("maxDate", new Date(thisYear, 2, 1));
+
+      expect(disabledMonths(fp)).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    });
+
+    it("follows a year typed into the year input", () => {
+      const fp = createInstance({
+        defaultDate: new Date(2024, 2, 1),
+        disable: [new Date(2030, 5, 1)],
+      });
+
+      fp.currentYearElement.value = "2030";
+      keyEvent("keyup", fp.currentYearElement, 48);
+
+      expect(cellYears(fp)).toEqual(Array(12).fill(2030));
+      expect(disabledMonths(fp)).toEqual([5]);
+      expect(selectedMonths(fp)).toEqual([]);
+    });
+
+    it("follows changeMonth across a year", () => {
+      const fp = createInstance({
+        defaultDate: new Date(2024, 11, 1),
+        maxDate: new Date(2025, 5, 1),
+      });
+
+      fp.changeMonth(1);
+
+      expect(fp.currentYearElement.value).toEqual("2025");
+      expect(cellYears(fp)).toEqual(Array(12).fill(2025));
+      expect(disabledMonths(fp)).toEqual([6, 7, 8, 9, 10, 11]);
+    });
+
+    describe("selected month", () => {
+      beforeEach(() => {
+        options = { defaultDate: new Date(2025, 2, 20) };
+      });
+
+      it("is only highlighted in the selected date's year", () => {
+        expect(selectedMonths(fp())).toEqual(["March"]);
+
+        getPrevButton().dispatchEvent(new MouseEvent("click"));
+        expect(selectedMonths(fp())).toEqual([]);
+
+        getNextButton().dispatchEvent(new MouseEvent("click"));
+        expect(selectedMonths(fp())).toEqual(["March"]);
+      });
+
+      it("is highlighted for a date that isn't the 1st", () => {
+        fp().setDate(new Date(2026, 4, 15));
+
+        expect(selectedMonths(fp())).toEqual(["May"]);
+      });
+    });
+
+    describe("disabled months", () => {
+      it("honor disable after changing the year, as on init", () => {
+        const disable = [new Date(thisYear + 1, 5, 1)];
+        const navigated = createInstance({ disable });
+
+        navigated.nextMonthNav.dispatchEvent(new MouseEvent("click"));
+        const initialized = createInstance({
+          disable,
+          defaultDate: new Date(thisYear + 1, 0, 1),
+        });
+
+        expect(disabledMonths(navigated)).toContain(5);
+        expect(disabledMonths(navigated)).toEqual(disabledMonths(initialized));
+      });
+
+      it("honor minDate in its year", () => {
+        const fp = createInstance({
+          minDate: new Date(thisYear - 1, 2, 20),
+        });
+
+        fp.prevMonthNav.dispatchEvent(new MouseEvent("click"));
+
+        expect(disabledMonths(fp)).toEqual(expect.arrayContaining([0, 1]));
+        expect(disabledMonths(fp).filter((i) => i >= 3)).toEqual([]);
+        expect(fp.prevMonthNav.classList).toContain("flatpickr-disabled");
+      });
+    });
+
+    describe("focus after selecting a month", () => {
+      let mounted: Instance | undefined;
+
+      const createMountedInstance = (config: Options) => {
+        const input = document.createElement("input");
+        document.body.appendChild(input);
+        mounted = flatpickr(input, {
+          plugins: [monthSelectPlugin({})],
+          ...config,
+        }) as Instance;
+        return mounted;
+      };
+
+      afterEach(() => {
+        if (mounted) {
+          const input = mounted.input;
+          mounted.destroy();
+          input.remove();
+          mounted = undefined;
+        }
+      });
+
+      it("stays on the month selected with Enter", () => {
+        const fp = createMountedInstance({ inline: true });
+        const may = monthCells(fp)[4];
+
+        may.focus();
+        keyEvent("keydown", may, 13);
+        keyEvent("keydown", document.activeElement!, 39);
+
+        expect(selectedMonths(fp)).toEqual(["May"]);
+        expect(document.activeElement).toBe(monthCells(fp)[5]);
+      });
+
+      it("stays on the month selected with a click", () => {
+        const fp = createMountedInstance({ inline: true });
+        const may = monthCells(fp)[4];
+
+        may.focus();
+        may.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        keyEvent("keydown", document.activeElement!, 39);
+
+        expect(selectedMonths(fp)).toEqual(["May"]);
+        expect(document.activeElement).toBe(monthCells(fp)[5]);
+      });
+    });
+  });
 });

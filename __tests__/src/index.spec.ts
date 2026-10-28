@@ -1998,6 +1998,121 @@ describe("flatpickr", () => {
         expect(timesFired).toEqual(0);
       });
     });
+
+    describe("onDaysBuilt", () => {
+      it("fires after setDate moves to another year", () => {
+        const years: number[] = [];
+        const fp = createInstance({
+          defaultDate: new Date(2024, 0, 1),
+          onDaysBuilt: (_, __, instance) => years.push(instance.currentYear),
+        });
+
+        years.length = 0;
+        fp.setDate(new Date(2030, 0, 1));
+
+        expect(years.length).toBeGreaterThan(0);
+        expect(years[years.length - 1]).toEqual(2030);
+      });
+
+      it("fires when changeMonth crosses a year", () => {
+        const views: [number, number][] = [];
+        const fp = createInstance({
+          defaultDate: new Date(2024, 11, 15),
+          onDaysBuilt: (_, __, instance) =>
+            views.push([instance.currentYear, instance.currentMonth]),
+        });
+
+        views.length = 0;
+        fp.changeMonth(1);
+
+        expect(views).toEqual([[2025, 0]]);
+      });
+
+      it("fires on clear with no selected dates", () => {
+        const selectedCounts: number[] = [];
+        const fp = createInstance({
+          defaultDate: new Date(2024, 0, 1),
+          onDaysBuilt: (dates) => selectedCounts.push(dates.length),
+        });
+
+        selectedCounts.length = 0;
+        fp.clear();
+
+        expect(selectedCounts.length).toBeGreaterThan(0);
+        expect(selectedCounts[selectedCounts.length - 1]).toEqual(0);
+      });
+
+      it("fires on set()", () => {
+        let timesFired = 0;
+        const fp = createInstance({ onDaysBuilt: () => timesFired++ });
+
+        timesFired = 0;
+        fp.set("maxDate", new Date(2030, 0, 1));
+
+        expect(timesFired).toBeGreaterThan(0);
+      });
+
+      it("fires when config.minDate is assigned directly", () => {
+        let timesFired = 0;
+        const fp = createInstance({ onDaysBuilt: () => timesFired++ });
+
+        timesFired = 0;
+        fp.config.minDate = new Date(2020, 0, 1);
+
+        expect(timesFired).toBeGreaterThan(0);
+      });
+
+      it("doesn't fire without a calendar", () => {
+        let timesFired = 0;
+        const fp = createInstance({
+          noCalendar: true,
+          enableTime: true,
+          onDaysBuilt: () => timesFired++,
+        });
+
+        fp.setDate("12:00");
+
+        expect(timesFired).toEqual(0);
+      });
+
+      it("can be registered by a plugin", () => {
+        let timesFired = 0;
+        const fp = createInstance({
+          plugins: [() => ({ onDaysBuilt: () => timesFired++ })],
+        });
+
+        timesFired = 0;
+        fp.changeMonth(1);
+
+        expect(timesFired).toEqual(1);
+      });
+
+      it("leaves the other hooks untouched", () => {
+        const hookLog = (onDaysBuilt?: () => void) => {
+          const log: string[] = [];
+          const record = (name: string) => () => {
+            log.push(name);
+          };
+          const fp = createInstance({
+            defaultDate: new Date(2024, 11, 15),
+            onChange: record("onChange"),
+            onMonthChange: record("onMonthChange"),
+            onYearChange: record("onYearChange"),
+            onValueUpdate: record("onValueUpdate"),
+            onDayCreate: record("onDayCreate"),
+            ...(onDaysBuilt && { onDaysBuilt }),
+          });
+
+          fp.setDate(new Date(2030, 0, 1), true);
+          fp.changeMonth(1);
+          fp.clear();
+          fp.set("maxDate", new Date(2031, 0, 1));
+          return log;
+        };
+
+        expect(hookLog(() => undefined)).toEqual(hookLog());
+      });
+    });
   });
 
   describe("positioning", () => {

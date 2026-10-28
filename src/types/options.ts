@@ -19,6 +19,7 @@ export type HookKey =
   | "onChange"
   | "onClose"
   | "onDayCreate"
+  | "onDaysBuilt"
   | "onDestroy"
   | "onKeyDown"
   | "onMonthChange"
@@ -33,6 +34,7 @@ export const HOOKS: HookKey[] = [
   "onChange",
   "onClose",
   "onDayCreate",
+  "onDaysBuilt",
   "onDestroy",
   "onKeyDown",
   "onMonthChange",
@@ -192,6 +194,9 @@ Use it along with "enableTime" to create a time picker. */
   /* Fires for every day cell in the calendar, where the fourth argument is the html element of the cell. See https://chmln.github.io/flatpickr/events/#ondaycreate*/
   onDayCreate: Hook | Hook[];
 
+  /* Fires after the day cells are rebuilt for the current view: on redraw, month and year changes, and date or config updates */
+  onDaysBuilt: Hook | Hook[];
+
   /* Fires before the calendar instance is destroyed */
   onDestroy: Hook | Hook[];
 
@@ -319,6 +324,7 @@ export interface ParsedOptions {
   onChange: Hook[];
   onClose: Hook[];
   onDayCreate: Hook[];
+  onDaysBuilt: Hook[];
   onDestroy: Hook[];
   onKeyDown: Hook[];
   onMonthChange: Hook[];
@@ -401,6 +407,7 @@ export const defaults: ParsedOptions = {
   onChange: [],
   onClose: [],
   onDayCreate: [],
+  onDaysBuilt: [],
   onDestroy: [],
   onKeyDown: [],
   onMonthChange: [],
