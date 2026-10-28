@@ -4,3 +4,4 @@ index.html
 coverage
 dist
 *.tsbuildinfo
+.codegraph/
