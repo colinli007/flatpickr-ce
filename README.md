@@ -44,6 +44,8 @@ npm install flatpickr@npm:flatpickr-ce
 
 - Elements from another window or an iframe are now supported ([#3138](https://github.com/flatpickr/flatpickr/issues/3138), [#3096](https://github.com/flatpickr/flatpickr/issues/3096))
 - Removed a dead `Event.path` check in the outside-click handler ([#2766](https://github.com/flatpickr/flatpickr/issues/2766))
+- The calendar is now positioned correctly when `appendTo` is a positioned element, such as a container inside shadow DOM, a fixed or transformed modal, or a scrolling container ([#1024](https://github.com/flatpickr/flatpickr/issues/1024), [#2362](https://github.com/flatpickr/flatpickr/pull/2362))
+- Near the right edge of the page, the calendar now lines up with the input's right edge, and centering it no longer inserts a new stylesheet rule on every open
 
 
 ## Features

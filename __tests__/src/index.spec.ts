@@ -1979,6 +1979,128 @@ describe("flatpickr", () => {
     });
   });
 
+  describe("positioning", () => {
+    // jsdom has no layout, so the geometry positionCalendar reads is stubbed
+    const stubbed: Array<[object, string]> = [];
+
+    function stub(target: object, prop: string, value: unknown) {
+      Object.defineProperty(target, prop, { value, configurable: true });
+      stubbed.push([target, prop]);
+    }
+
+    function stubRect(el: Element, top: number, left: number, width = 0) {
+      stub(el, "getBoundingClientRect", () => ({
+        top,
+        left,
+        width,
+        right: left + width,
+        bottom: top + 30,
+        height: 30,
+      }));
+    }
+
+    function position(config: Options = {}) {
+      const fp = createInstance(config);
+      stubRect(fp._positionElement, 100, 50, 100);
+      stub(fp._positionElement, "offsetHeight", 30);
+      stub(fp.calendarContainer, "offsetWidth", 300);
+      return fp;
+    }
+
+    beforeEach(() => {
+      stub(window, "pageXOffset", 0);
+      stub(window, "pageYOffset", 200);
+      stub(document.body, "offsetWidth", 1000);
+    });
+
+    afterEach(() => {
+      for (const [target, prop] of stubbed.splice(0))
+        delete (target as any)[prop];
+    });
+
+    it("places the calendar in page coordinates by default", () => {
+      const fp = position();
+      fp._positionCalendar();
+
+      expect(fp.calendarContainer.style.top).toEqual("332px");
+      expect(fp.calendarContainer.style.left).toEqual("50px");
+    });
+
+    it("falls back to page coordinates while the calendar is hidden", () => {
+      const fp = position();
+      stub(fp.calendarContainer, "offsetParent", null);
+      fp._positionCalendar();
+
+      expect(fp.calendarContainer.style.top).toEqual("332px");
+      expect(fp.calendarContainer.style.left).toEqual("50px");
+    });
+
+    it("positions relative to a positioned appendTo container", () => {
+      const container = document.createElement("div");
+      document.body.appendChild(container);
+      const fp = position({ appendTo: container });
+      stub(fp.calendarContainer, "offsetParent", container);
+      stubRect(container, 40, 10);
+      stub(container, "clientTop", 3);
+      stub(container, "clientLeft", 3);
+      stub(container, "scrollTop", 20);
+      fp._positionCalendar();
+
+      // 332 - (200 + 40 + 3 - 20), 50 - (10 + 3)
+      expect(fp.calendarContainer.style.top).toEqual("109px");
+      expect(fp.calendarContainer.style.left).toEqual("37px");
+      container.remove();
+    });
+
+    it("positions relative to <body> only when it is positioned", () => {
+      const fp = position();
+      stub(fp.calendarContainer, "offsetParent", document.body);
+      stubRect(document.body, -192, 8);
+      // jsdom doesn't compute the initial value of position
+      document.body.style.position = "static";
+      fp._positionCalendar();
+      expect(fp.calendarContainer.style.top).toEqual("332px");
+
+      document.body.style.position = "relative";
+      fp._positionCalendar();
+      document.body.style.position = "";
+
+      // 332 - (200 - 192), 50 - 8
+      expect(fp.calendarContainer.style.top).toEqual("324px");
+      expect(fp.calendarContainer.style.left).toEqual("42px");
+    });
+
+    it("aligns the right edges near the right side of the page", () => {
+      const fp = position();
+      stubRect(fp._positionElement, 100, 250, 100);
+      stub(document.body, "offsetWidth", 500);
+      fp._positionCalendar();
+
+      // input right edge (350) - calendar width (300)
+      expect(fp.calendarContainer.style.left).toEqual("50px");
+      expect(fp.calendarContainer.classList.contains("rightMost")).toBe(true);
+    });
+
+    it("centers a calendar wider than the space next to the input", () => {
+      const fp = position();
+      stubRect(fp._positionElement, 100, 120, 80);
+      stub(document.body, "offsetWidth", 400);
+      const sheets = document.styleSheets.length;
+      fp._positionCalendar();
+
+      const calendar = fp.calendarContainer;
+      expect(calendar.style.left).toEqual("50px");
+      expect(calendar.style.getPropertyValue("--fp-arrow-left")).toEqual("70px");
+      expect(calendar.classList.contains("centerMost")).toBe(true);
+      expect(calendar.classList.contains("rightMost")).toBe(false);
+      expect(document.styleSheets.length).toEqual(sheets);
+
+      stub(document.body, "offsetWidth", 1000);
+      fp._positionCalendar();
+      expect(calendar.classList.contains("centerMost")).toBe(false);
+    });
+  });
+
   describe("server-side rendering", () => {
     it("can be imported", () => {
       expect(typeof flatpickr).toEqual("function");
