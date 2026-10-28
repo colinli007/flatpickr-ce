@@ -788,8 +788,8 @@ function FlatpickrInstance(
   function findEnabledDate(from: Date, step: number) {
     const limit = step > 0 ? self.config.maxDate : self.config.minDate;
 
-    // without a minDate/maxDate to stop at, give up after ten years
-    for (let i = 0; limit !== undefined || i <= 3653; i++) {
+    // stop at minDate/maxDate, and after ten years either way
+    for (let i = 0; i <= 3653; i++) {
       const date = new Date(
         from.getFullYear(),
         from.getMonth(),

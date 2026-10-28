@@ -2042,6 +2042,11 @@ describe("flatpickr", () => {
 
       expect(focusedDate()).toBe("2025-12-31");
       expect([fp.currentYear, fp.currentMonth]).toEqual([2025, 11]);
+
+      press(39);
+
+      expect(focusedDate()).toBe("2026-01-01");
+      expect([fp.currentYear, fp.currentMonth]).toEqual([2025, 11]);
     });
 
     it("moves down to the same weekday of the next month", () => {
@@ -2144,15 +2149,35 @@ describe("flatpickr", () => {
         expect(focusedDate()).toBe("2026-05-21");
       });
 
+      // timers are faked in this file, so count date checks instead of time:
+      // each search looks at most ten years ahead
       it("keeps the focus in the calendar when every date is disabled", () => {
-        createInstance({ disable: [() => true] });
+        let checks = 0;
+        createInstance({ disable: [() => (checks++, true)] });
         fp.open();
 
+        checks = 0;
         press(40, fp._input);
         expect(document.activeElement).toBe(fp.daysContainer);
 
         press(39);
         expect(document.activeElement).toBe(fp.daysContainer);
+        expect(checks).toBeLessThan(2 * 4000);
+      });
+
+      it("gives up within ten years when maxDate is further away", () => {
+        let checks = 0;
+        createInstance({
+          disable: [() => (checks++, true)],
+          maxDate: "9999-12-31",
+        });
+        fp.open();
+
+        checks = 0;
+        press(40, fp._input);
+
+        expect(document.activeElement).toBe(fp.daysContainer);
+        expect(checks).toBeLessThan(4000);
       });
 
       describe("after paging into a month without enabled days", () => {
@@ -2187,6 +2212,22 @@ describe("flatpickr", () => {
           press(40, document.activeElement!, { ctrlKey: true });
           expect(fp.currentYear).toBe(2025);
         });
+      });
+
+      it("goes on from the days with allowInput", () => {
+        startOn(
+          {
+            allowInput: true,
+            defaultDate: "2026-01-15",
+            enable: ["2026-01-15", "2026-03-20"],
+          },
+          "2026-01-15"
+        );
+        press(39, document.activeElement!, { ctrlKey: true });
+        expect(document.activeElement).toBe(fp.daysContainer);
+
+        press(39);
+        expect(focusedDate()).toBe("2026-03-20");
       });
     });
 

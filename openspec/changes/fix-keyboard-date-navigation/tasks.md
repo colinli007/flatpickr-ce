@@ -33,3 +33,8 @@
   - `disable: [() => true]` 时按方向键不卡顿，焦点留在日历里；
   - weekSelect 用方向键跨月后，周高亮仍然正确。
 - [x] 3.3 提交。提交信息写明：修复 flatpickr/flatpickr#3099 和 flatpickr/flatpickr#3064；取代 flatpickr/flatpickr#3140（跨年用例来自这个 PR）；上下键跨月时落点有变化；`changeMonth` 现在支持任意偏移。然后更新 tracking issue #2 里对应两行的备注；勾选要等发版并回复上游之后再做。
+
+## 4. verify 之后的修正
+
+- [x] 4.1 `findEnabledDate` 无论是否设置 min/maxDate 都最多找 3653 天（spec「视图中没有可选日期时仍然可以导航」的边界改为两者取较近）。补用例：`disable: [() => true]` 加 `maxDate: "9999-12-31"` 按下键，焦点在 `daysContainer`，并且禁用规则被检查的次数少于 4000（这个测试文件用了假计时器，`Date.now()` 不会走动，所以用检查次数代替耗时；修改前实测为 2912181 次，约 2.3 秒）。验证方式：这个用例改前失败、改后通过。
+- [x] 4.2 补足覆盖：跨年边界从 2025-12-31 按右键后断言视图仍是 2025 年 12 月；全禁用用例断言两次按键的检查次数少于 8000；「after paging into a month without enabled days」加一个 `allowInput: true` 的变体，焦点在 `daysContainer` 上按右键能落到 2026-03-20。验证方式：`npm test` 和 `npm run fmt:check` 全部通过后提交。
