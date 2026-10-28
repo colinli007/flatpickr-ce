@@ -2234,63 +2234,60 @@ function FlatpickrInstance(
     toggleClass(self.calendarContainer, "arrowCenter", isCenter);
     toggleClass(self.calendarContainer, "arrowRight", isRight);
 
-    const right = doc.body.offsetWidth - (win.pageXOffset + inputBounds.right);
-    const rightMost = left + calendarWidth > doc.body.offsetWidth;
-    const centerMost = right + calendarWidth > doc.body.offsetWidth;
+    const bodyWidth = doc.body.offsetWidth;
+    const inputRight = win.pageXOffset + inputBounds.right;
+    const rightMost = left + calendarWidth > bodyWidth;
+    const centerMost = rightMost && inputRight < calendarWidth;
 
     toggleClass(self.calendarContainer, "rightMost", rightMost);
 
     if (self.config.static) return;
 
-    self.calendarContainer.style.top = `${top}px`;
+    toggleClass(self.calendarContainer, "centerMost", centerMost);
 
-    if (!rightMost) {
-      self.calendarContainer.style.left = `${left}px`;
-      self.calendarContainer.style.right = "auto";
-    } else if (!centerMost) {
-      self.calendarContainer.style.left = "auto";
-      self.calendarContainer.style.right = `${right}px`;
-    } else {
-      const sheet = getDocumentStyleSheet() as CSSStyleSheet;
-      // some testing environments don't have css support
-      if (sheet === undefined) return;
-      const bodyWidth = doc.body.offsetWidth;
-      const centerLeft = Math.max(0, bodyWidth / 2 - calendarWidth / 2);
-      const centerBefore = ".flatpickr-calendar.centerMost:before";
-      const centerAfter = ".flatpickr-calendar.centerMost:after";
-      const centerIndex = sheet.cssRules.length;
-      const centerStyle = `{left:${inputBounds.left}px;right:auto;}`;
+    if (centerMost) {
       toggleClass(self.calendarContainer, "rightMost", false);
-      toggleClass(self.calendarContainer, "centerMost", true);
-      sheet.insertRule(
-        `${centerBefore},${centerAfter}${centerStyle}`,
-        centerIndex
+      left = Math.max(0, bodyWidth / 2 - calendarWidth / 2);
+      self.calendarContainer.style.setProperty(
+        "--fp-arrow-left",
+        `${win.pageXOffset + inputBounds.left - left}px`
       );
-      self.calendarContainer.style.left = `${centerLeft}px`;
-      self.calendarContainer.style.right = "auto";
+    } else if (rightMost) {
+      left = inputRight - calendarWidth;
     }
+
+    // top and left are page coordinates, but the calendar is positioned
+    // relative to its containing block, e.g. a positioned appendTo element
+    const origin = getContainingBlockOrigin();
+    self.calendarContainer.style.top = `${top - origin.top}px`;
+    self.calendarContainer.style.left = `${left - origin.left}px`;
+    self.calendarContainer.style.right = "auto";
   }
 
-  function getDocumentStyleSheet() {
-    let editableSheet = null;
-    for (let i = 0; i < doc.styleSheets.length; i++) {
-      const sheet = doc.styleSheets[i] as CSSStyleSheet;
-      if (!sheet.cssRules) continue;
-      try {
-        sheet.cssRules;
-      } catch (err) {
-        continue;
-      }
-      editableSheet = sheet;
-      break;
-    }
-    return editableSheet != null ? editableSheet : createStyleSheet();
-  }
+  function getContainingBlockOrigin() {
+    const containingBlock = self.calendarContainer.offsetParent;
+    // offsetParent is null while the calendar is hidden, and is <body> both
+    // when <body> is positioned and when there is no positioned ancestor
+    if (
+      containingBlock === null ||
+      (containingBlock === doc.body &&
+        win.getComputedStyle(containingBlock).position === "static")
+    )
+      return { top: 0, left: 0 };
 
-  function createStyleSheet() {
-    const style = doc.createElement("style");
-    doc.head.appendChild(style);
-    return style.sheet as CSSStyleSheet;
+    const bounds = containingBlock.getBoundingClientRect();
+    return {
+      top:
+        win.pageYOffset +
+        bounds.top +
+        containingBlock.clientTop -
+        containingBlock.scrollTop,
+      left:
+        win.pageXOffset +
+        bounds.left +
+        containingBlock.clientLeft -
+        containingBlock.scrollLeft,
+    };
   }
 
   function redraw() {
