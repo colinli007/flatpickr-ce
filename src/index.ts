@@ -785,52 +785,67 @@ function FlatpickrInstance(
     return undefined;
   }
 
-  function getNextAvailableDay(current: DayElement, delta: number) {
-    const givenMonth =
-      current.className.indexOf("Month") === -1
-        ? current.dateObj.getMonth()
-        : self.currentMonth;
-    const endMonth = delta > 0 ? self.config.showMonths : -1;
-    const loopDelta = delta > 0 ? 1 : -1;
+  function findEnabledDate(from: Date, step: number) {
+    const limit = step > 0 ? self.config.maxDate : self.config.minDate;
 
-    for (
-      let m = givenMonth - self.currentMonth;
-      m != endMonth;
-      m += loopDelta
-    ) {
-      const month = (self.daysContainer as HTMLDivElement).children[m];
-      const startIndex =
-        givenMonth - self.currentMonth === m
-          ? current.$i + delta
-          : delta < 0
-          ? month.children.length - 1
-          : 0;
-      const numMonthDays = month.children.length;
+    // without a minDate/maxDate to stop at, give up after ten years
+    for (let i = 0; limit !== undefined || i <= 3653; i++) {
+      const date = new Date(
+        from.getFullYear(),
+        from.getMonth(),
+        from.getDate() + i * step
+      );
 
-      for (
-        let i = startIndex;
-        i >= 0 && i < numMonthDays && i != (delta > 0 ? numMonthDays : -1);
-        i += loopDelta
-      ) {
-        const c = month.children[i] as DayElement;
-        if (
-          c.className.indexOf("hidden") === -1 &&
-          isEnabled(c.dateObj) &&
-          Math.abs(current.$i - i) >= Math.abs(delta)
-        )
-          return focusOnDayElem(c);
-      }
+      if (limit !== undefined && compareDates(date, limit) * step > 0)
+        return undefined;
+      if (isEnabled(date)) return date;
     }
-
-    self.changeMonth(loopDelta);
-    focusOnDay(getFirstAvailableDay(loopDelta), 0);
     return undefined;
   }
 
-  function focusOnDay(current: DayElement | undefined, offset: number) {
-    const activeElement = getClosestActiveElement();
+  function getVisibleDay(date: Date) {
+    const days = (self.daysContainer as HTMLDivElement).querySelectorAll<DayElement>(
+      ".flatpickr-day:not(.hidden)"
+    );
 
-    const dayFocused = isInView(activeElement || doc.body);
+    for (let i = 0; i < days.length; i++) {
+      if (compareDates(days[i].dateObj, date) === 0) return days[i];
+    }
+    return undefined;
+  }
+
+  function focusOnDate(date: Date) {
+    if (getVisibleDay(date) === undefined) {
+      const firstMonth = self.currentYear * 12 + self.currentMonth;
+      const targetMonth = date.getFullYear() * 12 + date.getMonth();
+
+      // bring the target month in at the edge of the view it moves towards
+      changeMonth(
+        targetMonth < firstMonth
+          ? targetMonth - firstMonth
+          : targetMonth - (firstMonth + self.config.showMonths - 1)
+      );
+    }
+
+    const dayElem = getVisibleDay(date);
+    if (dayElem !== undefined) focusOnDayElem(dayElem);
+  }
+
+  function focusOnDay(current: DayElement | undefined, offset: number) {
+    // no day grid, or a plugin such as monthSelect has replaced it
+    if (
+      self.daysContainer === undefined ||
+      !(self.rContainer as HTMLDivElement).contains(self.daysContainer)
+    )
+      return;
+
+    const activeElement = getClosestActiveElement();
+    const step = offset > 0 ? 1 : -1;
+
+    const dayFocused =
+      activeElement !== null &&
+      activeElement.classList.contains("flatpickr-day") &&
+      isInView(activeElement);
     const startElem =
       current !== undefined
         ? current
@@ -840,14 +855,41 @@ function FlatpickrInstance(
         ? self.selectedDateElem
         : self.todayDateElem !== undefined && isInView(self.todayDateElem)
         ? self.todayDateElem
-        : getFirstAvailableDay(offset > 0 ? 1 : -1);
+        : getFirstAvailableDay(step);
 
     if (startElem === undefined) {
-      self._input.focus();
+      // nothing enabled in view: look past its edge, and keep the focus in
+      // the calendar if there is nothing there either (#3064)
+      const target =
+        offset !== 0
+          ? findEnabledDate(
+              step > 0
+                ? new Date(
+                    self.currentYear,
+                    self.currentMonth + self.config.showMonths,
+                    1
+                  )
+                : new Date(self.currentYear, self.currentMonth, 0),
+              step
+            )
+          : undefined;
+
+      if (target !== undefined) focusOnDate(target);
+      else self.daysContainer.focus();
     } else if (!dayFocused) {
       focusOnDayElem(startElem);
     } else {
-      getNextAvailableDay(startElem, offset);
+      const dateObj = startElem.dateObj;
+      const target = findEnabledDate(
+        new Date(
+          dateObj.getFullYear(),
+          dateObj.getMonth(),
+          dateObj.getDate() + offset
+        ),
+        step
+      );
+
+      if (target !== undefined) focusOnDate(target);
     }
   }
 
@@ -1326,8 +1368,8 @@ function FlatpickrInstance(
     self.currentMonth += delta;
 
     if (self.currentMonth < 0 || self.currentMonth > 11) {
-      self.currentYear += self.currentMonth > 11 ? 1 : -1;
-      self.currentMonth = (self.currentMonth + 12) % 12;
+      self.currentYear += Math.floor(self.currentMonth / 12);
+      self.currentMonth = ((self.currentMonth % 12) + 12) % 12;
 
       triggerEvent("onYearChange");
       buildMonthSwitch();
@@ -1740,7 +1782,8 @@ function FlatpickrInstance(
             (self.daysContainer &&
               (eventTarget as DayElement).$i !== undefined) ||
             eventTarget === self.input ||
-            eventTarget === self.altInput
+            eventTarget === self.altInput ||
+            eventTarget === self.daysContainer
           ) {
             if (e.ctrlKey) {
               e.stopPropagation();

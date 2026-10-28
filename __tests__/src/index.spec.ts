@@ -506,6 +506,22 @@ describe("flatpickr", () => {
       expect(fp.currentMonth).toEqual(3);
     });
 
+    it("changeMonth() by more than a year", () => {
+      const events: string[] = [];
+      createInstance({
+        defaultDate: "2016-12-20",
+        onYearChange: () => events.push("year"),
+        onMonthChange: () => events.push("month"),
+      });
+
+      fp.changeMonth(30);
+      expect([fp.currentYear, fp.currentMonth]).toEqual([2019, 5]);
+      expect(events).toEqual(["year", "month"]);
+
+      fp.changeMonth(-30);
+      expect([fp.currentYear, fp.currentMonth]).toEqual([2016, 11]);
+    });
+
     it("destroy()", () => {
       let fired = false;
       const input = fp.input;
@@ -1970,6 +1986,227 @@ describe("flatpickr", () => {
         defaultDate: "2016-12-27T16:16:22.585Z",
       });
       expect((fp.altInput as HTMLInputElement).value).toEqual("December");
+    });
+  });
+
+  describe("keyboard navigation", () => {
+    const dayElem = (date: string) =>
+      Array.from(
+        fp.daysContainer!.querySelectorAll<DayElement>(".flatpickr-day")
+      ).find(
+        (day) =>
+          !day.classList.contains("hidden") &&
+          fp.formatDate(day.dateObj, "Y-m-d") === date
+      )!;
+
+    const focusedDate = () => {
+      const active = document.activeElement as DayElement;
+      return active.dateObj && fp.formatDate(active.dateObj, "Y-m-d");
+    };
+
+    const press = (
+      keyCode: number,
+      target: Node = document.activeElement!,
+      options: object = {}
+    ) => simulate("keydown", target, { keyCode, ...options });
+
+    const startOn = (config: Options, date: string) => {
+      createInstance(config);
+      fp.open();
+      dayElem(date).focus();
+    };
+
+    // from flatpickr/flatpickr#3140
+    it.each([
+      [39, "2026-01-15", "2026-01-16"],
+      [37, "2026-01-15", "2026-01-14"],
+      [38, "2026-01-15", "2026-01-08"],
+      [40, "2026-01-15", "2026-01-22"],
+      [37, "2026-01-01", "2025-12-31"],
+      [39, "2025-12-31", "2026-01-01"],
+    ])(
+      "navigates across years with multiple months (%s, %s)",
+      (keyCode, from, to) => {
+        startOn(
+          { mode: "range", showMonths: 2, defaultDate: "2025-12-01" },
+          from
+        );
+        press(keyCode);
+        expect(focusedDate()).toBe(to);
+      }
+    );
+
+    it("keeps the view when crossing a year inside it", () => {
+      startOn({ showMonths: 2, defaultDate: "2025-12-01" }, "2026-01-01");
+      press(37);
+
+      expect(focusedDate()).toBe("2025-12-31");
+      expect([fp.currentYear, fp.currentMonth]).toEqual([2025, 11]);
+    });
+
+    it("moves down to the same weekday of the next month", () => {
+      // weeks start on Sunday, so the last row is Aug 30 - Sep 5
+      startOn(
+        { defaultDate: "2026-08-15", locale: { firstDayOfWeek: 0 } },
+        "2026-08-30"
+      );
+      press(40);
+
+      expect(focusedDate()).toBe("2026-09-06");
+      expect(fp.currentMonth).toBe(8);
+    });
+
+    it("skips disabled dates", () => {
+      startOn(
+        {
+          defaultDate: "2026-01-15",
+          disable: ["2026-01-16", "2026-01-17", "2026-01-22"],
+        },
+        "2026-01-15"
+      );
+
+      press(39);
+      expect(focusedDate()).toBe("2026-01-18");
+
+      dayElem("2026-01-15").focus();
+      press(40);
+      expect(focusedDate()).toBe("2026-01-23");
+    });
+
+    it("stays on minDate", () => {
+      startOn(
+        { minDate: "2026-01-10", defaultDate: "2026-01-10" },
+        "2026-01-10"
+      );
+      press(37);
+
+      expect(focusedDate()).toBe("2026-01-10");
+    });
+
+    it("shifts multiple months just enough to show the target", () => {
+      startOn({ showMonths: 2, defaultDate: "2025-12-01" }, "2026-01-31");
+      press(39);
+
+      expect(focusedDate()).toBe("2026-02-01");
+      expect([fp.currentYear, fp.currentMonth]).toEqual([2026, 0]);
+
+      startOn({ showMonths: 2, defaultDate: "2025-12-01" }, "2025-12-01");
+      press(37);
+
+      expect(focusedDate()).toBe("2025-11-30");
+      expect([fp.currentYear, fp.currentMonth]).toEqual([2025, 10]);
+    });
+
+    it("focuses a visible day of the next month without changing it", () => {
+      startOn({ defaultDate: "2026-01-15" }, "2026-01-31");
+      press(39);
+
+      expect(focusedDate()).toBe("2026-02-01");
+      expect(fp.currentMonth).toBe(0);
+    });
+
+    it("fires onMonthChange once, after the new days are built", () => {
+      const monthsShown: number[] = [];
+      startOn(
+        {
+          defaultDate: "2026-01-15",
+          enable: ["2026-01-15", "2026-05-20"],
+          onMonthChange: (_, __, instance) =>
+            monthsShown.push(
+              instance.days
+                .querySelector<DayElement>(".flatpickr-day:not(.prevMonthDay)")!
+                .dateObj.getMonth()
+            ),
+        },
+        "2026-01-15"
+      );
+      press(39);
+
+      expect(focusedDate()).toBe("2026-05-20");
+      expect(monthsShown).toEqual([4]);
+    });
+
+    describe("without an enabled day in view (#3064)", () => {
+      it("reaches the enabled days months apart", () => {
+        createInstance({ enable: ["2026-03-30", "2026-05-21"] });
+        fp.jumpToDate("2026-01-01");
+        fp.open();
+
+        press(40, fp._input);
+        expect(focusedDate()).toBe("2026-03-30");
+        expect(fp.currentMonth).toBe(2);
+
+        press(39);
+        expect(focusedDate()).toBe("2026-05-21");
+        expect(fp.currentMonth).toBe(4);
+
+        press(39);
+        expect(focusedDate()).toBe("2026-05-21");
+      });
+
+      it("keeps the focus in the calendar when every date is disabled", () => {
+        createInstance({ disable: [() => true] });
+        fp.open();
+
+        press(40, fp._input);
+        expect(document.activeElement).toBe(fp.daysContainer);
+
+        press(39);
+        expect(document.activeElement).toBe(fp.daysContainer);
+      });
+
+      describe("after paging into a month without enabled days", () => {
+        beforeEach(() => {
+          startOn(
+            {
+              defaultDate: "2026-01-15",
+              enable: ["2026-01-15", "2026-03-20"],
+            },
+            "2026-01-15"
+          );
+          press(39, document.activeElement!, { ctrlKey: true });
+        });
+
+        it("keeps the focus on the days", () => {
+          expect(fp.currentMonth).toBe(1);
+          expect(document.activeElement).toBe(fp.daysContainer);
+        });
+
+        it("goes on with left/right", () => {
+          press(39);
+          expect(focusedDate()).toBe("2026-03-20");
+          expect(fp.currentMonth).toBe(2);
+        });
+
+        it("goes on with up/down", () => {
+          press(40);
+          expect(focusedDate()).toBe("2026-03-20");
+        });
+
+        it("goes on paging with ctrl+up/down", () => {
+          press(40, document.activeElement!, { ctrlKey: true });
+          expect(fp.currentYear).toBe(2025);
+        });
+      });
+    });
+
+    it("starts from the selected date", () => {
+      createInstance({ defaultDate: "2026-01-15" });
+      fp.open();
+
+      press(40, fp._input);
+      expect(focusedDate()).toBe("2026-01-15");
+    });
+
+    it("does nothing without a calendar", () => {
+      const consoleError = jest.spyOn(console, "error").mockImplementation();
+      createInstance({ noCalendar: true, enableTime: true });
+      fp.open();
+
+      press(40, fp._input);
+
+      expect(consoleError).not.toHaveBeenCalled();
+      consoleError.mockRestore();
     });
   });
 

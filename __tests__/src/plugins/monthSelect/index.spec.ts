@@ -351,6 +351,27 @@ describe("monthSelect", () => {
   describe("syncing with the instance state", () => {
     const thisYear = new Date().getFullYear();
 
+    let mounted: Instance | undefined;
+
+    const createMountedInstance = (config: Options) => {
+      const input = document.createElement("input");
+      document.body.appendChild(input);
+      mounted = flatpickr(input, {
+        plugins: [monthSelectPlugin({})],
+        ...config,
+      }) as Instance;
+      return mounted;
+    };
+
+    afterEach(() => {
+      if (mounted) {
+        const input = mounted.input;
+        mounted.destroy();
+        input.remove();
+        mounted = undefined;
+      }
+    });
+
     const monthCells = (instance: Instance) =>
       Array.from(
         instance.rContainer!.querySelectorAll<HTMLElement>(
@@ -514,27 +535,6 @@ describe("monthSelect", () => {
     });
 
     describe("focus after selecting a month", () => {
-      let mounted: Instance | undefined;
-
-      const createMountedInstance = (config: Options) => {
-        const input = document.createElement("input");
-        document.body.appendChild(input);
-        mounted = flatpickr(input, {
-          plugins: [monthSelectPlugin({})],
-          ...config,
-        }) as Instance;
-        return mounted;
-      };
-
-      afterEach(() => {
-        if (mounted) {
-          const input = mounted.input;
-          mounted.destroy();
-          input.remove();
-          mounted = undefined;
-        }
-      });
-
       it("stays on the month selected with Enter", () => {
         const fp = createMountedInstance({ inline: true });
         const may = monthCells(fp)[4];
@@ -557,6 +557,29 @@ describe("monthSelect", () => {
 
         expect(selectedMonths(fp)).toEqual(["May"]);
         expect(document.activeElement).toBe(monthCells(fp)[5]);
+      });
+    });
+
+    describe("core keyboard navigation", () => {
+      it("leaves arrow keys to the month cells", () => {
+        // two adjacent enabled months that the hidden day grid doesn't show,
+        // so the day grid itself has nothing enabled in view
+        const currentMonth = new Date().getMonth();
+        const month = currentMonth <= 6 ? 9 : 1;
+        const fp = createMountedInstance({
+          enable: [
+            new Date(thisYear, month, 1),
+            new Date(thisYear, month + 1, 1),
+            new Date(thisYear + 2, 5, 1),
+          ],
+        });
+        fp.open();
+
+        monthCells(fp)[month].focus();
+        keyEvent("keydown", document.activeElement!, 39);
+
+        expect(fp.currentYear).toEqual(thisYear);
+        expect(document.activeElement).toBe(monthCells(fp)[month + 1]);
       });
     });
   });
