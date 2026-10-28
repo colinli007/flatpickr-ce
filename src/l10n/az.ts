@@ -1,4 +1,4 @@
-/* Azerbaijan locals for flatpickr */
+/* Azerbaijani locals for flatpickr */
 import { CustomLocale } from "../types/locale";
 import { FlatpickrFn } from "../types/instance";
 
@@ -62,6 +62,10 @@ export const Azerbaijan: CustomLocale = {
   scrollTitle: "Artırmaq üçün sürüşdürün",
   toggleTitle: "Aç / Bağla",
   amPM: ["GƏ", "GS"],
+  yearAriaLabel: "İl",
+  monthAriaLabel: "Ay",
+  hourAriaLabel: "Saat",
+  minuteAriaLabel: "Dəqiqə",
   time_24hr: true,
 };
 
