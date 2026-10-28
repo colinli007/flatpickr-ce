@@ -171,6 +171,7 @@ export type key =
   | "sq"
   | "sr"
   | "sv"
+  | "tg"
   | "th"
   | "tr"
   | "uk"

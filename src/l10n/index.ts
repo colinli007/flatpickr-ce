@@ -57,6 +57,7 @@ import { Slovenian as sl } from "./sl";
 import { Albanian as sq } from "./sq";
 import { Serbian as sr } from "./sr";
 import { Swedish as sv } from "./sv";
+import { Tajik as tg } from "./tg";
 import { Thai as th } from "./th";
 import { Turkish as tr } from "./tr";
 import { Ukrainian as uk } from "./uk";
@@ -126,6 +127,7 @@ const l10n: Record<key, CustomLocale> = {
   sq,
   sr,
   sv,
+  tg,
   th,
   tr,
   uk,
