@@ -2090,7 +2090,9 @@ describe("flatpickr", () => {
 
       const calendar = fp.calendarContainer;
       expect(calendar.style.left).toEqual("50px");
-      expect(calendar.style.getPropertyValue("--fp-arrow-left")).toEqual("70px");
+      expect(calendar.style.getPropertyValue("--fp-arrow-left")).toEqual(
+        "70px"
+      );
       expect(calendar.classList.contains("centerMost")).toBe(true);
       expect(calendar.classList.contains("rightMost")).toBe(false);
       expect(document.styleSheets.length).toEqual(sheets);
