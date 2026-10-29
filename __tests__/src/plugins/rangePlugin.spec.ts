@@ -1,5 +1,5 @@
 import flatpickr from "index";
-import rangePlugin from "plugins/rangePlugin";
+import rangePlugin, { Config } from "plugins/rangePlugin";
 import { Options } from "types/options";
 import { Instance } from "types/instance";
 
@@ -55,7 +55,7 @@ describe("rangePlugin", () => {
         position: (_, anchor) => anchors.push(anchor),
         onOpen,
         onClose,
-      }) as Instance;
+      });
     });
 
     afterEach(() => {
@@ -92,6 +92,23 @@ describe("rangePlugin", () => {
       expect(fp.isOpen).toBe(true);
     });
 
+    it("opens under the first input again after closing under the second", () => {
+      focusAndClick(secondInput);
+      document.body.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true })
+      );
+      expect(fp.isOpen).toBe(false);
+
+      anchors = [];
+      focusAndClick(input);
+      expect(anchors).toEqual([input]);
+
+      fp.close();
+      anchors = [];
+      fp.open();
+      expect(anchors).toEqual([input]);
+    });
+
     it("doesn't fire onOpen when selecting the end date closes the calendar", () => {
       fp.jumpToDate("2017-10-01");
       focusAndClick(input);
@@ -119,39 +136,97 @@ describe("rangePlugin", () => {
     });
   });
 
-  it("keeps the calendar under the second input when the window resizes", () => {
-    const input = document.createElement("input");
-    const secondInput = document.createElement("input");
-    document.body.append(input, secondInput);
-    const rect = (left: number) => () =>
-      ({
-        top: 100,
-        left,
-        width: 100,
-        right: left + 100,
-        bottom: 130,
-        height: 30,
-      } as DOMRect);
-    input.getBoundingClientRect = rect(50);
-    secondInput.getBoundingClientRect = rect(500);
-    const fp = flatpickr(input, {
-      plugins: [rangePlugin({ input: secondInput })],
+  describe("anchoring", () => {
+    let input: HTMLInputElement,
+      secondInput: HTMLInputElement,
+      wrap: HTMLDivElement,
+      fp: Instance;
+    const leftUnder = new Map<HTMLElement, string>();
+
+    // jsdom has no layout: give each element its own box
+    const stubRect = (elem: HTMLElement, left: number) => {
+      elem.getBoundingClientRect = () =>
+        ({
+          top: 100,
+          left,
+          width: 100,
+          right: left + 100,
+          bottom: 130,
+          height: 30,
+        } as DOMRect);
+    };
+
+    beforeEach(() => {
+      input = document.createElement("input");
+      secondInput = document.createElement("input");
+      wrap = document.createElement("div");
+      document.body.append(input, secondInput, wrap);
+      stubRect(input, 50);
+      stubRect(secondInput, 500);
+      stubRect(wrap, 250);
     });
 
-    input.focus();
-    const firstLeft = fp.calendarContainer.style.left;
-    secondInput.focus();
-    const secondLeft = fp.calendarContainer.style.left;
-    expect(secondLeft).not.toBe(firstLeft);
+    afterEach(() => {
+      fp.destroy();
+      input.remove();
+      secondInput.remove();
+      wrap.remove();
+    });
 
-    fp.calendarContainer.style.left = ""; // only the resize can restore it
-    window.dispatchEvent(new Event("resize"));
-    jest.advanceTimersByTime(50); // resize is debounced
-    expect(fp.calendarContainer.style.left).toBe(secondLeft);
+    const create = (rangeConfig: Config = {}, options: Options = {}) => {
+      fp = flatpickr(input, {
+        plugins: [rangePlugin({ input: secondInput, ...rangeConfig })],
+        ...options,
+      });
 
-    fp.destroy();
-    input.remove();
-    secondInput.remove();
+      // where flatpickr puts the calendar under each element
+      for (const elem of [input, secondInput, wrap]) {
+        fp._positionCalendar(elem);
+        leftUnder.set(elem, fp.calendarContainer.style.left);
+      }
+      fp.calendarContainer.style.left = "";
+    };
+
+    const expectUnder = (elem: HTMLElement) =>
+      expect(fp.calendarContainer.style.left).toBe(leftUnder.get(elem));
+
+    const resize = () => {
+      fp.calendarContainer.style.left = ""; // only the resize can restore it
+      window.dispatchEvent(new Event("resize"));
+      jest.advanceTimersByTime(50); // resize is debounced
+    };
+
+    it("keeps the calendar under the second input when the window resizes", () => {
+      create();
+      input.focus();
+      secondInput.focus();
+      expectUnder(secondInput);
+
+      resize();
+      expectUnder(secondInput);
+    });
+
+    it("keeps the calendar under the first input with position left", () => {
+      create({ position: "left" });
+      input.focus();
+      secondInput.focus();
+      expectUnder(input);
+
+      resize();
+      expectUnder(input);
+    });
+
+    it("anchors the first input to positionElement", () => {
+      create({}, { positionElement: wrap });
+      input.focus();
+      expectUnder(wrap);
+
+      secondInput.focus();
+      expectUnder(secondInput);
+
+      input.focus();
+      expectUnder(wrap);
+    });
   });
 
   it("doesn't open from either input when clickOpens is false", () => {
@@ -193,7 +268,7 @@ describe("rangePlugin", () => {
       plugins: [rangePlugin({ input: secondInput })],
       allowInput: true,
       onChange,
-    }) as Instance;
+    });
     fp.setDate(["2017-10-20", "2017-10-25"], true);
     onChange.mockClear();
 

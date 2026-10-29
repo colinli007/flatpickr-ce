@@ -18,6 +18,9 @@ function rangePlugin(config: Config = {}): Plugin {
       _secondInputFocused: boolean,
       _prevDates: Date[] = [];
 
+    // the anchor flatpickr itself uses for fp._input
+    const firstInputAnchor = () => fp.config.positionElement || fp._input;
+
     const createSecondInput = () => {
       if (config.input) {
         secondInput =
@@ -59,10 +62,12 @@ function rangePlugin(config: Config = {}): Plugin {
 
           _secondInputFocused = true;
 
-          const anchor = config.position === "left" ? fp._input : secondInput;
+          // flatpickr positions from _positionElement when opening and on resize
+          fp._positionElement =
+            config.position === "left" ? firstInputAnchor() : secondInput;
           // already open under the first input: only move it
-          if (fp.isOpen) fp._positionCalendar(anchor);
-          else fp.open(undefined, anchor);
+          if (fp.isOpen) fp._positionCalendar(fp._positionElement);
+          else fp.open();
         });
       }
 
@@ -101,10 +106,13 @@ function rangePlugin(config: Config = {}): Plugin {
           secondInput.setAttribute("readonly", "readonly");
         }
 
-        // flatpickr itself opens the calendar from fp._input
+        // flatpickr itself opens the calendar from fp._input, before this runs
         fp._bind(fp._input, "focus", () => {
+          const anchor = firstInputAnchor();
           // back from the second input: move the open calendar under this one
-          if (_secondInputFocused && fp.isOpen) fp._positionCalendar(fp._input);
+          if (fp.isOpen && fp._positionElement !== anchor)
+            fp._positionCalendar(anchor);
+          fp._positionElement = anchor;
 
           fp.latestSelectedDateObj = fp.selectedDates[0];
           fp._setHoursFromDate(fp.selectedDates[0]);
@@ -127,13 +135,9 @@ function rangePlugin(config: Config = {}): Plugin {
         fp.loadedPlugins.push("range");
       },
 
-      onPreCalendarPosition() {
-        if (_secondInputFocused) {
-          fp._positionElement = secondInput;
-          setTimeout(() => {
-            fp._positionElement = fp._input;
-          }, 0);
-        }
+      onClose() {
+        // flatpickr's own openings, focus or fp.open(), belong to fp._input
+        fp._positionElement = firstInputAnchor();
       },
 
       onChange() {
