@@ -169,7 +169,8 @@ function rangePlugin(config: Config = {}): Plugin {
         if (!secondInput) return;
 
         // flatpickr dropped one side of the range: keep the other side
-        const isEdit = selDates.length < _prevDates.length;
+        // (dropping both, e.g. an unparsable setDate, leaves nothing to keep)
+        const isEdit = selDates.length === 1 && _prevDates.length === 2;
 
         if (isEdit) {
           const newSelectedDate = selDates[0];

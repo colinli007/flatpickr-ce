@@ -323,6 +323,22 @@ describe("rangePlugin", () => {
   // _input only shows the first date with this plugin, so flatpickr reads it
   // as an edit and the range gets cleared, as it always has; now it's announced
   // and the second input follows
+  it("clears both inputs when setDate can't parse the new value", () => {
+    const secondInput = document.createElement("input");
+    const errorHandler = jest.fn();
+    const fp = createInstance({
+      plugins: [rangePlugin({ input: secondInput })],
+      defaultDate: ["2017-10-20", "2017-10-25"],
+      errorHandler,
+    });
+
+    expect(() => fp.setDate("garbage", true)).not.toThrow();
+    expect(errorHandler).toHaveBeenCalled();
+    expect(fp.selectedDates).toEqual([]);
+    expect(fp._input.value).toEqual("");
+    expect(secondInput.value).toEqual("");
+  });
+
   it("announces the range it clears when clicking outside with allowInput", () => {
     const input = document.createElement("input");
     const secondInput = document.createElement("input");
