@@ -2184,17 +2184,6 @@ function FlatpickrInstance(
       self.config[hook] = arrayify(self.config[hook] || []).map(bindToInstance);
     });
 
-    self.isMobile =
-      !self.config.disableMobile &&
-      !self.config.inline &&
-      self.config.mode === "single" &&
-      !self.config.disable.length &&
-      !self.config.enable &&
-      !self.config.weekNumbers &&
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      );
-
     for (let i = 0; i < self.config.plugins.length; i++) {
       const pluginConf = self.config.plugins[i](self) || ({} as Options);
       for (const key in pluginConf) {
@@ -2208,6 +2197,18 @@ function FlatpickrInstance(
           (self.config as any)[key] = pluginConf[key as keyof Options] as any;
       }
     }
+
+    // after the plugins, whose options (e.g. disableMobile) count too
+    self.isMobile =
+      !self.config.disableMobile &&
+      !self.config.inline &&
+      self.config.mode === "single" &&
+      !self.config.disable.length &&
+      !self.config.enable &&
+      !self.config.weekNumbers &&
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
 
     if (!userConfig.altInputClass) {
       self.config.altInputClass =

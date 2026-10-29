@@ -23,7 +23,7 @@ function confirmDatePlugin(pluginConfig: Config): Plugin {
   const confirmButtonCSSClass = "flatpickr-confirm";
 
   return function (fp: Instance) {
-    if (fp.config.noCalendar || fp.isMobile) return {};
+    if (fp.config.noCalendar) return {};
     return {
       onKeyDown(_: Date[], __: string, ___: Instance, e: KeyboardEvent) {
         const eventTarget = getEventTarget(e);
@@ -44,6 +44,9 @@ function confirmDatePlugin(pluginConfig: Config): Plugin {
       },
 
       onReady() {
+        // fp.isMobile is only known once every plugin's options are in
+        if (fp.isMobile) return;
+
         confirmContainer = fp._createElement<HTMLDivElement>(
           "div",
           `${confirmButtonCSSClass} ${config.showAlways ? "visible" : ""} ${
@@ -68,7 +71,7 @@ function confirmDatePlugin(pluginConfig: Config): Plugin {
                 fp.config.mode === "multiple" ||
                 fp.loadedPlugins.indexOf("monthSelect") !== -1;
 
-              const localConfirmContainer = fp.calendarContainer.querySelector(
+              const localConfirmContainer = fp.calendarContainer?.querySelector(
                 `.${confirmButtonCSSClass}`
               );
 

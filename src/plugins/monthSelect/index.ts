@@ -290,6 +290,8 @@ function monthSelectPlugin(pluginConfig?: Partial<Config>): Plugin {
     }
 
     return {
+      // the native date input can't pick a month
+      disableMobile: true,
       onParseConfig() {
         fp.config.enableTime = false;
       },

@@ -1730,8 +1730,24 @@ describe("flatpickr", () => {
         it("with confirmDatePlugin", () => {
           mockAgent = "Android";
           createInstance({
+            defaultDate: "2016-10-01",
             plugins: [confirmDatePlugin({})],
           });
+
+          expect(fp.isMobile).toBe(true);
+
+          fp.setDate("2016-10-20", true);
+          expect(fp.input.value).toBe("2016-10-20");
+        });
+
+        it("follows the options plugins set", () => {
+          mockAgent = "Android";
+          createInstance({
+            plugins: [() => ({ disableMobile: true })],
+          });
+
+          expect(fp.isMobile).toBe(false);
+          expect(fp.mobileInput).toBeUndefined();
         });
       });
     });

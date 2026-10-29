@@ -1,4 +1,5 @@
 import flatpickr from "index";
+import confirmDatePlugin from "plugins/confirmDate/confirmDate";
 import monthSelectPlugin, {
   Config as PluginConfig,
 } from "plugins/monthSelect/index";
@@ -580,6 +581,46 @@ describe("monthSelect", () => {
 
         expect(fp.currentYear).toEqual(thisYear);
         expect(document.activeElement).toBe(monthCells(fp)[month + 1]);
+      });
+    });
+  });
+
+  describe("on a mobile device", () => {
+    beforeEach(() => {
+      jest.spyOn(navigator, "userAgent", "get").mockReturnValue("Android");
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it("shows the month grid instead of the native date input #3119", () => {
+      const fp = createInstance() as Instance;
+
+      expect(fp.isMobile).toBe(false);
+      expect(fp.mobileInput).toBeUndefined();
+
+      fp.rContainer!.querySelectorAll(
+        ".flatpickr-monthSelect-month"
+      )[3].dispatchEvent(new MouseEvent("click"));
+
+      expect(fp.selectedDates[0].getMonth()).toEqual(3);
+    });
+
+    it("keeps the confirmDate button, whatever the plugin order", () => {
+      const orders = [
+        [confirmDatePlugin({}), monthSelectPlugin({})],
+        [monthSelectPlugin({}), confirmDatePlugin({})],
+      ];
+
+      orders.forEach((plugins) => {
+        const fp = flatpickr(document.createElement("input"), {
+          plugins,
+        }) as Instance;
+
+        expect(
+          fp.calendarContainer.querySelector(".flatpickr-confirm")
+        ).not.toBeNull();
       });
     });
   });
