@@ -1,0 +1,55 @@
+{
+  "skill_name": "issue-fix-check",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "https://github.com/flatpickr/flatpickr/issues/3083 这个处理一下",
+      "expected_output": "读出 issue（实例创建后 set(\"enableTime\", true) 没有效果）；在 jsdom 里写出修复前失败的测试；根因落到 src/index.ts 里 set() 对 enableTime 的处理（时间区块只在 build 时创建）；修法打在根因上；分级 CHECK（核心 src/index.ts），起 Fable 检查并校对结论后汇报",
+      "files": [],
+      "assertions": [
+        "开工前查过 git log --grep 和进度清单 colinli007/flatpickr-ce#2",
+        "新增的测试在修复前失败、修复后通过",
+        "npm test 全绿",
+        "root-cause.md 写了「考虑过并放弃的方案」和「行为变化」",
+        "classify.py 输出 CHECK，并以 model: fable 起了全新的 general-purpose agent（不是 fork）",
+        "汇报里对检查者的每条意见给出了同意 / 不同意和理由",
+        "没有在上游 issue 下回复，没有提交"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "flatpickr#3119 monthSelect 在手机上点了没反应，看看怎么修",
+      "expected_output": "确认移动端走原生 input 时 monthSelect 不生效；根因陈述的「假设」写明依赖移动端原生输入行为、jsdom 无法验证；classify.py 因假设命中而判 CHECK；报告如实写明未在真机验证",
+      "files": [],
+      "assertions": [
+        "根因陈述的「假设」里写了移动端 / 原生输入相关的前提",
+        "classify.py 的 check_reasons 包含「依赖 jsdom 验证不了的前提」",
+        "起了 Fable 检查者",
+        "报告如实说明浏览器 / 真机验证情况"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "看看 https://github.com/flatpickr/flatpickr/pull/3081 能不能合",
+      "expected_output": "通过 git log --grep \"flatpickr#3081\" 发现已在 b7121419 合入，直接告诉用户已处理，不重复修改",
+      "files": [],
+      "assertions": [
+        "识别出已有提交 b7121419",
+        "没有修改任何文件",
+        "没有起检查者"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "上游有个新 PR 给 confirmDate 插件的默认按钮文案改了个错别字，帮我移植过来",
+      "expected_output": "读 PR diff，只改字符串字面量；classify.py 判 SKIP，不起检查者，汇报写明「分级 SKIP，未做独立检查」；记下原作者供提交时用",
+      "files": [],
+      "assertions": [
+        "classify.py 输出 SKIP",
+        "没有起检查者",
+        "汇报写明分级 SKIP、未做独立检查",
+        "取了 PR 原作者信息，提交时保留"
+      ]
+    }
+  ]
+}
