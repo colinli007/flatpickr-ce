@@ -41,6 +41,8 @@ function rangePlugin(config: Config = {}): Plugin {
       } else {
         secondInput = fp._input.cloneNode() as HTMLInputElement;
         secondInput.removeAttribute("id");
+        // cloneNode copies the first input's value too
+        secondInput.value = "";
         secondInput._flatpickr = undefined;
       }
 

@@ -75,6 +75,20 @@ describe("rangePlugin", () => {
     expect(secondInput.value).toEqual("25/10/2017");
   });
 
+  it("starts the cloned second input empty", () => {
+    const wrapper = document.createElement("div");
+    const input = document.createElement("input");
+    input.value = "2017-10-20";
+    wrapper.appendChild(input);
+    const fp = flatpickr(input, {
+      plugins: [rangePlugin()],
+      dateFormat: "Y-m-d",
+    });
+
+    expect(fp.selectedDates).toEqual([new Date(2017, 9, 20)]);
+    expect((input.nextSibling as HTMLInputElement).value).toEqual("");
+  });
+
   it("should set readonly attribute when allowInput is false", () => {
     const secondInput = document.createElement("input");
     const fp = createInstance({
