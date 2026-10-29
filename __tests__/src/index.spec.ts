@@ -408,6 +408,72 @@ describe("flatpickr", () => {
         expect(fp.selectedDates[0].getHours()).toBe(15);
       });
     });
+
+    describe("field order", () => {
+      afterEach(() => {
+        jest.setSystemTime(jest.getRealSystemTime());
+      });
+
+      it("parses a day the current month doesn't have with noCalendar #3078", () => {
+        jest.setSystemTime(new Date(2025, 1, 25));
+        createInstance({
+          mode: "multiple",
+          dateFormat: "d/m/Y",
+          minDate: "30/01/2025",
+          maxDate: "30/01/2025",
+          noCalendar: true,
+          defaultDate: ["30/01/2025"],
+        });
+
+        expect(fp.selectedDates).toEqual([new Date(2025, 0, 30)]);
+        expect(fp.input.value).toEqual("30/01/2025");
+      });
+
+      it("parses into a month shorter than today's day with noCalendar", () => {
+        jest.setSystemTime(new Date(2025, 0, 31));
+        createInstance({ noCalendar: true });
+
+        expect(fp.parseDate("15/02/2025", "d/m/Y")).toEqual(
+          new Date(2025, 1, 15)
+        );
+        expect(fp.parseDate("02/15/2025", "m/d/Y")).toEqual(
+          new Date(2025, 1, 15)
+        );
+        expect(fp.parseDate("2025-02-15")).toEqual(new Date(2025, 1, 15));
+      });
+
+      it.each([
+        ["02/2025", "m/Y"],
+        ["February 2025", "F Y"],
+        ["Feb 2025", "M Y"],
+      ])(
+        "starts a month without a day on the 1st with noCalendar (%s)",
+        (value, format) => {
+          jest.setSystemTime(new Date(2025, 0, 31));
+          createInstance({ noCalendar: true });
+
+          expect(fp.parseDate(value, format)).toEqual(new Date(2025, 1, 1));
+        }
+      );
+
+      it("keeps today for a time with noCalendar", () => {
+        jest.setSystemTime(new Date(2025, 0, 31, 10));
+        createInstance({ noCalendar: true, enableTime: true });
+
+        expect(fp.parseDate("21:11", "H:i")).toEqual(
+          new Date(2025, 0, 31, 21, 11)
+        );
+      });
+
+      it("parses February 29th with a two-digit year", () => {
+        jest.setSystemTime(new Date(2025, 5, 1));
+        createInstance();
+
+        expect(fp.parseDate("29/02/24", "d/m/y")).toEqual(
+          new Date(2024, 1, 29)
+        );
+      });
+    });
   });
 
   describe("date formatting", () => {

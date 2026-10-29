@@ -9,6 +9,18 @@ import {
 import { defaults, ParsedOptions } from "../types/options";
 import { english } from "../l10n/default";
 
+// The parsed fields are written one by one into a Date, which rolls a day its
+// month doesn't have (February 30th) over into the next month, so the year is
+// written first, then the month, then the rest in format order
+const writeOrder: { [t in token]?: number } = {
+  Y: 0,
+  y: 0,
+  F: 1,
+  M: 1,
+  m: 1,
+  n: 1,
+};
+
 export interface FormatterArgs {
   config?: ParsedOptions;
   l10n?: Locale;
@@ -80,7 +92,7 @@ export const createDateParser = ({ config = defaults, l10n = english }) => (
       parsedDate = new Date(date);
     } else {
       let matched,
-        ops: { fn: RevFormatFn; val: string }[] = [];
+        ops: { fn: RevFormatFn; val: string }[][] = [[], [], []];
 
       for (let i = 0, matchIndex = 0, regexStr = ""; i < format.length; i++) {
         const token = format[i] as token;
@@ -91,7 +103,7 @@ export const createDateParser = ({ config = defaults, l10n = english }) => (
           regexStr += tokenRegex[token];
           const match = new RegExp(regexStr).exec(date);
           if (match && (matched = true)) {
-            ops[token !== "Y" ? "push" : "unshift"]({
+            ops[writeOrder[token] ?? 2].push({
               fn: revFormat[token],
               val: match[++matchIndex],
             });
@@ -104,9 +116,11 @@ export const createDateParser = ({ config = defaults, l10n = english }) => (
           ? new Date(new Date().getFullYear(), 0, 1, 0, 0, 0, 0)
           : (new Date(new Date().setHours(0, 0, 0, 0)) as Date);
 
-      ops.forEach(
-        ({ fn, val }) =>
-          (parsedDate = fn(parsedDate as Date, val, locale) || parsedDate)
+      ops.forEach((group) =>
+        group.forEach(
+          ({ fn, val }) =>
+            (parsedDate = fn(parsedDate as Date, val, locale) || parsedDate)
+        )
       );
 
       parsedDate = matched ? parsedDate : undefined;

@@ -41,10 +41,12 @@ export type RevFormatFn = (
   locale: Locale
 ) => Date | void | undefined;
 export type RevFormat = Record<string, RevFormatFn>;
+// Month setters start the month on the 1st: the day, if any, is written after
+// the month (see createDateParser), and the base date's day may not exist in it
 export const revFormat: RevFormat = {
   D: doNothing,
   F: function (dateObj: Date, monthName: string, locale: Locale) {
-    dateObj.setMonth(locale.months.longhand.indexOf(monthName));
+    dateObj.setMonth(locale.months.longhand.indexOf(monthName), 1);
   },
   G: (dateObj: Date, hour: string) => {
     dateObj.setHours((dateObj.getHours() >= 12 ? 12 : 0) + parseFloat(hour));
@@ -62,7 +64,7 @@ export const revFormat: RevFormat = {
     );
   },
   M: function (dateObj: Date, shortMonth: string, locale: Locale) {
-    dateObj.setMonth(locale.months.shorthand.indexOf(shortMonth));
+    dateObj.setMonth(locale.months.shorthand.indexOf(shortMonth), 1);
   },
   S: (dateObj: Date, seconds: string) => {
     dateObj.setSeconds(parseFloat(seconds));
@@ -103,10 +105,10 @@ export const revFormat: RevFormat = {
   },
   l: doNothing,
   m: (dateObj: Date, month: string) => {
-    dateObj.setMonth(parseFloat(month) - 1);
+    dateObj.setMonth(parseFloat(month) - 1, 1);
   },
   n: (dateObj: Date, month: string) => {
-    dateObj.setMonth(parseFloat(month) - 1);
+    dateObj.setMonth(parseFloat(month) - 1, 1);
   },
   s: (dateObj: Date, seconds: string) => {
     dateObj.setSeconds(parseFloat(seconds));
