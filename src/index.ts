@@ -547,7 +547,6 @@ function FlatpickrInstance(
   function triggerViewChange(oldYear: number, oldMonth: number) {
     if (self.currentYear !== oldYear) {
       triggerEvent("onYearChange");
-      buildMonthSwitch();
     }
 
     if (self.currentYear !== oldYear || self.currentMonth !== oldMonth) {
@@ -1001,6 +1000,7 @@ function FlatpickrInstance(
 
   function buildMonthSwitch() {
     if (
+      self.monthsDropdownContainer === undefined ||
       self.config.showMonths > 1 ||
       self.config.monthSelectorType !== "dropdown"
     )
@@ -1623,7 +1623,6 @@ function FlatpickrInstance(
     if (isNewYear) {
       self.redraw();
       triggerEvent("onYearChange");
-      buildMonthSwitch();
     }
   }
 

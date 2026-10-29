@@ -974,6 +974,27 @@ describe("flatpickr", () => {
         expect(events).toEqual(["year", "month", "value", "change", "close"]);
       });
 
+      it("commits a date in another year without a calendar", () => {
+        const onYearChange = jest.fn();
+        createInstance({
+          allowInput: true,
+          noCalendar: true,
+          defaultDate: "2001-01-01",
+          onYearChange,
+        });
+
+        fp.input.focus();
+        fp.input.value = "1999-12-31";
+        pressEnter();
+
+        expect(fp.selectedDates).toEqual([new Date(1999, 11, 31)]);
+        expect(onYearChange).toHaveBeenCalledTimes(1);
+
+        fp.changeMonth(1);
+        expect(fp.currentYear).toBe(2000);
+        expect(onYearChange).toHaveBeenCalledTimes(2);
+      });
+
       it("stays silent on Enter or blur without an edit", () => {
         const onChange = jest.fn();
         createInstance({
@@ -1806,6 +1827,23 @@ describe("flatpickr", () => {
           expect(fp.input.value).toBe("2016-10-20");
         });
 
+        it("moves to another year", () => {
+          mockAgent = "Android";
+          const onYearChange = jest.fn();
+          createInstance({ defaultDate: "2001-01-01", onYearChange });
+
+          fp.setDate("1999-12-31", true);
+          expect(fp.mobileInput!.value).toBe("1999-12-31");
+
+          fp.changeYear(1998);
+          expect(fp.currentYear).toBe(1998);
+          expect(onYearChange).toHaveBeenCalledTimes(2);
+
+          fp.changeMonth(1);
+          expect(fp.currentYear).toBe(1999);
+          expect(onYearChange).toHaveBeenCalledTimes(3);
+        });
+
         it("follows the options plugins set", () => {
           mockAgent = "Android";
           createInstance({
@@ -2423,6 +2461,31 @@ describe("flatpickr", () => {
 
       expect(months[0].innerHTML).toEqual("May");
       expect(months[7].innerHTML).toEqual("December");
+    });
+
+    it("dropdown follows the year the view moves to", () => {
+      createInstance({
+        allowInput: true,
+        defaultDate: new Date(2019, 5, 11),
+        minDate: new Date(2019, 4, 11),
+      });
+
+      const monthCount = () =>
+        fp.calendarContainer.querySelectorAll(".flatpickr-monthDropdown-month")
+          .length;
+
+      fp.setDate(new Date(2020, 2, 1), true);
+      expect(monthCount()).toEqual(12);
+
+      fp.changeYear(2019);
+      expect(monthCount()).toEqual(8);
+
+      fp.changeYear(2021);
+      fp._input.focus();
+      fp._input.value = "2019-06-11";
+      simulate("keydown", fp._input, { keyCode: 13 });
+      expect(fp.currentYear).toEqual(2019);
+      expect(monthCount()).toEqual(8);
     });
 
     it("dropdown should correctly load months with maxDate", () => {
