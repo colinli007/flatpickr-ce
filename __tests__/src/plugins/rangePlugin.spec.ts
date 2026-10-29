@@ -3,19 +3,12 @@ import rangePlugin from "plugins/rangePlugin";
 import { Options } from "types/options";
 import { Instance } from "types/instance";
 
-type RangeInstance = Instance & {
-  secondInput: HTMLInputElement;
-};
-
 flatpickr.defaultConfig.animate = false;
 
 jest.useFakeTimers();
 
 const createInstance = (config?: Options): Instance => {
-  return flatpickr(
-    document.createElement("input"),
-    config as Options
-  ) as Instance;
+  return flatpickr(document.createElement("input"), config);
 };
 
 describe("rangePlugin", () => {
@@ -25,7 +18,7 @@ describe("rangePlugin", () => {
       plugins: [rangePlugin({ input: secondInput })],
       defaultDate: ["2017-10-20", "2017-10-25"],
       dateFormat: "Y-m-d",
-    }) as RangeInstance;
+    });
 
     expect(fp.selectedDates.length).toEqual(2);
     expect(secondInput.value).toEqual("2017-10-25");
@@ -36,7 +29,7 @@ describe("rangePlugin", () => {
     const fp = createInstance({
       plugins: [rangePlugin({ input: secondInput })],
       allowInput: false,
-    }) as RangeInstance;
+    });
 
     expect(fp._input.getAttribute("readonly")).toBe("readonly");
     expect(secondInput.getAttribute("readonly")).toBe("readonly");
@@ -112,6 +105,79 @@ describe("rangePlugin", () => {
       expect(onOpen).toHaveBeenCalledTimes(1);
       expect(onClose).toHaveBeenCalledTimes(1);
     });
+
+    it("refocuses the second input after picking the start date without reopening", () => {
+      fp.jumpToDate("2017-10-01");
+      focusAndClick(secondInput);
+      (fp.days.childNodes[20] as HTMLElement).click();
+      jest.runAllTimers();
+
+      expect(fp.selectedDates.length).toBe(1);
+      expect(fp.isOpen).toBe(true);
+      expect(document.activeElement).toBe(secondInput);
+      expect(onOpen).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("keeps the calendar under the second input when the window resizes", () => {
+    const input = document.createElement("input");
+    const secondInput = document.createElement("input");
+    document.body.append(input, secondInput);
+    const rect = (left: number) => () =>
+      ({
+        top: 100,
+        left,
+        width: 100,
+        right: left + 100,
+        bottom: 130,
+        height: 30,
+      } as DOMRect);
+    input.getBoundingClientRect = rect(50);
+    secondInput.getBoundingClientRect = rect(500);
+    const fp = flatpickr(input, {
+      plugins: [rangePlugin({ input: secondInput })],
+    });
+
+    input.focus();
+    const firstLeft = fp.calendarContainer.style.left;
+    secondInput.focus();
+    const secondLeft = fp.calendarContainer.style.left;
+    expect(secondLeft).not.toBe(firstLeft);
+
+    fp.calendarContainer.style.left = ""; // only the resize can restore it
+    window.dispatchEvent(new Event("resize"));
+    jest.advanceTimersByTime(50); // resize is debounced
+    expect(fp.calendarContainer.style.left).toBe(secondLeft);
+
+    fp.destroy();
+    input.remove();
+    secondInput.remove();
+  });
+
+  it("doesn't open from either input when clickOpens is false", () => {
+    const input = document.createElement("input");
+    const secondInput = document.createElement("input");
+    document.body.append(input, secondInput);
+    const onOpen = jest.fn();
+    const fp = flatpickr(input, {
+      plugins: [rangePlugin({ input: secondInput })],
+      clickOpens: false,
+      onOpen,
+    });
+
+    input.focus();
+    input.click();
+    secondInput.focus();
+    secondInput.click();
+    expect(fp.isOpen).toBe(false);
+    expect(onOpen).not.toHaveBeenCalled();
+
+    fp.open();
+    expect(onOpen).toHaveBeenCalledTimes(1);
+
+    fp.destroy();
+    input.remove();
+    secondInput.remove();
   });
 
   // _input only shows the first date with this plugin, so flatpickr reads it

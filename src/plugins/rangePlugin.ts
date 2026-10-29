@@ -16,7 +16,7 @@ function rangePlugin(config: Config = {}): Plugin {
     let dateFormat = "",
       secondInput: HTMLInputElement,
       _secondInputFocused: boolean,
-      _prevDates: Date[];
+      _prevDates: Date[] = [];
 
     const createSecondInput = () => {
       if (config.input) {
@@ -68,7 +68,7 @@ function rangePlugin(config: Config = {}): Plugin {
 
       if (fp.config.allowInput)
         fp._bind(secondInput, "keydown", (e: KeyboardEvent) => {
-          if ((e as KeyboardEvent).key === "Enter") {
+          if (e.key === "Enter") {
             fp.setDate(
               [fp.selectedDates[0], secondInput.value],
               true,
@@ -78,9 +78,8 @@ function rangePlugin(config: Config = {}): Plugin {
           }
         });
 
-      if (!config.input)
-        fp._input.parentNode &&
-          fp._input.parentNode.insertBefore(secondInput, fp._input.nextSibling);
+      if (!config.input && fp._input.parentNode)
+        fp._input.parentNode.insertBefore(secondInput, fp._input.nextSibling);
     };
 
     const plugin = {
@@ -115,7 +114,7 @@ function rangePlugin(config: Config = {}): Plugin {
 
         if (fp.config.allowInput)
           fp._bind(fp._input, "keydown", (e: KeyboardEvent) => {
-            if ((e as KeyboardEvent).key === "Enter")
+            if (e.key === "Enter")
               fp.setDate(
                 [fp._input.value, fp.selectedDates[1]],
                 true,
@@ -155,20 +154,17 @@ function rangePlugin(config: Config = {}): Plugin {
       },
 
       onDestroy() {
-        if (!config.input)
-          secondInput.parentNode &&
-            secondInput.parentNode.removeChild(secondInput);
+        if (!config.input && secondInput.parentNode)
+          secondInput.parentNode.removeChild(secondInput);
       },
 
       onValueUpdate(selDates: Date[]) {
         if (!secondInput) return;
 
-        _prevDates =
-          !_prevDates || selDates.length >= _prevDates.length
-            ? [...selDates]
-            : _prevDates;
+        // flatpickr dropped one side of the range: keep the other side
+        const isEdit = selDates.length < _prevDates.length;
 
-        if (_prevDates.length > selDates.length) {
+        if (isEdit) {
           const newSelectedDate = selDates[0];
           const newDates = _secondInputFocused
             ? [_prevDates[0], newSelectedDate]
@@ -184,12 +180,15 @@ function rangePlugin(config: Config = {}): Plugin {
 
           fp.setDate(newDates, false);
           _prevDates = [...newDates];
+        } else {
+          _prevDates = [...selDates];
         }
 
-        [
-          fp._input.value = "",
-          secondInput.value = "",
-        ] = fp.selectedDates.map((d) => fp.formatDate(d, dateFormat));
+        const [first = "", second = ""] = fp.selectedDates.map((d) =>
+          fp.formatDate(d, dateFormat)
+        );
+        fp._input.value = first;
+        secondInput.value = second;
       },
     };
 
