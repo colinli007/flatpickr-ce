@@ -42,6 +42,78 @@ describe("rangePlugin", () => {
     expect(secondInput.getAttribute("readonly")).toBe("readonly");
   });
 
+  describe("opening", () => {
+    let input: HTMLInputElement,
+      secondInput: HTMLInputElement,
+      fp: Instance,
+      onOpen: jest.Mock,
+      onClose: jest.Mock,
+      anchors: (HTMLElement | undefined)[];
+
+    beforeEach(() => {
+      input = document.createElement("input");
+      secondInput = document.createElement("input");
+      document.body.append(input, secondInput);
+      onOpen = jest.fn();
+      onClose = jest.fn();
+      anchors = [];
+      fp = flatpickr(input, {
+        plugins: [rangePlugin({ input: secondInput })],
+        position: (_, anchor) => anchors.push(anchor),
+        onOpen,
+        onClose,
+      }) as Instance;
+    });
+
+    afterEach(() => {
+      fp.destroy();
+      input.remove();
+      secondInput.remove();
+    });
+
+    const focusAndClick = (elem: HTMLInputElement) => {
+      elem.focus();
+      elem.click();
+    };
+
+    it("fires onOpen once when either input opens the calendar", () => {
+      focusAndClick(input);
+      expect(onOpen).toHaveBeenCalledTimes(1);
+
+      fp.close();
+      focusAndClick(secondInput);
+      expect(onOpen).toHaveBeenCalledTimes(2);
+    });
+
+    it("moves the open calendar between the inputs without reopening it", () => {
+      focusAndClick(input);
+      anchors = [];
+
+      focusAndClick(secondInput);
+      expect(anchors[anchors.length - 1]).toBe(secondInput);
+
+      focusAndClick(input);
+      expect(anchors[anchors.length - 1]).toBe(input);
+
+      expect(onOpen).toHaveBeenCalledTimes(1);
+      expect(fp.isOpen).toBe(true);
+    });
+
+    it("doesn't fire onOpen when selecting the end date closes the calendar", () => {
+      fp.jumpToDate("2017-10-01");
+      focusAndClick(input);
+      (fp.days.childNodes[20] as HTMLElement).click();
+      focusAndClick(secondInput);
+      (fp.days.childNodes[25] as HTMLElement).click();
+      jest.runAllTimers();
+
+      expect(fp.selectedDates.length).toBe(2);
+      expect(fp.isOpen).toBe(false);
+      expect(onOpen).toHaveBeenCalledTimes(1);
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
   // _input only shows the first date with this plugin, so flatpickr reads it
   // as an edit and the range gets cleared, as it always has; now it's announced
   // and the second input follows

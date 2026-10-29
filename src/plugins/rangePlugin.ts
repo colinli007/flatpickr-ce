@@ -58,17 +58,11 @@ function rangePlugin(config: Config = {}): Plugin {
           }
 
           _secondInputFocused = true;
-          fp.isOpen = false;
-          fp.open(
-            undefined,
-            config.position === "left" ? fp._input : secondInput
-          );
-        });
 
-        fp._bind(fp._input, ["focus", "click"], (e: FocusEvent) => {
-          e.preventDefault();
-          fp.isOpen = false;
-          fp.open();
+          const anchor = config.position === "left" ? fp._input : secondInput;
+          // already open under the first input: only move it
+          if (fp.isOpen) fp._positionCalendar(anchor);
+          else fp.open(undefined, anchor);
         });
       }
 
@@ -108,7 +102,11 @@ function rangePlugin(config: Config = {}): Plugin {
           secondInput.setAttribute("readonly", "readonly");
         }
 
+        // flatpickr itself opens the calendar from fp._input
         fp._bind(fp._input, "focus", () => {
+          // back from the second input: move the open calendar under this one
+          if (_secondInputFocused && fp.isOpen) fp._positionCalendar(fp._input);
+
           fp.latestSelectedDateObj = fp.selectedDates[0];
           fp._setHoursFromDate(fp.selectedDates[0]);
           _secondInputFocused = false;
