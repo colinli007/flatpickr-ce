@@ -24,6 +24,38 @@ describe("rangePlugin", () => {
     expect(secondInput.value).toEqual("2017-10-25");
   });
 
+  it("preloads the range from both inputs' values", () => {
+    const input = document.createElement("input");
+    const secondInput = document.createElement("input");
+    input.value = "2017-10-20";
+    secondInput.value = "2017-10-25";
+    const fp = flatpickr(input, {
+      plugins: [rangePlugin({ input: secondInput })],
+      dateFormat: "Y-m-d",
+    });
+
+    expect(fp.selectedDates).toEqual([
+      new Date(2017, 9, 20),
+      new Date(2017, 9, 25),
+    ]);
+  });
+
+  it("lets defaultDate override a prefilled second input", () => {
+    const secondInput = document.createElement("input");
+    secondInput.value = "2000-03-01";
+    const fp = createInstance({
+      plugins: [rangePlugin({ input: secondInput })],
+      defaultDate: ["2000-01-01", "2000-02-01"],
+      dateFormat: "Y-m-d",
+    });
+
+    expect(fp.selectedDates).toEqual([
+      new Date(2000, 0, 1),
+      new Date(2000, 1, 1),
+    ]);
+    expect(secondInput.value).toEqual("2000-02-01");
+  });
+
   it("should set readonly attribute when allowInput is false", () => {
     const secondInput = document.createElement("input");
     const fp = createInstance({
