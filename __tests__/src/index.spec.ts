@@ -598,6 +598,143 @@ describe("flatpickr", () => {
       expect(fp.currentMonth).toEqual(nextMonth.getMonth());
     });
 
+    describe("set() time options (flatpickr#3083)", () => {
+      const selectFirstDay = () =>
+        clickOn(fp.days.querySelector(".flatpickr-day:not(.prevMonthDay)")!);
+
+      it("enableTime: true builds the time picker as if passed at creation", () => {
+        createInstance();
+        fp.set("enableTime", true);
+
+        expect(fp.timeContainer).toBeDefined();
+        expect(fp.timeContainer!.previousSibling).toBe(fp.innerContainer);
+        expect(fp.calendarContainer.classList).toContain("hasTime");
+        expect(fp.config.dateFormat).toEqual("Y-m-d H:i");
+
+        fp.open();
+        selectFirstDay();
+        incrementTime("hourElement", 1);
+        expect(fp.selectedDates[0].getHours()).toEqual(13);
+        expect(fp.input.value).toMatch(/ 13:00$/);
+        expect(fp.isOpen).toBe(true);
+      });
+
+      it("enableTime: false removes the time picker", () => {
+        createInstance({ enableTime: true });
+        const timeContainer = fp.timeContainer!;
+        fp.set("enableTime", false);
+
+        expect(timeContainer.parentNode).toBeNull();
+        expect(fp.timeContainer).toBeUndefined();
+        expect(fp.hourElement).toBeUndefined();
+        expect(fp.amPM).toBeUndefined();
+        expect(fp.calendarContainer.classList).not.toContain("hasTime");
+        expect(fp.config.dateFormat).toEqual("Y-m-d");
+
+        fp.open();
+        selectFirstDay();
+        expect(fp.selectedDates[0].getHours()).toEqual(0);
+        expect(fp.input.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(fp.isOpen).toBe(false);
+      });
+
+      it("keeps a dateFormat or altFormat the user gave", () => {
+        createInstance({ dateFormat: "d.m.Y", altInput: true });
+        fp.set("enableTime", true);
+        expect(fp.config.dateFormat).toEqual("d.m.Y");
+        expect(fp.config.altFormat).toEqual("F j, Y h:i K");
+
+        createInstance({ altInput: true, altFormat: "j F" });
+        fp.set({ enableTime: true, dateFormat: "Y-m-d H:i:S" });
+        expect(fp.config.dateFormat).toEqual("Y-m-d H:i:S");
+        expect(fp.config.altFormat).toEqual("j F");
+      });
+
+      it("binds the rebuilt time inputs once", () => {
+        createInstance({ enableTime: true });
+        fp.set("enableTime", false);
+        fp.set("enableTime", true);
+        fp.setDate("2024-01-01 10:00");
+
+        incrementTime("hourElement", 1);
+        expect(fp.selectedDates[0].getHours()).toEqual(11);
+      });
+
+      it("time_24hr and enableSeconds rebuild the time picker in place", () => {
+        createInstance({ enableTime: true, defaultDate: "2024-01-01 15:30" });
+        const anchor = document.createElement("div");
+        fp.calendarContainer.appendChild(anchor);
+
+        fp.set("time_24hr", true);
+        expect(fp.amPM).toBeUndefined();
+        expect(fp.hourElement!.value).toEqual("15");
+        expect(fp.timeContainer!.nextSibling).toBe(anchor);
+
+        fp.set("enableSeconds", true);
+        expect(fp.secondElement).toBeDefined();
+        expect(fp.config.dateFormat).toEqual("Y-m-d H:i:S");
+        expect(fp.input.value).toEqual("2024-01-01 15:30:00");
+        expect(
+          fp.calendarContainer.querySelectorAll(".flatpickr-time").length
+        ).toEqual(1);
+      });
+
+      it("shows the selected time in 12-hour form", () => {
+        createInstance({ defaultDate: new Date(2024, 0, 1, 15, 30) });
+        fp.set("enableTime", true);
+        expect(fp.hourElement!.value).toEqual("03");
+        expect(fp.amPM!.textContent).toEqual("PM");
+
+        createInstance({
+          enableTime: true,
+          time_24hr: true,
+          defaultDate: "2024-01-01 00:00",
+        });
+        fp.set("time_24hr", false);
+        expect(fp.hourElement!.value).toEqual("12");
+        expect(fp.amPM!.textContent).toEqual("AM");
+      });
+
+      it("keeps a time_24hr given through set() when the locale changes", () => {
+        createInstance({ enableTime: true });
+        fp.set("time_24hr", true);
+        fp.set("locale", "default");
+
+        expect(fp.config.time_24hr).toBe(true);
+        expect(fp.amPM).toBeUndefined();
+      });
+
+      it("keeps plugin elements after the time picker", () => {
+        createInstance({
+          plugins: [confirmDatePlugin({ showAlways: true })],
+        });
+        fp.set("enableTime", true);
+
+        expect(fp.timeContainer!.nextSibling).toBe(
+          fp.calendarContainer.querySelector(".flatpickr-confirm")
+        );
+      });
+
+      it("rebuilds a noCalendar time picker", () => {
+        createInstance({ noCalendar: true, enableTime: true });
+        fp.set("enableSeconds", true);
+
+        expect(fp.calendarContainer.firstChild).toBe(fp.timeContainer);
+        expect(fp.calendarContainer.classList).toContain("noCalendar");
+        expect(fp.config.dateFormat).toEqual("H:i:S");
+      });
+
+      it("switches the native mobile input type", () => {
+        mockAgent = "Android";
+        createInstance({ defaultDate: "2024-01-01" });
+        fp.set("enableTime", true);
+
+        expect(fp.mobileInput!.type).toEqual("datetime-local");
+        expect(fp.mobileFormatStr).toEqual("Y-m-d\\TH:i:S");
+        expect(fp.mobileInput!.value).toMatch(/^2024-01-01T00:00/);
+      });
+    });
+
     it("setDate (date)", () => {
       createInstance({
         enableTime: true,

@@ -53,6 +53,10 @@ function FlatpickrInstance(
     l10n: English,
   } as Instance;
 
+  // The options the user gave, at creation and through set(), as opposed to
+  // defaults
+  const userConfig = {} as Options;
+
   // The element may live in another document than the one flatpickr was
   // loaded in (an iframe, or a window.open() popup), each with its own globals.
   // A document without a window (e.g. a <template> clone not yet inserted)
@@ -468,35 +472,40 @@ function FlatpickrInstance(
       bind(self.daysContainer, "click", selectDate);
     }
 
-    if (
-      self.timeContainer !== undefined &&
-      self.minuteElement !== undefined &&
-      self.hourElement !== undefined
-    ) {
-      const selText = (e: FocusEvent) =>
-        (getEventTarget(e) as HTMLInputElement).select();
-      bind(self.timeContainer, ["increment"], updateTime);
-      bind(self.timeContainer, "blur", updateTime, { capture: true });
-      bind(self.timeContainer, "click", timeIncrement);
-
-      bind([self.hourElement, self.minuteElement], ["focus", "click"], selText);
-
-      if (self.secondElement !== undefined)
-        bind(
-          self.secondElement,
-          "focus",
-          () => self.secondElement && self.secondElement.select()
-        );
-
-      if (self.amPM !== undefined) {
-        bind(self.amPM, "click", (e) => {
-          updateTime(e);
-        });
-      }
-    }
+    bindTimeEvents();
 
     if (self.config.allowInput) {
       bind(self._input, "blur", onBlur);
+    }
+  }
+
+  function bindTimeEvents() {
+    if (
+      self.timeContainer === undefined ||
+      self.minuteElement === undefined ||
+      self.hourElement === undefined
+    )
+      return;
+
+    const selText = (e: FocusEvent) =>
+      (getEventTarget(e) as HTMLInputElement).select();
+    bind(self.timeContainer, ["increment"], updateTime);
+    bind(self.timeContainer, "blur", updateTime, { capture: true });
+    bind(self.timeContainer, "click", timeIncrement);
+
+    bind([self.hourElement, self.minuteElement], ["focus", "click"], selText);
+
+    if (self.secondElement !== undefined)
+      bind(
+        self.secondElement,
+        "focus",
+        () => self.secondElement && self.secondElement.select()
+      );
+
+    if (self.amPM !== undefined) {
+      bind(self.amPM, "click", (e) => {
+        updateTime(e);
+      });
     }
   }
 
@@ -1292,6 +1301,33 @@ function FlatpickrInstance(
     return self.timeContainer;
   }
 
+  // Rebuilds the time picker after a time option changes through set(). The
+  // core reads the time elements' presence as "time is enabled", so they are
+  // cleared, not just hidden.
+  function rebuildTime() {
+    if (self.isMobile) return setMobileInputType();
+
+    const previous = self.timeContainer;
+    self.timeContainer = self.hourElement = self.minuteElement = undefined;
+    self.secondElement = self.amPM = undefined;
+    self.calendarContainer.classList.remove("hasTime");
+    self.calendarContainer.classList.remove("noCalendar");
+
+    if (self.config.enableTime) {
+      self.calendarContainer.insertBefore(
+        buildTime(),
+        previous ||
+          (self.innerContainer
+            ? self.innerContainer.nextSibling
+            : self.calendarContainer.firstChild)
+      );
+      bindTimeEvents();
+      setHoursFromDate();
+    }
+
+    if (previous) self.calendarContainer.removeChild(previous);
+  }
+
   function buildWeekdays() {
     if (!self.weekdayContainer)
       self.weekdayContainer = createElement<HTMLDivElement>(
@@ -2081,12 +2117,11 @@ function FlatpickrInstance(
       "disableMobile",
     ];
 
-    const userConfig = {
-      ...JSON.parse(JSON.stringify(element.dataset || {})),
-      ...instanceConfig,
-    } as Options;
-
-    const formats = {} as Record<"dateFormat" | "altFormat", string>;
+    Object.assign(
+      userConfig,
+      JSON.parse(JSON.stringify(element.dataset || {})),
+      instanceConfig
+    );
 
     self.config.parseDate = userConfig.parseDate;
     self.config.formatDate = userConfig.formatDate;
@@ -2104,30 +2139,6 @@ function FlatpickrInstance(
         self.config._disable = parseDateRules(dates);
       },
     });
-
-    const timeMode = userConfig.mode === "time";
-
-    if (!userConfig.dateFormat && (userConfig.enableTime || timeMode)) {
-      const defaultDateFormat =
-        flatpickr.defaultConfig.dateFormat || defaultOptions.dateFormat;
-      formats.dateFormat =
-        userConfig.noCalendar || timeMode
-          ? "H:i" + (userConfig.enableSeconds ? ":S" : "")
-          : defaultDateFormat + " H:i" + (userConfig.enableSeconds ? ":S" : "");
-    }
-
-    if (
-      userConfig.altInput &&
-      (userConfig.enableTime || timeMode) &&
-      !userConfig.altFormat
-    ) {
-      const defaultAltFormat =
-        flatpickr.defaultConfig.altFormat || defaultOptions.altFormat;
-      formats.altFormat =
-        userConfig.noCalendar || timeMode
-          ? "h:i" + (userConfig.enableSeconds ? ":S K" : " K")
-          : defaultAltFormat + ` h:i${userConfig.enableSeconds ? ":S" : ""} K`;
-    }
 
     Object.defineProperty(self.config, "minDate", {
       get: () => self.config._minDate,
@@ -2161,7 +2172,7 @@ function FlatpickrInstance(
       self.config.enableTime = true;
     }
 
-    Object.assign(self.config, formats, userConfig);
+    Object.assign(self.config, defaultFormats(), userConfig);
 
     for (let i = 0; i < boolOpts.length; i++)
       // https://github.com/microsoft/TypeScript/issues/31663
@@ -2206,6 +2217,41 @@ function FlatpickrInstance(
     triggerEvent("onParseConfig");
   }
 
+  // The dateFormat/altFormat the user's time options imply when they don't
+  // give their own
+  function defaultFormats(): Record<"dateFormat" | "altFormat", string> {
+    const defaultDateFormat =
+      flatpickr.defaultConfig.dateFormat || defaultOptions.dateFormat;
+    const defaultAltFormat =
+      flatpickr.defaultConfig.altFormat || defaultOptions.altFormat;
+    const timeMode = userConfig.mode === "time";
+
+    if (!userConfig.enableTime && !timeMode)
+      return { dateFormat: defaultDateFormat, altFormat: defaultAltFormat };
+
+    const timeOnly = userConfig.noCalendar || timeMode;
+    const seconds = userConfig.enableSeconds ? ":S" : "";
+
+    return {
+      dateFormat: timeOnly
+        ? "H:i" + seconds
+        : defaultDateFormat + " H:i" + seconds,
+      altFormat: !userConfig.altInput
+        ? defaultAltFormat
+        : timeOnly
+        ? "h:i" + seconds + " K"
+        : defaultAltFormat + ` h:i${seconds} K`,
+    };
+  }
+
+  function updateDefaultFormats() {
+    const formats = defaultFormats();
+    if (userConfig.dateFormat === undefined)
+      self.config.dateFormat = formats.dateFormat;
+    if (userConfig.altFormat === undefined)
+      self.config.altFormat = formats.altFormat;
+  }
+
   function getInputElem() {
     return self.config.wrap
       ? (element.querySelector("[data-input]") as HTMLInputElement)
@@ -2243,11 +2289,6 @@ function FlatpickrInstance(
     tokenRegex.K = `(${self.l10n.amPM[0]}|${
       self.l10n.amPM[1]
     }|${self.l10n.amPM[0].toLowerCase()}|${self.l10n.amPM[1].toLowerCase()})`;
-
-    const userConfig = {
-      ...instanceConfig,
-      ...JSON.parse(JSON.stringify(element.dataset || {})),
-    } as Options;
 
     if (
       userConfig.time_24hr === undefined &&
@@ -2493,6 +2534,9 @@ function FlatpickrInstance(
     minDate: [jumpToDate],
     maxDate: [jumpToDate],
     positionElement: [updatePositionElement],
+    enableTime: [updateDefaultFormats, rebuildTime],
+    enableSeconds: [updateDefaultFormats, rebuildTime],
+    time_24hr: [rebuildTime],
     clickOpens: [
       () => {
         if (self.config.clickOpens === true) {
@@ -2512,12 +2556,14 @@ function FlatpickrInstance(
   ) {
     if (option !== null && typeof option === "object") {
       Object.assign(self.config, option);
+      Object.assign(userConfig, option);
       for (const key in option) {
         if (CALLBACKS[key] !== undefined)
           (CALLBACKS[key] as Function[]).forEach((x) => x());
       }
     } else {
       self.config[option] = value;
+      userConfig[option] = value;
 
       if (CALLBACKS[option] !== undefined)
         (CALLBACKS[option] as Function[]).forEach((x) => x());
@@ -2733,22 +2779,14 @@ function FlatpickrInstance(
     self._positionElement = self.config.positionElement || self._input;
   }
 
-  function setupMobile() {
+  function setMobileInputType() {
     const inputType = self.config.enableTime
       ? self.config.noCalendar
         ? "time"
         : "datetime-local"
       : "date";
 
-    self.mobileInput = createElement<HTMLInputElement>(
-      "input",
-      self.input.className + " flatpickr-mobile"
-    );
-    self.mobileInput.tabIndex = 1;
-    self.mobileInput.type = inputType;
-    self.mobileInput.disabled = self.input.disabled;
-    self.mobileInput.required = self.input.required;
-    self.mobileInput.placeholder = self.input.placeholder;
+    (self.mobileInput as HTMLInputElement).type = inputType;
 
     self.mobileFormatStr =
       inputType === "datetime-local"
@@ -2756,11 +2794,23 @@ function FlatpickrInstance(
         : inputType === "date"
         ? "Y-m-d"
         : "H:i:S";
+  }
+
+  function setupMobile() {
+    self.mobileInput = createElement<HTMLInputElement>(
+      "input",
+      self.input.className + " flatpickr-mobile"
+    );
+    self.mobileInput.tabIndex = 1;
+    setMobileInputType();
+    self.mobileInput.disabled = self.input.disabled;
+    self.mobileInput.required = self.input.required;
+    self.mobileInput.placeholder = self.input.placeholder;
 
     if (self.selectedDates.length > 0) {
       self.mobileInput.defaultValue = self.mobileInput.value = self.formatDate(
         self.selectedDates[0],
-        self.mobileFormatStr
+        self.mobileFormatStr as string
       );
     }
 
