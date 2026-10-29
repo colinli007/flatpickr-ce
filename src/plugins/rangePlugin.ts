@@ -45,8 +45,8 @@ function rangePlugin(config: Config = {}): Plugin {
       }
 
       // like flatpickr's own input, it only preloads without a defaultDate
-      if (secondInput.value && !fp.config.defaultDate) {
-        const parsedDate = fp.parseDate(secondInput.value);
+      if (!fp.config.defaultDate && secondInput.value) {
+        const parsedDate = fp.parseDate(secondInput.value, dateFormat);
 
         if (parsedDate) fp.selectedDates.push(parsedDate);
       }

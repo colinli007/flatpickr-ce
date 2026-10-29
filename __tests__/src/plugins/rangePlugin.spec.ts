@@ -56,6 +56,25 @@ describe("rangePlugin", () => {
     expect(secondInput.value).toEqual("2000-02-01");
   });
 
+  it("parses a prefilled second input in the format it displays", () => {
+    const input = document.createElement("input");
+    const secondInput = document.createElement("input");
+    input.value = "2017-10-20";
+    secondInput.value = "25/10/2017";
+    const fp = flatpickr(input, {
+      plugins: [rangePlugin({ input: secondInput })],
+      dateFormat: "Y-m-d",
+      altInput: true,
+      altFormat: "d/m/Y",
+    });
+
+    expect(fp.selectedDates).toEqual([
+      new Date(2017, 9, 20),
+      new Date(2017, 9, 25),
+    ]);
+    expect(secondInput.value).toEqual("25/10/2017");
+  });
+
   it("should set readonly attribute when allowInput is false", () => {
     const secondInput = document.createElement("input");
     const fp = createInstance({
