@@ -530,19 +530,20 @@ function FlatpickrInstance(
       self.config.errorHandler(e);
     }
 
-    if (triggerChange && self.currentYear !== oldYear) {
+    if (triggerChange) triggerViewChange(oldYear, oldMonth);
+
+    self.redraw();
+  }
+
+  function triggerViewChange(oldYear: number, oldMonth: number) {
+    if (self.currentYear !== oldYear) {
       triggerEvent("onYearChange");
       buildMonthSwitch();
     }
 
-    if (
-      triggerChange &&
-      (self.currentYear !== oldYear || self.currentMonth !== oldMonth)
-    ) {
+    if (self.currentYear !== oldYear || self.currentMonth !== oldMonth) {
       triggerEvent("onMonthChange");
     }
-
-    self.redraw();
   }
 
   /**
@@ -1522,17 +1523,13 @@ function FlatpickrInstance(
       );
 
       if (lostFocus && isIgnored) {
-        if (self.config.allowInput) {
-          self.setDate(
-            self._input.value,
-            false,
-            self.config.altInput
-              ? self.config.altFormat
-              : self.config.dateFormat
-          );
-        }
+        const committed = self.config.allowInput
+          ? commitTypedValue()
+          : undefined;
 
+        // a typed value has already overwritten the time inputs
         if (
+          committed === undefined &&
           self.timeContainer !== undefined &&
           self.minuteElement !== undefined &&
           self.hourElement !== undefined &&
@@ -1544,12 +1541,14 @@ function FlatpickrInstance(
 
         self.close();
 
-        if (
-          self.config &&
-          self.config.mode === "range" &&
-          self.selectedDates.length === 1
-        )
+        // onClose may have destroyed the instance
+        if (self.config === undefined) return;
+
+        if (self.config.mode === "range" && self.selectedDates.length === 1)
           self.clear(false);
+
+        // announce the outcome of the whole click, like selecting a day does
+        announceCommit(committed);
       }
     }
   }
@@ -1666,22 +1665,56 @@ function FlatpickrInstance(
   }
 
   function onBlur(e: FocusEvent) {
-    const isInput = e.target === self._input;
-    const valueChanged = self._input.value.trimEnd() !== getDateStr();
-
     if (
-      isInput &&
-      valueChanged &&
+      e.target === self._input &&
       !(e.relatedTarget && isCalendarElem(e.relatedTarget as HTMLElement))
-    ) {
-      self.setDate(
-        self._input.value,
-        true,
-        e.target === self.altInput
-          ? self.config.altFormat
-          : self.config.dateFormat
-      );
+    )
+      announceCommit(commitTypedValue());
+  }
+
+  /**
+   * Applies what was typed into the input, if anything, without announcing it.
+   * Returns the state to compare against when announcing.
+   */
+  function commitTypedValue() {
+    // nothing typed since flatpickr last wrote the input
+    if (self._input.value.trimEnd() === getDateStr()) return undefined;
+
+    const committed = {
+      times: getSelectedTimes(),
+      year: self.currentYear,
+      month: self.currentMonth,
+    };
+
+    self.setDate(
+      self._input.value,
+      false,
+      self.config.altInput ? self.config.altFormat : self.config.dateFormat
+    );
+
+    // hold a typed time within minTime/maxTime, as the time inputs do
+    if (self.hourElement !== undefined) {
+      setHoursFromInputs();
+      updateValue(false);
     }
+
+    return committed;
+  }
+
+  function announceCommit(committed: ReturnType<typeof commitTypedValue>) {
+    if (committed === undefined) return;
+
+    triggerViewChange(committed.year, committed.month);
+
+    if (getSelectedTimes() !== committed.times) {
+      // an emptied value announces like clear(), which leaves out onValueUpdate
+      if (self.selectedDates.length > 0) triggerEvent("onValueUpdate");
+      triggerEvent("onChange");
+    }
+  }
+
+  function getSelectedTimes() {
+    return self.selectedDates.map((d) => d.getTime()).join();
   }
 
   function onKeyDown(e: KeyboardEvent) {
@@ -1706,13 +1739,7 @@ function FlatpickrInstance(
 
     if (e.keyCode === 13 && isInput) {
       if (allowInput) {
-        self.setDate(
-          self._input.value,
-          true,
-          eventTarget === self.altInput
-            ? self.config.altFormat
-            : self.config.dateFormat
-        );
+        announceCommit(commitTypedValue());
         self.close();
         return (eventTarget as HTMLElement).blur();
       } else {

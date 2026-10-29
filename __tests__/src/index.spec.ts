@@ -95,6 +95,11 @@ const clickOn = (element: Node) => {
   simulate("click", element, { which: 1 }, CustomEvent);
 };
 
+// simulate a pointer press away from the calendar, which is what documentClick listens for
+const pressOutside = () => {
+  simulate("mousedown", document.body, { which: 1 }, MouseEvent);
+};
+
 describe("flatpickr", () => {
   beforeEach(beforeEachTest);
 
@@ -694,7 +699,306 @@ describe("flatpickr", () => {
       expect(fp.config.enable?.indexOf(null as any)).toBe(-1);
     });
 
+    describe("typed input commit", () => {
+      const pressEnter = (target: Node = fp._input) =>
+        simulate("keydown", target, { keyCode: 13 });
+
+      it("dispatches change on the input when clicking outside", () => {
+        createInstance({ allowInput: true });
+        const changed = jest.fn();
+        fp.input.addEventListener("change", changed);
+
+        fp.input.focus();
+        fp.input.value = "1999-12-31";
+        pressOutside();
+        fp.input.blur();
+
+        expect(changed).toHaveBeenCalledTimes(1);
+      });
+
+      it("announces clearing like clear() does", () => {
+        const onValueUpdate = jest.fn();
+        const onChange = jest.fn();
+        createInstance({
+          allowInput: true,
+          defaultDate: "2001-01-01",
+          onValueUpdate,
+          onChange,
+        });
+
+        fp.input.focus();
+        fp.input.value = "";
+        pressOutside();
+        fp.input.blur();
+
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(onValueUpdate).not.toHaveBeenCalled();
+      });
+
+      it("announces once when leaving with Tab", () => {
+        const onChange = jest.fn();
+        createInstance({ allowInput: true, onChange });
+        const next = document.createElement("input");
+        document.body.appendChild(next);
+
+        fp.input.focus();
+        fp.input.value = "1999-12-31";
+        next.focus();
+
+        expect(onChange).toHaveBeenCalledTimes(1);
+        next.remove();
+      });
+
+      it("announces the view change, then the value, before closing on Enter", () => {
+        const events: string[] = [];
+        const log = (name: string) => () => {
+          events.push(name);
+        };
+        createInstance({
+          allowInput: true,
+          defaultDate: "2001-01-01",
+          onYearChange: log("year"),
+          onMonthChange: log("month"),
+          onValueUpdate: log("value"),
+          onChange: log("change"),
+          onClose: log("close"),
+        });
+
+        fp.input.focus();
+        fp.input.value = "1999-12-31";
+        pressEnter();
+
+        expect(events).toEqual(["year", "month", "value", "change", "close"]);
+      });
+
+      it("stays silent on Enter or blur without an edit", () => {
+        const onChange = jest.fn();
+        createInstance({
+          allowInput: true,
+          defaultDate: "2001-01-01",
+          onChange,
+        });
+
+        fp.input.focus();
+        pressEnter();
+        fp.input.focus();
+        fp.input.blur();
+
+        expect(onChange).not.toHaveBeenCalled();
+      });
+
+      it("stays silent when the same day is typed differently", () => {
+        const onChange = jest.fn();
+        createInstance({
+          allowInput: true,
+          defaultDate: "1999-01-05",
+          onChange,
+        });
+
+        fp.input.focus();
+        fp.input.value = "1999-1-5";
+        fp.input.blur();
+
+        expect(onChange).not.toHaveBeenCalled();
+        expect(fp.input.value).toEqual("1999-01-05");
+      });
+
+      it("stays silent when an invalid value is typed into an empty input", () => {
+        const onChange = jest.fn();
+        const errorHandler = jest.fn();
+        createInstance({ allowInput: true, onChange, errorHandler });
+
+        fp.input.focus();
+        fp.input.value = "abc";
+        fp.input.blur();
+
+        expect(errorHandler).toHaveBeenCalled();
+        expect(onChange).not.toHaveBeenCalled();
+        expect(fp.selectedDates).toEqual([]);
+      });
+
+      it("announces a time the format doesn't show", () => {
+        const onChange = jest.fn();
+        createInstance({
+          allowInput: true,
+          defaultDate: new Date(2020, 0, 22, 10, 30),
+          onChange,
+        });
+
+        fp.input.focus();
+        fp.input.value = "2020-1-22";
+        fp.input.blur();
+
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(fp.selectedDates[0].getHours()).toEqual(0);
+      });
+
+      it("keeps the time an altFormat drops when nothing is typed", () => {
+        const onChange = jest.fn();
+        createInstance({
+          allowInput: true,
+          altInput: true,
+          altFormat: "d.m.Y",
+          enableTime: true,
+          defaultDate: "2020-01-22 03:04",
+          onChange,
+        });
+
+        fp._input.focus();
+        pressEnter();
+
+        expect(fp.selectedDates[0].getHours()).toEqual(3);
+        expect(fp.selectedDates[0].getMinutes()).toEqual(4);
+        expect(onChange).not.toHaveBeenCalled();
+      });
+
+      it("keeps a typed time within minTime on Enter", () => {
+        createInstance({
+          allowInput: true,
+          enableTime: true,
+          minTime: "09:00",
+        });
+
+        fp.input.focus();
+        fp.input.value = "2026-01-05 07:30";
+        pressEnter();
+
+        expect(fp.input.value).toEqual("2026-01-05 09:30");
+      });
+
+      it("announces a clamped time once when clicking outside", () => {
+        const times: string[] = [];
+        createInstance({
+          allowInput: true,
+          enableTime: true,
+          minTime: "09:00",
+          onChange: (dates) => times.push(fp.formatDate(dates[0], "H:i")),
+        });
+
+        fp.input.focus();
+        fp.input.value = "2026-01-05 07:30";
+        pressOutside();
+        fp.input.blur();
+        jest.advanceTimersByTime(500);
+
+        expect(times).toEqual(["09:30"]);
+      });
+
+      it("announces after closing when clicking outside", () => {
+        const events: string[] = [];
+        createInstance({
+          allowInput: true,
+          onChange: () => events.push("change"),
+          onClose: () => events.push("close"),
+        });
+
+        fp.input.focus();
+        fp.input.value = "1999-12-31";
+        pressOutside();
+
+        expect(events).toEqual(["close", "change"]);
+      });
+
+      it("survives onClose destroying the instance when clicking outside", () => {
+        const consoleError = jest.spyOn(console, "error").mockImplementation();
+        createInstance({
+          allowInput: true,
+          onClose: (_, __, instance) => instance.destroy(),
+        });
+
+        fp.input.focus();
+        fp.input.value = "1999-12-31";
+        pressOutside();
+
+        expect(consoleError).not.toHaveBeenCalled();
+        consoleError.mockRestore();
+      });
+
+      it("announces the abandoned range once when clicking outside", () => {
+        const announced: number[] = [];
+        createInstance({
+          mode: "range",
+          allowInput: true,
+          defaultDate: ["2026-01-05", "2026-01-10"],
+          onChange: (dates) => announced.push(dates.length),
+        });
+
+        fp.input.focus();
+        fp.input.value = "2026-01-07";
+        pressOutside();
+        fp.input.blur();
+
+        expect(fp.selectedDates).toEqual([]);
+        expect(announced).toEqual([0]);
+      });
+    });
+
     describe("documentClick", () => {
+      it("announces a direct entry committed by clicking outside when allowInput is true (#2941)", () => {
+        const onChange = jest.fn();
+        createInstance({ allowInput: true, onChange });
+
+        fp.input.focus();
+        fp.input.value = "1999-12-31";
+        pressOutside();
+        fp.input.blur();
+
+        expect(fp.input.value).toEqual("1999-12-31");
+        expect(onChange).toHaveBeenCalledTimes(1);
+      });
+
+      it("announces a direct entry committed by clicking outside when altInput is on (#2941)", () => {
+        const onChange = jest.fn();
+        createInstance({
+          allowInput: true,
+          altInput: true,
+          altFormat: "d.m.Y",
+          defaultDate: "2001-01-01",
+          onChange,
+        });
+
+        const altInput = fp.altInput as HTMLInputElement;
+        altInput.focus();
+        altInput.value = "20.07.1969";
+        pressOutside();
+        altInput.blur();
+
+        expect(fp.input.value).toEqual("1969-07-20");
+        expect(onChange).toHaveBeenCalledTimes(1);
+      });
+
+      it("announces a direct entry cleared by hand and committed by clicking outside (#2941)", () => {
+        const onChange = jest.fn();
+        createInstance({
+          allowInput: true,
+          defaultDate: "2001-01-01",
+          onChange,
+        });
+
+        fp.input.focus();
+        fp.input.value = "";
+        pressOutside();
+        fp.input.blur();
+
+        expect(fp.input.value).toEqual("");
+        expect(onChange).toHaveBeenCalledTimes(1);
+      });
+
+      it("stays silent when clicking outside without a direct entry (#2941)", () => {
+        const onChange = jest.fn();
+        createInstance({
+          allowInput: true,
+          defaultDate: "2001-01-01",
+          onChange,
+        });
+
+        fp.input.focus();
+        pressOutside();
+        fp.input.blur();
+
+        expect(onChange).not.toHaveBeenCalled();
+      });
+
       it("should close popup", () => {
         createInstance({
           mode: "range",
