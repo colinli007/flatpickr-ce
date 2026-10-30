@@ -39,7 +39,7 @@ gh pr diff <N> -R flatpickr/flatpickr > <scratchpad>/pr-<N>.diff
 开工前先查三处，已经处理过就直接告诉用户，不重做：
 
 - `git log --oneline --grep "flatpickr#<N>"`：仓库里已经有对应提交。
-- 进度清单 colinli007/flatpickr-ce#2（`gh issue view 2 -R colinli007/flatpickr-ce`）：这一项可能已有分诊结论（原样合并 / 重写 / 关闭为重复），按那条结论做；用户当场的要求优先。
+- 进度清单 colinli007/flatpickr-ce#3（2024 年开的，`gh issue view 3 -R colinli007/flatpickr-ce`）和已关闭的 #2（2025 年起的，已在 4.8.0 完成，`gh issue view 2 -R colinli007/flatpickr-ce`），两个都查：这一项可能已有分诊结论（原样合并 / 重写 / 关闭为重复），按那条结论做；用户当场的要求优先。
 - 同一个问题的其他 issue / PR：`gh search prs --repo flatpickr/flatpickr "<关键词>"`，issue 里提到的 PR 编号也要看。多个 PR 修同一个问题时一起比较，不要只看第一个。
 
 把 issue 翻译成「什么配置（options / 插件）、什么操作、看到了什么、期望是什么」。issue 没给复现、或者描述和当前代码对不上，先在 jsdom 测试里试着复现；复现不出来就停下告诉用户，不要猜着修。
@@ -147,7 +147,7 @@ python3 .claude/skills/issue-fix-check/scripts/classify.py <scratchpad>/fix.diff
 
 - 英文提交信息。标题用祈使句说清行为，末尾带 `(flatpickr#<N>)`；正文讲之前怎么错、为什么错、现在怎么做、有哪些行为变化，最后写 `Fixes flatpickr/flatpickr#<N>`，重写了某个 PR 时加 `Supersedes flatpickr/flatpickr#<N>`。
 - 移植 PR：每个 PR 压成一个提交，`--author` 用第 0 步取到的原贡献者，我们自己的调整写在正文里。
-- 提交后把进度清单 colinli007/flatpickr-ce#2 对应那一行要更新成什么（勾选、行尾写 commit 和一句处理说明）拟好给用户看，用户同意再改 issue。
+- 提交后把进度清单 colinli007/flatpickr-ce#3 对应那一行要更新成什么（勾选、行尾写 commit 和一句处理说明）拟好给用户看，用户同意再改 issue。
 
 ## 不做的事
 

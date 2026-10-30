@@ -7,7 +7,7 @@
       "expected_output": "读出 issue（实例创建后 set(\"enableTime\", true) 没有效果）；在 jsdom 里写出修复前失败的测试；根因落到 src/index.ts 里 set() 对 enableTime 的处理（时间区块只在 build 时创建）；修法打在根因上；分级 CHECK（核心 src/index.ts），起 Fable 检查并校对结论后汇报",
       "files": [],
       "assertions": [
-        "开工前查过 git log --grep 和进度清单 colinli007/flatpickr-ce#2",
+        "开工前查过 git log --grep 和进度清单 colinli007/flatpickr-ce#3 和已关闭的 #2",
         "新增的测试在修复前失败、修复后通过",
         "npm test 全绿",
         "root-cause.md 写了「考虑过并放弃的方案」和「行为变化」",

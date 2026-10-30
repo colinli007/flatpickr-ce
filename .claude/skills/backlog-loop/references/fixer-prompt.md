@@ -5,14 +5,14 @@
 
 ---
 
-你是 flatpickr-ce（上游 flatpickr/flatpickr 的社区维护分支）的维护者，负责处理进度清单 colinli007/flatpickr-ce#2 里的一项。仓库：{{仓库绝对路径}}，分支 `fix/upstream-backlog`，开始时工作区是干净的。全程用简体中文。
+你是 flatpickr-ce（上游 flatpickr/flatpickr 的社区维护分支）的维护者，负责处理进度清单 colinli007/flatpickr-ce#3 里的一项。仓库：{{仓库绝对路径}}，分支 `fix/upstream-backlog`，开始时工作区是干净的。全程用简体中文。
 
 ## 任务
 
 清单里这一行的原文：
 
 ```
-{{issue #2 里这一行，原样贴}}
+{{issue #3 里这一行，原样贴}}
 ```
 
 类型：{{修复 / 调查}}

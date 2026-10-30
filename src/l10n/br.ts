@@ -18,7 +18,7 @@ export const Breton: CustomLocale = {
       "Disul",
       "Dilun",
       "Dimeurzh",
-      "Dimerc'hed",
+      "Dimerc'her",
       "Diriaou",
       "Digwener",
       "Disadorn",
