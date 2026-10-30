@@ -1,0 +1,115 @@
+.flatpickr-yearSelect .flatpickr-rContainer {
+  display: block;
+  width: 100%;
+}
+
+.flatpickr-yearSelect-years {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin: 10px 8px 8px;
+}
+
+.flatpickr-yearSelect-title {
+  display: inline-block;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.flatpickr-yearSelect .flatpickr-current-month {
+  pointer-events: none;
+}
+
+.flatpickr-yearSelect-year {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  color: #393939;
+  cursor: pointer;
+  display: block;
+  font-weight: 400;
+  padding: 10px;
+  position: relative;
+  text-align: center;
+}
+
+.flatpickr-yearSelect-year.flatpickr-disabled {
+  color: #eee;
+}
+
+.flatpickr-yearSelect-year.flatpickr-disabled:hover,
+.flatpickr-yearSelect-year.flatpickr-disabled:focus {
+  cursor: not-allowed;
+  background: none !important;
+}
+
+.flatpickr-yearSelect-theme-dark {
+  background: #3f4458;
+}
+
+.flatpickr-yearSelect-theme-dark .flatpickr-yearSelect-title {
+  color: #fff;
+}
+
+.flatpickr-yearSelect-theme-dark .flatpickr-months .flatpickr-prev-month,
+.flatpickr-yearSelect-theme-dark .flatpickr-months .flatpickr-next-month {
+  color: #fff;
+  fill: #fff;
+}
+
+.flatpickr-yearSelect-theme-dark .flatpickr-yearSelect-year {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.flatpickr-yearSelect-theme-dark .flatpickr-yearSelect-year.flatpickr-disabled {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.flatpickr-yearSelect-year.today {
+  border-color: #959ea9;
+}
+
+.flatpickr-yearSelect-year.inRange,
+.flatpickr-yearSelect-year.inRange.today,
+.flatpickr-yearSelect-year:hover,
+.flatpickr-yearSelect-year:focus {
+  background: #e6e6e6;
+  cursor: pointer;
+  outline: 0;
+  border-color: #e6e6e6;
+}
+
+.flatpickr-yearSelect-theme-dark .flatpickr-yearSelect-year.inRange,
+.flatpickr-yearSelect-theme-dark .flatpickr-yearSelect-year:hover,
+.flatpickr-yearSelect-theme-dark .flatpickr-yearSelect-year:focus {
+  background: #646c8c;
+  border-color: #646c8c;
+}
+
+.flatpickr-yearSelect-year.today:hover,
+.flatpickr-yearSelect-year.today:focus {
+  background: #959ea9;
+  border-color: #959ea9;
+  color: #fff;
+}
+
+.flatpickr-yearSelect-year.selected,
+.flatpickr-yearSelect-year.startRange,
+.flatpickr-yearSelect-year.endRange {
+  background-color: #569ff7;
+  box-shadow: none;
+  color: #fff;
+  border-color: #569ff7;
+}
+
+.flatpickr-yearSelect-theme-dark .flatpickr-yearSelect-year.selected,
+.flatpickr-yearSelect-theme-dark .flatpickr-yearSelect-year.startRange,
+.flatpickr-yearSelect-theme-dark .flatpickr-yearSelect-year.endRange {
+  background: #80cbc4;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  color: #fff;
+  border-color: #80cbc4;
+}
