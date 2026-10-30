@@ -71,6 +71,11 @@ function FlatpickrInstance(
   // can't render anything, so fall back to ours.
   const win = element.ownerDocument.defaultView || window;
   const doc = win.document;
+
+  // Listeners on the document and the window, bound only while the calendar
+  // is open; kept apart from _handlers, which last until destroy()
+  let openHandlers: Instance["_handlers"] = [];
+
   self.parseDate = createDateParser({ config: self.config, l10n: self.l10n });
 
   self._handlers = [];
@@ -425,6 +430,38 @@ function FlatpickrInstance(
   }
 
   /**
+   * Listens for what an open calendar answers to outside itself: a press or a
+   * focus elsewhere closes it, a resize moves it
+   */
+  function bindOpenEvents() {
+    const listen = (
+      target: Window | Document,
+      event: string,
+      handler: (e: any) => void,
+      options?: { capture: boolean }
+    ) => {
+      target.addEventListener(event, handler, options);
+      openHandlers.push({
+        remove: () => target.removeEventListener(event, handler, options),
+      });
+    };
+
+    if (!self.config.static) listen(win, "resize", debounce(onResize, 50));
+
+    listen(
+      doc,
+      win.ontouchstart !== undefined ? "touchstart" : "mousedown",
+      documentClick
+    );
+    listen(doc, "focus", documentClick, { capture: true });
+  }
+
+  function unbindOpenEvents() {
+    openHandlers.forEach((h) => h.remove());
+    openHandlers = [];
+  }
+
+  /**
    * Adds all the necessary event listeners
    */
   function bindEvents(): void {
@@ -447,7 +484,6 @@ function FlatpickrInstance(
       return;
     }
 
-    const debouncedResize = debounce(onResize, 50);
     self._debouncedChange = debounce(triggerChange, DEBOUNCED_CHANGE_MS);
 
     if (self.daysContainer && !/iPhone|iPad|iPod/i.test(navigator.userAgent))
@@ -460,13 +496,6 @@ function FlatpickrInstance(
     if (self.calendarContainer !== undefined) {
       bind(self.calendarContainer, "keydown", onKeyDown);
     }
-
-    if (!self.config.inline && !self.config.static)
-      bind(win, "resize", debouncedResize);
-
-    if (win.ontouchstart !== undefined) bind(doc, "touchstart", documentClick);
-    else bind(doc, "mousedown", documentClick);
-    bind(doc, "focus", documentClick, { capture: true });
 
     if (self.config.clickOpens === true) {
       bind(self._input, "focus", self.open);
@@ -1462,6 +1491,7 @@ function FlatpickrInstance(
 
   function close() {
     self.isOpen = false;
+    unbindOpenEvents();
 
     if (!self.isMobile) {
       if (self.calendarContainer !== undefined) {
@@ -1483,6 +1513,7 @@ function FlatpickrInstance(
     }
 
     self._handlers = [];
+    unbindOpenEvents();
 
     if (self.mobileInput) {
       if (self.mobileInput.parentNode)
@@ -1556,52 +1587,49 @@ function FlatpickrInstance(
     return self.calendarContainer.contains(elem);
   }
 
+  // Only bound while the calendar is open, by bindOpenEvents()
   function documentClick(e: MouseEvent) {
-    if (self.isOpen && !self.config.inline) {
-      const eventTarget = getEventTarget(e);
-      const isCalendarElement = isCalendarElem(eventTarget as HTMLElement);
-      const isInput =
-        eventTarget === self.input ||
-        eventTarget === self.altInput ||
-        self.element.contains(eventTarget as HTMLElement);
+    const eventTarget = getEventTarget(e);
+    const isCalendarElement = isCalendarElem(eventTarget as HTMLElement);
+    const isInput =
+      eventTarget === self.input ||
+      eventTarget === self.altInput ||
+      self.element.contains(eventTarget as HTMLElement);
 
-      const lostFocus =
-        !isInput &&
-        !isCalendarElement &&
-        !isCalendarElem(e.relatedTarget as HTMLElement);
+    const lostFocus =
+      !isInput &&
+      !isCalendarElement &&
+      !isCalendarElem(e.relatedTarget as HTMLElement);
 
-      const isIgnored = !self.config.ignoredFocusElements.some((elem) =>
-        elem.contains(eventTarget as Node)
-      );
+    const isIgnored = !self.config.ignoredFocusElements.some((elem) =>
+      elem.contains(eventTarget as Node)
+    );
 
-      if (lostFocus && isIgnored) {
-        const committed = self.config.allowInput
-          ? commitTypedValue()
-          : undefined;
+    if (lostFocus && isIgnored) {
+      const committed = self.config.allowInput ? commitTypedValue() : undefined;
 
-        // a typed value has already overwritten the time inputs
-        if (
-          committed === undefined &&
-          self.timeContainer !== undefined &&
-          self.minuteElement !== undefined &&
-          self.hourElement !== undefined &&
-          self.input.value !== "" &&
-          self.input.value !== undefined
-        ) {
-          updateTime();
-        }
-
-        self.close();
-
-        // onClose may have destroyed the instance
-        if (self.config === undefined) return;
-
-        if (self.config.mode === "range" && self.selectedDates.length === 1)
-          self.clear(false);
-
-        // announce the outcome of the whole click, like selecting a day does
-        announceCommit(committed);
+      // a typed value has already overwritten the time inputs
+      if (
+        committed === undefined &&
+        self.timeContainer !== undefined &&
+        self.minuteElement !== undefined &&
+        self.hourElement !== undefined &&
+        self.input.value !== "" &&
+        self.input.value !== undefined
+      ) {
+        updateTime();
       }
+
+      self.close();
+
+      // onClose may have destroyed the instance
+      if (self.config === undefined) return;
+
+      if (self.config.mode === "range" && self.selectedDates.length === 1)
+        self.clear(false);
+
+      // announce the outcome of the whole click, like selecting a day does
+      announceCommit(committed);
     }
   }
 
@@ -2055,6 +2083,7 @@ function FlatpickrInstance(
     self.isOpen = true;
 
     if (!wasOpen) {
+      bindOpenEvents();
       self.calendarContainer.classList.add("open");
       self._input.classList.add("active");
       triggerEvent("onOpen");

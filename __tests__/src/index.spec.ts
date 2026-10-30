@@ -1388,6 +1388,182 @@ describe("flatpickr", () => {
       });
     });
 
+    describe("document and window listeners (flatpickr#3069)", () => {
+      let listeners: {
+        on: string;
+        type: string;
+        callback: unknown;
+        capture: boolean;
+      }[];
+
+      const isCapture = (options?: boolean | EventListenerOptions) =>
+        typeof options === "boolean" ? options : !!options?.capture;
+
+      // mirror the listeners added to and removed from target
+      const track = (target: EventTarget, on: string) => {
+        const { addEventListener, removeEventListener } = target;
+
+        jest
+          .spyOn(target, "addEventListener")
+          .mockImplementation((type, callback, options) => {
+            listeners.push({ on, type, callback, capture: isCapture(options) });
+            addEventListener.call(target, type, callback, options);
+          });
+        jest
+          .spyOn(target, "removeEventListener")
+          .mockImplementation((type, callback, options) => {
+            const capture = isCapture(options);
+            listeners = listeners.filter(
+              (l) =>
+                l.on !== on ||
+                l.type !== type ||
+                l.callback !== callback ||
+                l.capture !== capture
+            );
+            removeEventListener.call(target, type, callback, options);
+          });
+      };
+
+      // what flatpickr has bound on the document and the window
+      const bound = () =>
+        listeners
+          .map((l) => `${l.on} ${l.type}${l.capture ? " capture" : ""}`)
+          .sort();
+
+      const whileOpen = [
+        "document focus capture",
+        "document mousedown",
+        "window resize",
+      ];
+
+      beforeEach(() => {
+        listeners = [];
+        track(document, "document");
+        track(window, "window");
+      });
+
+      afterEach(() => jest.restoreAllMocks());
+
+      it("binds them only while the calendar is open", () => {
+        createInstance();
+        expect(bound()).toEqual([]);
+
+        fp.open();
+        expect(bound()).toEqual(whileOpen);
+
+        fp.close();
+        expect(bound()).toEqual([]);
+      });
+
+      it("binds them once however often it opens", () => {
+        createInstance();
+
+        for (let i = 0; i < 3; i++) {
+          fp.open();
+          fp.open();
+          expect(bound()).toEqual(whileOpen);
+
+          fp.close();
+          expect(bound()).toEqual([]);
+        }
+      });
+
+      it("unbinds them when destroyed open or closed", () => {
+        createInstance();
+        fp.open();
+        fp.destroy();
+        expect(bound()).toEqual([]);
+
+        createInstance();
+        fp.open();
+        fp.close();
+        fp.destroy();
+        expect(bound()).toEqual([]);
+      });
+
+      it("leaves none bound when onOpen closes the calendar", () => {
+        createInstance({ onOpen: (_, __, instance) => instance.close() });
+        fp.open();
+
+        expect(fp.isOpen).toBe(false);
+        expect(bound()).toEqual([]);
+      });
+
+      it("keeps them bound when onClose reopens the calendar", () => {
+        createInstance({ onClose: (_, __, instance) => instance.open() });
+        fp.open();
+        pressOutside();
+
+        expect(fp.isOpen).toBe(true);
+        expect(bound()).toEqual(whileOpen);
+      });
+
+      it("binds no resize listener for a static calendar", () => {
+        createInstance({ static: true });
+        expect(bound()).toEqual([]);
+
+        fp.open();
+        expect(bound()).toEqual([
+          "document focus capture",
+          "document mousedown",
+        ]);
+      });
+
+      it("binds none for an inline calendar or the native mobile input", () => {
+        createInstance({ inline: true });
+        fp.open();
+        expect(bound()).toEqual([]);
+
+        mockAgent = "Android";
+        createInstance();
+        fp.open();
+        expect(bound()).toEqual([]);
+      });
+
+      it("binds touchstart instead of mousedown on touch screens", () => {
+        (window as any).ontouchstart = null;
+        createInstance();
+        fp.open();
+        delete (window as any).ontouchstart;
+
+        expect(bound()).toEqual([
+          "document focus capture",
+          "document touchstart",
+          "window resize",
+        ]);
+
+        simulate("touchstart", document.body);
+        expect(fp.isOpen).toBe(false);
+        expect(bound()).toEqual([]);
+      });
+
+      it("still closes on a press or a focus outside", () => {
+        const other = document.createElement("input");
+        document.body.appendChild(other);
+        createInstance();
+
+        fp.open();
+        pressOutside();
+        expect(fp.isOpen).toBe(false);
+
+        fp.open();
+        other.focus();
+        expect(fp.isOpen).toBe(false);
+        expect(bound()).toEqual([]);
+
+        other.remove();
+      });
+
+      it("unbinds them when confirmDate's button closes the calendar", () => {
+        createInstance({ enableTime: true, plugins: [confirmDatePlugin({})] });
+        fp.open();
+        clickOn(fp.calendarContainer.querySelector(".flatpickr-confirm")!);
+
+        expect(fp.isOpen).toBe(false);
+        expect(bound()).toEqual([]);
+      });
+    });
+
     it("onKeyDown", () => {
       createInstance({
         enableTime: true,
