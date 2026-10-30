@@ -3111,16 +3111,55 @@ describe("flatpickr", () => {
       stubRect(document.body, -192, 8);
       // jsdom doesn't compute the initial value of position
       document.body.style.position = "static";
+      document.documentElement.style.position = "static";
       fp._positionCalendar();
       expect(fp.calendarContainer.style.top).toEqual("332px");
 
       document.body.style.position = "relative";
       fp._positionCalendar();
       document.body.style.position = "";
+      document.documentElement.style.position = "";
 
       // 332 - (200 - 192), 50 - 8
       expect(fp.calendarContainer.style.top).toEqual("324px");
       expect(fp.calendarContainer.style.left).toEqual("42px");
+    });
+
+    it("positions relative to <html> when it is positioned and <body> isn't", () => {
+      // scroll locks such as Vuetify's dialog fix <html> at -scrollY, so the
+      // page itself no longer scrolls
+      stub(window, "pageYOffset", 0);
+      const fp = position();
+      stub(fp.calendarContainer, "offsetParent", document.body);
+      stubRect(document.documentElement, -2148, 0);
+      document.body.style.position = "static";
+      document.documentElement.style.position = "fixed";
+      fp._positionCalendar();
+      document.body.style.position = "";
+      document.documentElement.style.position = "";
+
+      // 132 - (0 - 2148)
+      expect(fp.calendarContainer.style.top).toEqual("2280px");
+      expect(fp.calendarContainer.style.left).toEqual("50px");
+    });
+
+    it("doesn't take the page's scroll off twice for a positioned <html>", () => {
+      stub(window, "pageXOffset", 30);
+      const fp = position();
+      stub(fp.calendarContainer, "offsetParent", document.body);
+      stubRect(document.documentElement, -200, -30);
+      // <html>'s scroll offsets are the page's
+      stub(document.documentElement, "scrollTop", 200);
+      stub(document.documentElement, "scrollLeft", 30);
+      document.body.style.position = "static";
+      document.documentElement.style.position = "relative";
+      fp._positionCalendar();
+      document.body.style.position = "";
+      document.documentElement.style.position = "";
+
+      // 332 - (200 - 200), 80 - (30 - 30)
+      expect(fp.calendarContainer.style.top).toEqual("332px");
+      expect(fp.calendarContainer.style.left).toEqual("80px");
     });
 
     it("aligns the right edges near the right side of the page", () => {

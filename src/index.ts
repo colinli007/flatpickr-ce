@@ -2384,29 +2384,35 @@ function FlatpickrInstance(
   }
 
   function getContainingBlockOrigin() {
-    const containingBlock = self.calendarContainer.offsetParent;
-    // offsetParent is null while the calendar is hidden, and is <body> both
-    // when <body> is positioned and when there is no positioned ancestor
-    if (
-      containingBlock === null ||
-      (containingBlock === doc.body &&
-        win.getComputedStyle(containingBlock).position === "static")
-    )
-      return { top: 0, left: 0 };
+    let containingBlock = self.calendarContainer.offsetParent;
+    // offsetParent is null while the calendar is hidden, and stops at <body>
+    // even when <body> is static: the containing block is then <html> if that
+    // is positioned (scroll locks fix it at -scrollY), or else the page
+    if (containingBlock === doc.body && isStatic(doc.body))
+      containingBlock = isStatic(doc.documentElement)
+        ? null
+        : doc.documentElement;
+    if (containingBlock === null) return { top: 0, left: 0 };
 
     const bounds = containingBlock.getBoundingClientRect();
+    // <html>'s scroll offsets are the page's, already in pageX/YOffset
+    const isRoot = containingBlock === doc.documentElement;
     return {
       top:
         win.pageYOffset +
         bounds.top +
         containingBlock.clientTop -
-        containingBlock.scrollTop,
+        (isRoot ? 0 : containingBlock.scrollTop),
       left:
         win.pageXOffset +
         bounds.left +
         containingBlock.clientLeft -
-        containingBlock.scrollLeft,
+        (isRoot ? 0 : containingBlock.scrollLeft),
     };
+  }
+
+  function isStatic(elem: Element) {
+    return win.getComputedStyle(elem).position === "static";
   }
 
   function redraw() {
