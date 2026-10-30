@@ -2321,19 +2321,50 @@ function FlatpickrInstance(
       configPosHorizontal = configPos.length > 1 ? configPos[1] : null,
       inputBounds = positionElement.getBoundingClientRect(),
       distanceFromBottom = win.innerHeight - inputBounds.bottom,
-      showOnTop =
-        configPosVertical === "above" ||
-        (configPosVertical !== "below" &&
-          distanceFromBottom < calendarHeight &&
-          inputBounds.top > calendarHeight);
+      isAutoVertical =
+        configPosVertical !== "above" && configPosVertical !== "below",
+      fitsBelow = distanceFromBottom >= calendarHeight,
+      fitsAbove = inputBounds.top > calendarHeight,
+      // the page can't always be scrolled to what sticks out of the viewport
+      // (scroll-locked modals, touch screens), so a calendar that fits
+      // neither above nor below goes on the roomier side, kept in the viewport
+      keepInViewport =
+        isAutoVertical &&
+        !fitsBelow &&
+        !fitsAbove &&
+        !self.config.static &&
+        !self.config.inline,
+      showOnTop = keepInViewport
+        ? inputBounds.top > distanceFromBottom
+        : configPosVertical === "above" ||
+          (isAutoVertical && !fitsBelow && fitsAbove);
 
-    const top =
+    const anchoredTop =
       win.pageYOffset +
       inputBounds.top +
       (!showOnTop ? positionElement.offsetHeight + 2 : -calendarHeight - 2);
+    // a calendar taller than the viewport sticks to its top
+    const top = keepInViewport
+      ? Math.max(
+          win.pageYOffset,
+          Math.min(
+            anchoredTop,
+            win.pageYOffset + win.innerHeight - calendarHeight
+          )
+        )
+      : anchoredTop;
 
-    toggleClass(self.calendarContainer, "arrowTop", !showOnTop);
-    toggleClass(self.calendarContainer, "arrowBottom", showOnTop);
+    // a calendar kept in the viewport may cover the input it would point at
+    toggleClass(
+      self.calendarContainer,
+      "arrowTop",
+      !keepInViewport && !showOnTop
+    );
+    toggleClass(
+      self.calendarContainer,
+      "arrowBottom",
+      !keepInViewport && showOnTop
+    );
 
     if (self.config.inline) return;
 

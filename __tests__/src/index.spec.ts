@@ -3060,9 +3060,16 @@ describe("flatpickr", () => {
       return fp;
     }
 
+    // the calendar's height is the sum of its children's
+    function stubHeights(fp: Instance, viewport: number, calendar: number) {
+      stub(window, "innerHeight", viewport);
+      stub(fp.calendarContainer.children[0], "offsetHeight", calendar);
+    }
+
     beforeEach(() => {
       stub(window, "pageXOffset", 0);
       stub(window, "pageYOffset", 200);
+      stub(window, "innerHeight", 768);
       stub(document.body, "offsetWidth", 1000);
     });
 
@@ -3192,6 +3199,100 @@ describe("flatpickr", () => {
       stub(document.body, "offsetWidth", 1000);
       fp._positionCalendar();
       expect(calendar.classList.contains("centerMost")).toBe(false);
+    });
+
+    function hasArrow(fp: Instance) {
+      const { classList } = fp.calendarContainer;
+      return (
+        classList.contains("arrowTop") || classList.contains("arrowBottom")
+      );
+    }
+
+    it("keeps a calendar that fits neither above nor below in the viewport", () => {
+      const fp = position();
+      stubHeights(fp, 400, 300);
+      fp._positionCalendar();
+
+      // 270px below the input and 100px above: its bottom meets the
+      // viewport's, 200 + 400 - 300, and it no longer points at the input
+      expect(fp.calendarContainer.style.top).toEqual("300px");
+      expect(hasArrow(fp)).toBe(false);
+    });
+
+    it("keeps it on the side with more room", () => {
+      const fp = position();
+      stubRect(fp._positionElement, 250, 50, 100);
+      stubHeights(fp, 400, 300);
+      fp._positionCalendar();
+
+      // 250px above the input and 120px below: its top meets the viewport's
+      expect(fp.calendarContainer.style.top).toEqual("200px");
+      expect(hasArrow(fp)).toBe(false);
+    });
+
+    it("sticks a calendar taller than the viewport to its top", () => {
+      const fp = position();
+      stubHeights(fp, 250, 300);
+      fp._positionCalendar();
+
+      expect(fp.calendarContainer.style.top).toEqual("200px");
+      expect(hasArrow(fp)).toBe(false);
+    });
+
+    it("keeps it in the viewport inside a positioned appendTo container", () => {
+      const container = document.createElement("div");
+      document.body.appendChild(container);
+      const fp = position({ appendTo: container });
+      stub(fp.calendarContainer, "offsetParent", container);
+      stubRect(container, 40, 10);
+      stub(container, "clientTop", 3);
+      stub(container, "scrollTop", 20);
+      stubHeights(fp, 400, 300);
+      fp._positionCalendar();
+
+      // 300 - (200 + 40 + 3 - 20)
+      expect(fp.calendarContainer.style.top).toEqual("77px");
+      container.remove();
+    });
+
+    it("leaves an explicitly placed calendar where it was put", () => {
+      const below = position({ position: "below" });
+      stubHeights(below, 400, 300);
+      below._positionCalendar();
+      expect(below.calendarContainer.style.top).toEqual("332px");
+      expect(below.calendarContainer.classList.contains("arrowTop")).toBe(true);
+
+      const above = position({ position: "above" });
+      stubHeights(above, 400, 300);
+      above._positionCalendar();
+      // 200 + 100 - 300 - 2
+      expect(above.calendarContainer.style.top).toEqual("-2px");
+      expect(above.calendarContainer.classList.contains("arrowBottom")).toBe(
+        true
+      );
+    });
+
+    it("still points at the input when the calendar fits on one side", () => {
+      const fp = position();
+      stubHeights(fp, 400, 200);
+      fp._positionCalendar();
+      expect(fp.calendarContainer.style.top).toEqual("332px");
+      expect(fp.calendarContainer.classList.contains("arrowTop")).toBe(true);
+
+      stubRect(fp._positionElement, 250, 50, 100);
+      fp._positionCalendar();
+      // 200 + 250 - 200 - 2
+      expect(fp.calendarContainer.style.top).toEqual("248px");
+      expect(fp.calendarContainer.classList.contains("arrowBottom")).toBe(true);
+    });
+
+    it("leaves static and inline calendars pointing at the input", () => {
+      for (const config of [{ static: true }, { inline: true }]) {
+        const fp = position(config);
+        stubHeights(fp, 400, 300);
+        fp._positionCalendar();
+        expect(fp.calendarContainer.classList.contains("arrowTop")).toBe(true);
+      }
     });
   });
 
