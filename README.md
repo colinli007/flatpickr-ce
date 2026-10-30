@@ -114,6 +114,10 @@ Framework addons (they depend on the `flatpickr` package, so use the alias above
 * [vue-flatpickr component](https://github.com/ankurk91/vue-flatpickr-component)
 * [lit-flatpickr component](https://github.com/Matsuuu/lit-flatpickr)
 
+### Options are trusted
+
+A few options are inserted into the calendar as HTML, not text: `prevArrow`, `nextArrow`, what `getWeek` returns, the locale's short weekday names, and confirmDate's `confirmIcon`. Like the rest of the config, they are meant to come from your code: don't build them from user input or other untrusted data without escaping it.
+
 
 ## Contributing
 
