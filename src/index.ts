@@ -41,6 +41,9 @@ import "./utils/polyfills";
 
 const DEBOUNCED_CHANGE_MS = 300;
 
+// Instances created so far, which numbers their fields' ids
+let instanceCount = 0;
+
 function FlatpickrInstance(
   element: HTMLElement,
   instanceConfig?: Options
@@ -56,6 +59,11 @@ function FlatpickrInstance(
   // The options the user gave, at creation and through set(), as opposed to
   // defaults
   const userConfig = {} as Options;
+
+  // The calendar's own fields get ids, unique on the page and kept across
+  // rebuilds: Chrome flags a field with neither an id nor a name, and a name
+  // would get them submitted with a form holding a static or inline calendar
+  const idPrefix = `flatpickr-${++instanceCount}`;
 
   // The element may live in another document than the one flatpickr was
   // loaded in (an iframe, or a window.open() popup), each with its own globals.
@@ -1050,7 +1058,7 @@ function FlatpickrInstance(
     }
   }
 
-  function buildMonth() {
+  function buildMonth(index: number) {
     const container = createElement("div", "flatpickr-month");
     const monthNavFragment = doc.createDocumentFragment();
 
@@ -1066,6 +1074,7 @@ function FlatpickrInstance(
         "select",
         "flatpickr-monthDropdown-months"
       );
+      self.monthsDropdownContainer.id = `${idPrefix}-month`;
 
       self.monthsDropdownContainer.setAttribute(
         "aria-label",
@@ -1086,7 +1095,10 @@ function FlatpickrInstance(
       monthElement = self.monthsDropdownContainer;
     }
 
-    const yearInput = createNumberInput("cur-year", { tabindex: "-1" });
+    const yearInput = createNumberInput("cur-year", {
+      id: `${idPrefix}-year-${index}`,
+      tabindex: "-1",
+    });
 
     const yearElement = yearInput.getElementsByTagName(
       "input"
@@ -1137,8 +1149,8 @@ function FlatpickrInstance(
       self.monthElements = [];
     }
 
-    for (let m = self.config.showMonths; m--; ) {
-      const month = buildMonth();
+    for (let i = 0; i < self.config.showMonths; i++) {
+      const month = buildMonth(i);
       self.yearElements.push(month.yearElement);
       self.monthElements.push(month.monthElement);
       self.monthNav.appendChild(month.container);
@@ -1202,6 +1214,7 @@ function FlatpickrInstance(
     const separator = createElement("span", "flatpickr-time-separator", ":");
 
     const hourInput = createNumberInput("flatpickr-hour", {
+      id: `${idPrefix}-hour`,
       "aria-label": self.l10n.hourAriaLabel,
     });
     self.hourElement = hourInput.getElementsByTagName(
@@ -1209,6 +1222,7 @@ function FlatpickrInstance(
     )[0] as HTMLInputElement;
 
     const minuteInput = createNumberInput("flatpickr-minute", {
+      id: `${idPrefix}-minute`,
       "aria-label": self.l10n.minuteAriaLabel,
     });
 
@@ -1255,7 +1269,9 @@ function FlatpickrInstance(
     if (self.config.enableSeconds) {
       self.timeContainer.classList.add("hasSeconds");
 
-      const secondInput = createNumberInput("flatpickr-second");
+      const secondInput = createNumberInput("flatpickr-second", {
+        id: `${idPrefix}-second`,
+      });
       self.secondElement = secondInput.getElementsByTagName(
         "input"
       )[0] as HTMLInputElement;

@@ -1705,6 +1705,133 @@ describe("flatpickr", () => {
       }
     });
 
+    describe("ids of the calendar's form fields (flatpickr#3118)", () => {
+      const fieldsOf = (instance: Instance) =>
+        Array.from(
+          instance.calendarContainer.querySelectorAll<
+            HTMLInputElement | HTMLSelectElement
+          >("input, select")
+        );
+      const idsOf = (instance: Instance) =>
+        fieldsOf(instance).map((field) => field.id);
+      const timeConfig = { enableTime: true, enableSeconds: true };
+
+      it("gives the month dropdown, year and time inputs an id and no name", () => {
+        createInstance(timeConfig);
+
+        const fields = fieldsOf(fp);
+        expect(fields).toEqual([
+          fp.monthsDropdownContainer,
+          fp.currentYearElement,
+          fp.hourElement,
+          fp.minuteElement,
+          fp.secondElement,
+        ]);
+        for (const field of fields) {
+          expect(field.id).not.toEqual("");
+          expect(document.getElementById(field.id)).toBe(field);
+          expect(field.name).toEqual("");
+        }
+      });
+
+      it("doesn't repeat ids across instances", () => {
+        createInstance(timeConfig);
+        const other = flatpickr(
+          document.createElement("input"),
+          timeConfig
+        ) as Instance;
+
+        const ids = [...idsOf(fp), ...idsOf(other)];
+        expect(new Set(ids).size).toEqual(10);
+
+        other.destroy();
+      });
+
+      it("doesn't reuse a destroyed instance's ids while another lives", () => {
+        createInstance(timeConfig);
+        const ids = idsOf(fp);
+        expect(ids).not.toContain("");
+        const destroyed = flatpickr(
+          document.createElement("input"),
+          timeConfig
+        ) as Instance;
+        destroyed.destroy();
+        const created = flatpickr(
+          document.createElement("input"),
+          timeConfig
+        ) as Instance;
+
+        expect(idsOf(created).filter((id) => ids.includes(id))).toEqual([]);
+
+        created.destroy();
+      });
+
+      for (const config of [{ static: true }, { inline: true }]) {
+        it(`doesn't add the fields to a form's data (${
+          Object.keys(config)[0]
+        })`, () => {
+          const form = document.createElement("form");
+          const input = document.createElement("input");
+          input.name = "date";
+          form.appendChild(input);
+          document.body.appendChild(form);
+
+          createInstance(
+            { ...config, ...timeConfig, defaultDate: "2024-03-05 10:20:30" },
+            input
+          );
+
+          const entries: [string, FormDataEntryValue][] = [];
+          new FormData(form).forEach((value, key) =>
+            entries.push([key, value])
+          );
+
+          expect(form.contains(fp.calendarContainer)).toBe(true);
+          expect(entries).toEqual([["date", "2024-03-05 10:20:30"]]);
+
+          fp.destroy();
+          form.remove();
+        });
+      }
+
+      it("gives each month's year input its own id with showMonths", () => {
+        createInstance({ showMonths: 2 });
+
+        const ids = fp.yearElements.map((year) => year.id);
+        expect(ids).toHaveLength(2);
+        expect(ids).not.toContain("");
+        expect(new Set(ids).size).toEqual(2);
+      });
+
+      it("keeps the ids when set() rebuilds the months", () => {
+        createInstance();
+        const monthId = fp.monthsDropdownContainer.id;
+        const yearId = fp.currentYearElement.id;
+
+        fp.set("showMonths", 2);
+        expect(fp.yearElements[0].id).toEqual(yearId);
+        expect(fp.yearElements[1].id).not.toEqual("");
+        expect(fp.yearElements[1].id).not.toEqual(yearId);
+
+        fp.set("showMonths", 1);
+        expect(idsOf(fp)).toEqual([monthId, yearId]);
+      });
+
+      it("keeps the ids when set() rebuilds the time picker", () => {
+        createInstance(timeConfig);
+        const ids = idsOf(fp);
+        expect(ids).not.toContain("");
+
+        fp.set("enableTime", false);
+        expect(fp.hourElement).toBeUndefined();
+        fp.set("enableTime", true);
+        expect(idsOf(fp)).toEqual(ids);
+
+        fp.set("time_24hr", true);
+        expect(idsOf(fp)).toEqual(ids);
+      });
+    });
+
     describe("mobile calendar", () => {
       describe(".isMobile", () => {
         it("returns true", () => {
