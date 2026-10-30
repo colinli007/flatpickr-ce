@@ -42,6 +42,32 @@ npm install flatpickr@npm:flatpickr-ce
 
 ## What's changed since flatpickr 4.6.13
 
+### 4.8.0
+
+- A typed value is committed the same way on Enter, blur and a click outside, and `onChange` now fires when a click outside commits it ([#2941](https://github.com/flatpickr/flatpickr/issues/2941), [#3136](https://github.com/flatpickr/flatpickr/pull/3136))
+- The arrow keys move by date, also across years with `showMonths > 1`, and skip past months where every day is disabled ([#3099](https://github.com/flatpickr/flatpickr/issues/3099), [#3140](https://github.com/flatpickr/flatpickr/pull/3140), [#3064](https://github.com/flatpickr/flatpickr/issues/3064))
+- `set("enableTime")`, `set("time_24hr")` and `set("enableSeconds")` take effect ([#3083](https://github.com/flatpickr/flatpickr/issues/3083))
+- Formats with numeric month names parse correctly ([#3115](https://github.com/flatpickr/flatpickr/issues/3115), [#3139](https://github.com/flatpickr/flatpickr/pull/3139)), and with `noCalendar` a date no longer rolls over depending on today's day ([#3078](https://github.com/flatpickr/flatpickr/issues/3078))
+- A `range` value with an end ruled out by `minDate`, `maxDate`, `enable` or `disable` is dropped as a whole instead of leaving half a range; `allowInvalidPreload` keeps the whole range ([#3108](https://github.com/flatpickr/flatpickr/issues/3108))
+- The calendar lines up with its input under scroll locks that fix `<html>` in place, such as Vuetify's dialogs ([#3122](https://github.com/flatpickr/flatpickr/issues/3122)), and one that fits neither above nor below its input is kept in the viewport ([#3094](https://github.com/flatpickr/flatpickr/issues/3094))
+- The document and window listeners are only bound while the calendar is open ([#3069](https://github.com/flatpickr/flatpickr/issues/3069)), and the calendar's own fields have ids, so Chrome no longer flags them ([#3118](https://github.com/flatpickr/flatpickr/issues/3118))
+- The native mobile input isn't rewritten while it's being typed into ([#3144](https://github.com/flatpickr/flatpickr/issues/3144), [#3145](https://github.com/flatpickr/flatpickr/pull/3145)), and moving to another year without a calendar no longer throws
+- monthSelect stays in sync after `setDate` and typed input, and shows its own grid on mobile devices ([#3067](https://github.com/flatpickr/flatpickr/issues/3067), [#3109](https://github.com/flatpickr/flatpickr/issues/3109), [#3119](https://github.com/flatpickr/flatpickr/issues/3119)); plugins can rebuild their cells on the new `onDaysBuilt` hook
+- rangePlugin fires `onOpen` once per opening, lets `defaultDate` override a prefilled second input, and parses that input in the format it displays ([#3114](https://github.com/flatpickr/flatpickr/issues/3114))
+- New Galician, Breton and Tajik locales, a Bulgarian range separator, and localized aria labels in 12 more locales ([#3137](https://github.com/flatpickr/flatpickr/pull/3137), [#3088](https://github.com/flatpickr/flatpickr/pull/3088), [#3106](https://github.com/flatpickr/flatpickr/pull/3106), [#3081](https://github.com/flatpickr/flatpickr/pull/3081), [#3131](https://github.com/flatpickr/flatpickr/pull/3131), [#3079](https://github.com/flatpickr/flatpickr/pull/3079))
+
+Behavior changes to check when upgrading:
+
+- Enter no longer fires `onChange` for an unchanged value, and typed times are held within `minTime`/`maxTime`.
+- `fp.isMobile` isn't set yet while plugin factories run; read it in a hook. Options a plugin returns (such as `disableMobile`) now decide whether the native mobile input is used.
+- With `noCalendar`, a format with a month but no day (e.g. `m/Y`) lands on the 1st.
+- A selected date that is disabled carries the `selected` class next to `flatpickr-disabled`.
+- A calendar that fits neither above nor below its input may cover it, and shows no arrow.
+- Listeners a page adds to the document after creating the picker and before opening it now run before flatpickr's.
+- The month dropdown, year and time inputs have ids (`flatpickr-<n>-month`, `-year-<i>`, `-hour`, `-minute`, `-second`), which changes DOM snapshots.
+
+### 4.7.0 – 4.7.2
+
 - Elements from another window or an iframe are now supported ([#3138](https://github.com/flatpickr/flatpickr/issues/3138), [#3096](https://github.com/flatpickr/flatpickr/issues/3096))
 - Removed a dead `Event.path` check in the outside-click handler ([#2766](https://github.com/flatpickr/flatpickr/issues/2766))
 - The calendar is now positioned correctly when `appendTo` is a positioned element, such as a container inside shadow DOM, a fixed or transformed modal, or a scrolling container ([#1024](https://github.com/flatpickr/flatpickr/issues/1024), [#2362](https://github.com/flatpickr/flatpickr/pull/2362))
