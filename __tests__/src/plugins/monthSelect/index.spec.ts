@@ -535,6 +535,33 @@ describe("monthSelect", () => {
       });
     });
 
+    describe("a range with a disabled end (flatpickr#3108)", () => {
+      const range = {
+        mode: "range" as const,
+        minDate: new Date(2025, 2, 1),
+        defaultDate: [new Date(2025, 1, 1), new Date(2025, 4, 1)],
+      };
+
+      it("is dropped as a whole", () => {
+        const fp = createInstance(range);
+
+        expect(fp.selectedDates).toEqual([]);
+        expect(
+          monthCells(fp).some((cell) => cell.className.match(/Range/))
+        ).toBe(false);
+      });
+
+      it("keeps and marks its disabled end with allowInvalidPreload", () => {
+        const fp = createInstance({ ...range, allowInvalidPreload: true });
+
+        expect(fp.selectedDates).toEqual(range.defaultDate);
+        expect(Array.from(monthCells(fp)[1].classList)).toEqual(
+          expect.arrayContaining(["flatpickr-disabled", "startRange"])
+        );
+        expect(monthCells(fp)[4].classList).toContain("endRange");
+      });
+    });
+
     describe("focus after selecting a month", () => {
       it("stays on the month selected with Enter", () => {
         const fp = createMountedInstance({ inline: true });

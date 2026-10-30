@@ -50,7 +50,10 @@ function rangePlugin(config: Config = {}): Plugin {
       if (!fp.config.defaultDate && secondInput.value) {
         const parsedDate = fp.parseDate(secondInput.value, dateFormat);
 
-        if (parsedDate) fp.selectedDates.push(parsedDate);
+        // the inputs preload as one range: this end only pairs with a kept
+        // start, and onReady's setDate then checks the pair (#3108)
+        if (parsedDate && fp.selectedDates.length === 1)
+          fp.selectedDates.push(parsedDate);
       }
 
       secondInput.setAttribute("data-fp-omit", "");
@@ -168,8 +171,9 @@ function rangePlugin(config: Config = {}): Plugin {
       onValueUpdate(selDates: Date[]) {
         if (!secondInput) return;
 
-        // flatpickr dropped one side of the range: keep the other side
-        // (dropping both, e.g. an unparsable setDate, leaves nothing to keep)
+        // one side of the range is left, from a day picked on the calendar or
+        // a typed side that didn't parse: keep the other side (a range ruled
+        // out, or dropping both, leaves nothing to keep)
         const isEdit = selDates.length === 1 && _prevDates.length === 2;
 
         if (isEdit) {

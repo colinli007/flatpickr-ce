@@ -40,6 +40,58 @@ describe("rangePlugin", () => {
     ]);
   });
 
+  // flatpickr#3108: the two inputs preload as one range, kept or dropped whole
+  describe("preloading both inputs with minDate and maxDate", () => {
+    const preload = (first: string, second: string) => {
+      const input = document.createElement("input");
+      const secondInput = document.createElement("input");
+      input.value = first;
+      secondInput.value = second;
+      const fp = flatpickr(input, {
+        plugins: [rangePlugin({ input: secondInput })],
+        minDate: "2025-07-21",
+        maxDate: "2025-07-28",
+      });
+
+      return { fp, input, secondInput };
+    };
+
+    it("drops the range when its start is before minDate", () => {
+      const { fp, input, secondInput } = preload("2025-07-15", "2025-07-25");
+
+      expect(fp.selectedDates).toEqual([]);
+      expect(input.value).toEqual("");
+      expect(secondInput.value).toEqual("");
+    });
+
+    it("drops the range when its end is after maxDate", () => {
+      const { fp, input, secondInput } = preload("2025-07-22", "2025-07-30");
+
+      expect(fp.selectedDates).toEqual([]);
+      expect(input.value).toEqual("");
+      expect(secondInput.value).toEqual("");
+    });
+
+    it("keeps a range with both ends enabled", () => {
+      const { fp, input, secondInput } = preload("2025-07-22", "2025-07-25");
+
+      expect(fp.selectedDates).toEqual([
+        new Date(2025, 6, 22),
+        new Date(2025, 6, 25),
+      ]);
+      expect(input.value).toEqual("2025-07-22");
+      expect(secondInput.value).toEqual("2025-07-25");
+    });
+
+    it("drops an end with no start to pair with", () => {
+      const { fp, input, secondInput } = preload("", "2025-07-25");
+
+      expect(fp.selectedDates).toEqual([]);
+      expect(input.value).toEqual("");
+      expect(secondInput.value).toEqual("");
+    });
+  });
+
   it("lets defaultDate override a prefilled second input", () => {
     const secondInput = document.createElement("input");
     secondInput.value = "2000-03-01";
@@ -337,6 +389,34 @@ describe("rangePlugin", () => {
     expect(fp.selectedDates).toEqual([]);
     expect(fp._input.value).toEqual("");
     expect(secondInput.value).toEqual("");
+  });
+
+  // flatpickr#3108: a range with an end ruled out is dropped as a whole
+  it("clears both inputs when a typed end is past maxDate", () => {
+    const input = document.createElement("input");
+    const secondInput = document.createElement("input");
+    document.body.append(input, secondInput);
+    const fp = flatpickr(input, {
+      plugins: [rangePlugin({ input: secondInput })],
+      allowInput: true,
+      maxDate: "2017-10-28",
+      defaultDate: ["2017-10-20", "2017-10-25"],
+    });
+
+    secondInput.click();
+    secondInput.value = "2017-10-30";
+    secondInput.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+    );
+    jest.runAllTimers();
+
+    expect(fp.selectedDates).toEqual([]);
+    expect(input.value).toEqual("");
+    expect(secondInput.value).toEqual("");
+
+    fp.destroy();
+    input.remove();
+    secondInput.remove();
   });
 
   it("announces the range it clears when clicking outside with allowInput", () => {

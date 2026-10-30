@@ -758,32 +758,32 @@ function FlatpickrInstance(
       dayElement.setAttribute("aria-current", "date");
     }
 
-    if (dateIsEnabled) {
-      dayElement.tabIndex = -1;
-      if (isDateSelected(date)) {
-        dayElement.classList.add("selected");
-        self.selectedDateElem = dayElement;
+    if (dateIsEnabled) dayElement.tabIndex = -1;
+    else dayElement.classList.add("flatpickr-disabled");
 
-        if (self.config.mode === "range") {
-          toggleClass(
-            dayElement,
-            "startRange",
-            self.selectedDates[0] &&
-              compareDates(date, self.selectedDates[0], true) === 0
-          );
+    // a selected date can be disabled, e.g. one kept by allowInvalidPreload
+    if (isDateSelected(date)) {
+      dayElement.classList.add("selected");
+      // keyboard navigation starts from here, and disabled days can't be focused
+      if (dateIsEnabled) self.selectedDateElem = dayElement;
 
-          toggleClass(
-            dayElement,
-            "endRange",
-            self.selectedDates[1] &&
-              compareDates(date, self.selectedDates[1], true) === 0
-          );
+      if (self.config.mode === "range") {
+        toggleClass(
+          dayElement,
+          "startRange",
+          self.selectedDates[0] &&
+            compareDates(date, self.selectedDates[0], true) === 0
+        );
 
-          if (className === "nextMonthDay") dayElement.classList.add("inRange");
-        }
+        toggleClass(
+          dayElement,
+          "endRange",
+          self.selectedDates[1] &&
+            compareDates(date, self.selectedDates[1], true) === 0
+        );
+
+        if (className === "nextMonthDay") dayElement.classList.add("inRange");
       }
-    } else {
-      dayElement.classList.add("flatpickr-disabled");
     }
 
     if (self.config.mode === "range") {
@@ -2122,7 +2122,8 @@ function FlatpickrInstance(
       }
 
       if (self.selectedDates) {
-        self.selectedDates = self.selectedDates.filter((d) => isEnabled(d));
+        if (!self.config.allowInvalidPreload)
+          self.selectedDates = filterEnabledDates(self.selectedDates, true);
         if (!self.selectedDates.length && type === "min")
           setHoursFromDate(dateObj);
         updateValue();
@@ -2657,6 +2658,19 @@ function FlatpickrInstance(
     updateValue(true);
   }
 
+  /**
+   * Leaves out the dates minDate, maxDate, enable or disable rule out. The two
+   * ends of a range go together: either on its own reads as a range whose
+   * start was just picked (#3108)
+   */
+  function filterEnabledDates(dates: Date[], timeless: boolean) {
+    const enabled = dates.filter((d) => isEnabled(d, timeless));
+
+    return self.config.mode === "range" && enabled.length < dates.length
+      ? []
+      : enabled;
+  }
+
   function setSelectedDate(
     inputDate: DateOption | DateOption[],
     format?: string
@@ -2694,11 +2708,12 @@ function FlatpickrInstance(
         new Error(`Invalid date supplied: ${JSON.stringify(inputDate)}`)
       );
 
-    self.selectedDates = (self.config.allowInvalidPreload
-      ? dates
-      : dates.filter(
-          (d) => d instanceof Date && isEnabled(d, false)
-        )) as Date[];
+    self.selectedDates = self.config.allowInvalidPreload
+      ? (dates as Date[])
+      : filterEnabledDates(
+          dates.filter((d): d is Date => d instanceof Date),
+          false
+        );
 
     if (self.config.mode === "range")
       self.selectedDates.sort((a, b) => a.getTime() - b.getTime());

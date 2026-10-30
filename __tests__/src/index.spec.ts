@@ -664,6 +664,208 @@ describe("flatpickr", () => {
       expect(fp.currentMonth).toEqual(nextMonth.getMonth());
     });
 
+    describe("a range with an end that isn't enabled (flatpickr#3108)", () => {
+      const minDate = "2025-07-21";
+      const range = ["2025-07-15", "2025-07-25"];
+
+      const selected = () =>
+        fp.selectedDates.map((d) => fp.formatDate(d, "Y-m-d"));
+
+      const dayElem = (date: string) =>
+        Array.from(fp.days.querySelectorAll<DayElement>(".flatpickr-day")).find(
+          (day) => fp.formatDate(day.dateObj, "Y-m-d") === date
+        )!;
+
+      const dayClasses = (date: string) => Array.from(dayElem(date).classList);
+
+      describe("is dropped as a whole", () => {
+        it("by setDate()", () => {
+          const onChange = jest.fn();
+          createInstance({ mode: "range", minDate, onChange });
+
+          fp.setDate(range, true);
+          expect(selected()).toEqual([]);
+          expect(fp.input.value).toEqual("");
+          expect(onChange).toHaveBeenCalledTimes(1);
+          expect(onChange.mock.calls[0][0]).toEqual([]);
+          expect(fp.days.querySelector(".selected")).toBeNull();
+
+          fp.setDate(range.join(" to "));
+          expect(selected()).toEqual([]);
+        });
+
+        it("by defaultDate and a prefilled input", () => {
+          createInstance({ mode: "range", minDate, defaultDate: range });
+          expect(selected()).toEqual([]);
+
+          const input = document.createElement("input");
+          input.value = range.join(" to ");
+          createInstance({ mode: "range", minDate }, input);
+          expect(selected()).toEqual([]);
+        });
+
+        it("by a typed value", () => {
+          const onChange = jest.fn();
+          createInstance({
+            mode: "range",
+            minDate,
+            allowInput: true,
+            onChange,
+          });
+
+          fp.input.focus();
+          fp.input.value = range.join(" to ");
+          fp.input.blur();
+
+          expect(selected()).toEqual([]);
+          expect(fp.input.value).toEqual("");
+          expect(onChange).not.toHaveBeenCalled();
+        });
+
+        it("by set('minDate')", () => {
+          createInstance({ mode: "range", defaultDate: range });
+
+          fp.set("minDate", minDate);
+          expect(selected()).toEqual([]);
+          expect(fp.input.value).toEqual("");
+        });
+
+        it("when maxDate or disable rules out an end", () => {
+          createInstance({
+            mode: "range",
+            maxDate: "2025-07-20",
+            defaultDate: range,
+          });
+          expect(selected()).toEqual([]);
+
+          createInstance({
+            mode: "range",
+            disable: ["2025-07-15"],
+            defaultDate: range,
+          });
+          expect(selected()).toEqual([]);
+        });
+      });
+
+      it("keeps a disabled day inside it", () => {
+        createInstance({
+          mode: "range",
+          disable: ["2025-07-20"],
+          defaultDate: range,
+        });
+        expect(selected()).toEqual(range);
+      });
+
+      it("leaves single and multiple dropping just the dates ruled out", () => {
+        createInstance({ minDate, defaultDate: range[0] });
+        expect(selected()).toEqual([]);
+
+        createInstance({ mode: "multiple", minDate, defaultDate: range });
+        expect(selected()).toEqual([range[1]]);
+
+        fp.set("minDate", null);
+        fp.setDate(range);
+        fp.set("minDate", minDate);
+        expect(selected()).toEqual([range[1]]);
+      });
+
+      it("marks a selected date that set('disable') rules out", () => {
+        createInstance({ defaultDate: range[0] });
+
+        fp.set("disable", [range[0]]);
+        expect(selected()).toEqual([range[0]]);
+        expect(dayClasses(range[0])).toEqual(
+          expect.arrayContaining(["flatpickr-disabled", "selected"])
+        );
+        expect(fp.selectedDateElem).not.toBe(dayElem(range[0]));
+      });
+
+      describe("with allowInvalidPreload", () => {
+        it("keeps both ends and marks them", () => {
+          createInstance({
+            mode: "range",
+            minDate,
+            defaultDate: range,
+            allowInvalidPreload: true,
+          });
+
+          expect(selected()).toEqual(range);
+          expect(fp.input.value).toEqual(range.join(" to "));
+          expect(dayClasses(range[0])).toEqual(
+            expect.arrayContaining([
+              "flatpickr-disabled",
+              "selected",
+              "startRange",
+            ])
+          );
+          expect(dayClasses(range[0])).not.toContain("inRange");
+          expect(dayClasses(range[1])).toEqual(
+            expect.arrayContaining(["selected", "endRange"])
+          );
+        });
+
+        it("doesn't let the disabled end be clicked", () => {
+          createInstance({
+            mode: "range",
+            minDate,
+            defaultDate: range,
+            allowInvalidPreload: true,
+          });
+          fp.open();
+
+          clickOn(
+            Array.from(fp.days.querySelectorAll(".flatpickr-day")).find((day) =>
+              day.classList.contains("startRange")
+            )!
+          );
+          expect(selected()).toEqual(range);
+        });
+
+        it("keeps them through set('minDate')", () => {
+          createInstance({
+            mode: "range",
+            defaultDate: range,
+            allowInvalidPreload: true,
+          });
+
+          fp.set("minDate", minDate);
+          expect(selected()).toEqual(range);
+          expect(fp.input.value).toEqual(range.join(" to "));
+          expect(dayClasses(range[0])).toEqual(
+            expect.arrayContaining(["flatpickr-disabled", "startRange"])
+          );
+        });
+
+        it("starts keyboard focus from the enabled end", () => {
+          createInstance({
+            mode: "range",
+            maxDate: "2025-07-20",
+            defaultDate: range,
+            allowInvalidPreload: true,
+          });
+          fp.open();
+
+          simulate("keydown", fp._input, { keyCode: 40 });
+          const active = document.activeElement as DayElement;
+          expect(active.dateObj && fp.formatDate(active.dateObj, "Y-m-d")).toBe(
+            range[0]
+          );
+        });
+
+        it("marks a disabled single date as selected", () => {
+          createInstance({
+            minDate,
+            defaultDate: range[0],
+            allowInvalidPreload: true,
+          });
+
+          expect(dayClasses(range[0])).toEqual(
+            expect.arrayContaining(["flatpickr-disabled", "selected"])
+          );
+        });
+      });
+    });
+
     describe("set() time options (flatpickr#3083)", () => {
       const selectFirstDay = () =>
         clickOn(fp.days.querySelector(".flatpickr-day:not(.prevMonthDay)")!);
