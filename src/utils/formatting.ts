@@ -46,6 +46,46 @@ export type RevFormatFn = (
   locale: Locale
 ) => Date | void | undefined;
 export type RevFormat = Record<string, RevFormatFn>;
+
+// Date carries a value past a field's range over into the next field (month 13
+// into the next year, hour 24 into the next day), so a value the field doesn't
+// have gives an invalid date, which the parser reports as such
+const invalidDate = () => new Date(NaN);
+
+const setInRange = (
+  min: number,
+  max: number,
+  set: (dateObj: Date, value: number) => void
+): RevFormatFn => (dateObj: Date, data: string) => {
+  const value = parseFloat(data);
+  if (value < min || value > max) return invalidDate();
+  set(dateObj, value);
+};
+
+// The day is written after the year and the month (see createDateParser), so a
+// day that month doesn't have moves the date into the next one
+const setDay = (dateObj: Date, day: string) => {
+  const value = parseFloat(day);
+  dateObj.setDate(value);
+  if (dateObj.getDate() !== value) return invalidDate();
+};
+
+const setMonth = setInRange(1, 12, (dateObj, month) => {
+  dateObj.setMonth(month - 1, 1);
+});
+
+const setHours = setInRange(0, 23, (dateObj, hour) => {
+  dateObj.setHours(hour);
+});
+
+const setHours12 = setInRange(0, 23, (dateObj, hour) => {
+  dateObj.setHours((dateObj.getHours() >= 12 ? 12 : 0) + hour);
+});
+
+const setSeconds = setInRange(0, 59, (dateObj, seconds) => {
+  dateObj.setSeconds(seconds);
+});
+
 // Month setters start the month on the 1st: the day, if any, is written after
 // the month (see createDateParser), and the base date's day may not exist in it
 export const revFormat: RevFormat = {
@@ -53,15 +93,9 @@ export const revFormat: RevFormat = {
   F: function (dateObj: Date, monthName: string, locale: Locale) {
     dateObj.setMonth(monthIndex(locale.months.longhand, monthName), 1);
   },
-  G: (dateObj: Date, hour: string) => {
-    dateObj.setHours((dateObj.getHours() >= 12 ? 12 : 0) + parseFloat(hour));
-  },
-  H: (dateObj: Date, hour: string) => {
-    dateObj.setHours(parseFloat(hour));
-  },
-  J: (dateObj: Date, day: string) => {
-    dateObj.setDate(parseFloat(day));
-  },
+  G: setHours12,
+  H: setHours,
+  J: setDay,
   K: (dateObj: Date, amPM: string, locale: Locale) => {
     dateObj.setHours(
       (dateObj.getHours() % 12) +
@@ -71,9 +105,7 @@ export const revFormat: RevFormat = {
   M: function (dateObj: Date, shortMonth: string, locale: Locale) {
     dateObj.setMonth(monthIndex(locale.months.shorthand, shortMonth), 1);
   },
-  S: (dateObj: Date, seconds: string) => {
-    dateObj.setSeconds(parseFloat(seconds));
-  },
+  S: setSeconds,
   U: (_: Date, unixSeconds: string) => new Date(parseFloat(unixSeconds) * 1000),
 
   W: function (dateObj: Date, weekNum: string, locale: Locale) {
@@ -96,28 +128,16 @@ export const revFormat: RevFormat = {
   },
   Z: (_: Date, ISODate: string) => new Date(ISODate),
 
-  d: (dateObj: Date, day: string) => {
-    dateObj.setDate(parseFloat(day));
-  },
-  h: (dateObj: Date, hour: string) => {
-    dateObj.setHours((dateObj.getHours() >= 12 ? 12 : 0) + parseFloat(hour));
-  },
-  i: (dateObj: Date, minutes: string) => {
-    dateObj.setMinutes(parseFloat(minutes));
-  },
-  j: (dateObj: Date, day: string) => {
-    dateObj.setDate(parseFloat(day));
-  },
+  d: setDay,
+  h: setHours12,
+  i: setInRange(0, 59, (dateObj, minutes) => {
+    dateObj.setMinutes(minutes);
+  }),
+  j: setDay,
   l: doNothing,
-  m: (dateObj: Date, month: string) => {
-    dateObj.setMonth(parseFloat(month) - 1, 1);
-  },
-  n: (dateObj: Date, month: string) => {
-    dateObj.setMonth(parseFloat(month) - 1, 1);
-  },
-  s: (dateObj: Date, seconds: string) => {
-    dateObj.setSeconds(parseFloat(seconds));
-  },
+  m: setMonth,
+  n: setMonth,
+  s: setSeconds,
   u: (_: Date, unixMillSeconds: string) =>
     new Date(parseFloat(unixMillSeconds)),
   w: doNothing,

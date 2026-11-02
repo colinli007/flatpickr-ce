@@ -504,6 +504,99 @@ describe("flatpickr", () => {
         );
       });
     });
+
+    describe("out-of-range fields (flatpickr#2988)", () => {
+      const errorHandler = jest.fn();
+
+      beforeEach(() => errorHandler.mockClear());
+
+      it.each([
+        ["77/77/7777", "m/d/Y"],
+        ["13/01/2025", "m/d/Y"],
+        ["00/10/2025", "m/d/Y"],
+        ["02/31/2025", "m/d/Y"],
+        ["31/04/2025", "d/m/Y"],
+        ["29/02/2025", "d/m/Y"],
+        ["00/10/2025", "d/m/Y"],
+        ["32nd Jan 2025", "J M Y"],
+        ["2025-01-01 24:00", "Y-m-d H:i"],
+        ["2025-01-01 23:60", "Y-m-d H:i"],
+        ["2025-01-01 23:59:60", "Y-m-d H:i:S"],
+        ["2025-01-01 24:30 PM", "Y-m-d h:i K"],
+      ])("rejects %s with %s", (value, format) => {
+        createInstance({ errorHandler });
+
+        expect(fp.parseDate(value, format)).toBeUndefined();
+        expect(errorHandler).toHaveBeenCalledWith(
+          new Error(`Invalid date provided: ${value}`)
+        );
+      });
+
+      it.each([
+        ["12/31/2025", "m/d/Y", new Date(2025, 11, 31)],
+        ["29/02/2024", "d/m/Y", new Date(2024, 1, 29)],
+        ["30/04/2025", "d/m/Y", new Date(2025, 3, 30)],
+        [
+          "2025-01-01 23:59:59",
+          "Y-m-d H:i:S",
+          new Date(2025, 0, 1, 23, 59, 59),
+        ],
+        ["2025-01-01 0:30 AM", "Y-m-d h:i K", new Date(2025, 0, 1, 0, 30)],
+        ["2025-01-01 14:30", "Y-m-d h:i K", new Date(2025, 0, 1, 14, 30)],
+      ])("still parses %s with %s", (value, format, date) => {
+        createInstance({ errorHandler });
+
+        expect(fp.parseDate(value, format)).toEqual(date);
+        expect(errorHandler).not.toHaveBeenCalled();
+      });
+
+      it("rejects a typed date instead of rolling it over", () => {
+        const onChange = jest.fn();
+        createInstance({
+          allowInput: true,
+          dateFormat: "m/d/Y",
+          errorHandler,
+          onChange,
+        });
+
+        fp.input.focus();
+        fp.input.value = "77/77/7777";
+        fp.input.blur();
+
+        expect(errorHandler).toHaveBeenCalled();
+        expect(onChange).not.toHaveBeenCalled();
+        expect(fp.selectedDates).toEqual([]);
+        expect(fp.input.value).toEqual("");
+      });
+
+      it("drops an out-of-range defaultDate and setDate string", () => {
+        createInstance({
+          dateFormat: "d/m/Y",
+          defaultDate: "31/04/2025",
+          errorHandler,
+        });
+
+        expect(fp.selectedDates).toEqual([]);
+
+        fp.setDate("30/04/2025");
+        expect(fp.selectedDates).toEqual([new Date(2025, 3, 30)]);
+
+        fp.setDate("31/04/2025");
+        expect(fp.selectedDates).toEqual([]);
+        expect(fp.input.value).toEqual("");
+      });
+
+      it("drops maxTime 24:00 instead of reading it as midnight", () => {
+        const consoleWarn = jest.spyOn(console, "warn").mockImplementation();
+        createInstance({ enableTime: true, maxTime: "24:00" });
+
+        expect(fp.config.maxTime).toBeUndefined();
+        expect(consoleWarn).toHaveBeenCalledWith(
+          new Error("Invalid date provided: 24:00")
+        );
+        consoleWarn.mockRestore();
+      });
+    });
   });
 
   describe("date formatting", () => {
