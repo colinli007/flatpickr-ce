@@ -2209,6 +2209,76 @@ describe("flatpickr", () => {
       expect(fp.element.parentNode.childNodes[1]).toEqual(fp.calendarContainer);
     });
 
+    describe("altInput with a static calendar (flatpickr#3037)", () => {
+      function wrapElement() {
+        const element = document.createElement("div");
+        element.innerHTML =
+          '<div class="group"><input data-input><span></span></div>' +
+          "<button data-toggle></button>";
+        document.body.appendChild(element);
+        return element;
+      }
+
+      for (const config of [{}, { inline: true }]) {
+        it(`puts it next to the input in a wrap element${
+          config.inline ? " (inline)" : ""
+        }`, () => {
+          const element = wrapElement();
+          const input = element.querySelector("input") as HTMLInputElement;
+
+          createInstance(
+            { ...config, wrap: true, static: true, altInput: true },
+            element
+          );
+
+          expect(input.nextSibling).toBe(fp.altInput);
+          const wrapper = element.parentNode as Element;
+          expect(wrapper.classList.contains("flatpickr-wrapper")).toBe(true);
+          expect(Array.from(wrapper.childNodes)).toEqual([
+            element,
+            fp.calendarContainer,
+          ]);
+
+          fp.destroy();
+          element.remove();
+        });
+      }
+
+      it("puts it in the wrapper when the element is the input", () => {
+        const input = document.createElement("input");
+        document.body.appendChild(input);
+
+        createInstance({ static: true, altInput: true }, input);
+
+        const wrapper = input.parentNode as Element;
+        expect(wrapper.classList.contains("flatpickr-wrapper")).toBe(true);
+        expect(Array.from(wrapper.childNodes)).toEqual([
+          input,
+          fp.altInput,
+          fp.calendarContainer,
+        ]);
+
+        fp.destroy();
+        input.remove();
+      });
+
+      it("leaves the wrap element as it was on destroy", () => {
+        const element = wrapElement();
+        const group = element.firstChild as Element;
+        const children = Array.from(group.childNodes);
+
+        createInstance({ wrap: true, static: true, altInput: true }, element);
+        const altInput = fp.altInput as HTMLInputElement;
+        fp.destroy();
+
+        expect(element.parentNode).toBe(document.body);
+        expect(Array.from(group.childNodes)).toEqual(children);
+        expect(altInput.parentNode).toBeNull();
+
+        element.remove();
+      });
+    });
+
     it("range mode - no month jump", () => {
       createInstance({
         mode: "range",

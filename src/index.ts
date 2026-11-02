@@ -728,7 +728,12 @@ function FlatpickrInstance(
           self.element.parentNode.insertBefore(wrapper, self.element);
         wrapper.appendChild(self.element);
 
-        if (self.altInput) wrapper.appendChild(self.altInput);
+        // next to the input, which with wrap is inside self.element
+        if (self.altInput && self.input.parentNode)
+          self.input.parentNode.insertBefore(
+            self.altInput,
+            self.input.nextSibling
+          );
 
         wrapper.appendChild(self.calendarContainer);
       }
