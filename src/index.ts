@@ -351,7 +351,7 @@ function FlatpickrInstance(
   function setHoursFromDate(dateObj?: Date) {
     const date = dateObj || self.latestSelectedDateObj;
 
-    if (date && date instanceof Date) {
+    if (date) {
       setHours(date.getHours(), date.getMinutes(), date.getSeconds());
     }
   }
@@ -2717,12 +2717,13 @@ function FlatpickrInstance(
         new Error(`Invalid date supplied: ${JSON.stringify(inputDate)}`)
       );
 
+    // allowInvalidPreload keeps the dates the rules rule out, not the ones
+    // that couldn't be parsed (#3000)
+    const parsed = dates.filter((d): d is Date => d instanceof Date);
+
     self.selectedDates = self.config.allowInvalidPreload
-      ? (dates as Date[])
-      : filterEnabledDates(
-          dates.filter((d): d is Date => d instanceof Date),
-          false
-        );
+      ? parsed
+      : filterEnabledDates(parsed, false);
 
     if (self.config.mode === "range")
       self.selectedDates.sort((a, b) => a.getTime() - b.getTime());
@@ -2983,12 +2984,7 @@ function FlatpickrInstance(
 
   function isDateSelected(date: Date) {
     for (let i = 0; i < self.selectedDates.length; i++) {
-      const selectedDate = self.selectedDates[i];
-      if (
-        selectedDate instanceof Date &&
-        compareDates(selectedDate, date) === 0
-      )
-        return "" + i;
+      if (compareDates(self.selectedDates[i], date) === 0) return "" + i;
     }
 
     return false;

@@ -896,6 +896,59 @@ describe("flatpickr", () => {
       });
     });
 
+    describe("allowInvalidPreload with a value it can't parse (flatpickr#3000)", () => {
+      const config = { allowInvalidPreload: true, errorHandler: jest.fn() };
+
+      const selected = () =>
+        fp.selectedDates.map((d) => fp.formatDate(d, "Y-m-d"));
+
+      it("starts with nothing selected and the preloaded text kept", () => {
+        const input = document.createElement("input");
+        input.value = "not a date";
+        createInstance(config, input);
+
+        expect(fp.selectedDates).toEqual([]);
+        expect(fp.input.value).toEqual("not a date");
+
+        createInstance({ ...config, defaultDate: "not a date" });
+        expect(fp.selectedDates).toEqual([]);
+      });
+
+      it("clears the selection on setDate()", () => {
+        createInstance({ ...config, defaultDate: "2025-07-15" });
+
+        fp.setDate("not a date");
+        expect(fp.selectedDates).toEqual([]);
+        expect(fp.input.value).toEqual("");
+      });
+
+      it("clears the selection when typed with allowInput", () => {
+        createInstance({ ...config, allowInput: true });
+
+        fp.input.focus();
+        fp.input.value = "not a date";
+        pressOutside();
+        fp.input.blur();
+
+        expect(fp.selectedDates).toEqual([]);
+        expect(fp.input.value).toEqual("");
+      });
+
+      it("drops only the unparsable dates, still keeping disabled ones", () => {
+        createInstance({
+          ...config,
+          mode: "multiple",
+          minDate: "2025-07-21",
+          defaultDate: ["2025-07-15", "not a date", "2025-07-25"],
+        });
+        expect(selected()).toEqual(["2025-07-15", "2025-07-25"]);
+
+        createInstance({ ...config, mode: "range" });
+        fp.setDate("2025-07-15 to not a date");
+        expect(selected()).toEqual(["2025-07-15"]);
+      });
+    });
+
     describe("set() time options (flatpickr#3083)", () => {
       const selectFirstDay = () =>
         clickOn(fp.days.querySelector(".flatpickr-day:not(.prevMonthDay)")!);
