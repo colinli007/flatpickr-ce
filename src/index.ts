@@ -2560,10 +2560,13 @@ function FlatpickrInstance(
       target.dateObj.getTime()
     ));
 
+    const firstMonth = self.currentYear * 12 + self.currentMonth;
+    const selectedMonth =
+      selectedDate.getFullYear() * 12 + selectedDate.getMonth();
+
     const shouldChangeMonth =
-      (selectedDate.getMonth() < self.currentMonth ||
-        selectedDate.getMonth() >
-          self.currentMonth + self.config.showMonths - 1) &&
+      (selectedMonth < firstMonth ||
+        selectedMonth > firstMonth + self.config.showMonths - 1) &&
       self.config.mode !== "range";
 
     self.selectedDateElem = target;

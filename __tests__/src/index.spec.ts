@@ -2224,6 +2224,68 @@ describe("flatpickr", () => {
       expect(fp.currentMonth).toEqual(0);
     });
 
+    describe("picking a day across a year end (flatpickr#3003)", () => {
+      const pick = (date: string) =>
+        clickOn(
+          Array.from(
+            fp.daysContainer!.querySelectorAll<DayElement>(".flatpickr-day")
+          ).find(
+            (day) =>
+              !day.classList.contains("hidden") &&
+              fp.formatDate(day.dateObj, "Y-m-d") === date
+          )!
+        );
+
+      const view = () => [fp.currentYear, fp.currentMonth];
+
+      it.each([
+        ["single", 2, "2025-12-01", "2026-01-15"],
+        ["multiple", 2, "2025-12-01", "2026-01-15"],
+        ["single", 3, "2025-11-01", "2026-01-15"],
+      ] as const)(
+        "keeps the view on a shown month of the next year (%s, showMonths: %s)",
+        (mode, showMonths, defaultDate, date) => {
+          const events: string[] = [];
+          createInstance({
+            mode,
+            showMonths,
+            defaultDate,
+            onMonthChange: () => events.push("month"),
+            onYearChange: () => events.push("year"),
+          });
+          const shown = view();
+          fp.open();
+
+          pick(date);
+
+          expect(fp.formatDate(fp.latestSelectedDateObj!, "Y-m-d")).toBe(date);
+          expect(view()).toEqual(shown);
+          expect(events).toEqual([]);
+        }
+      );
+
+      it.each([
+        ["2025-12-01", "2026-01-02", [2026, 0]],
+        ["2026-01-15", "2025-12-31", [2025, 11]],
+      ])(
+        "still moves to a day of the next or previous year outside the month (from %s to %s)",
+        (defaultDate, date, expected) => {
+          const events: string[] = [];
+          createInstance({
+            defaultDate,
+            onMonthChange: () => events.push("month"),
+            onYearChange: () => events.push("year"),
+          });
+          fp.open();
+
+          pick(date);
+
+          expect(view()).toEqual(expected);
+          expect(events).toEqual(["year", "month"]);
+        }
+      );
+    });
+
     it("sets the date on direct entry when allowInput is true - blur", () => {
       createInstance({ allowInput: true });
       expect(fp.selectedDates[0]).toBeUndefined();
