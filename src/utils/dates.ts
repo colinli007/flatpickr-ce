@@ -215,7 +215,7 @@ export function getDefaultHours(config: ParsedOptions) {
 
     if (hours === maxHr) minutes = Math.min(maxMinutes, minutes);
     if (hours === maxHr && minutes === maxMinutes)
-      seconds = config.maxDate.getSeconds();
+      seconds = Math.min(seconds, config.maxDate.getSeconds());
   }
 
   return { hours, minutes, seconds };

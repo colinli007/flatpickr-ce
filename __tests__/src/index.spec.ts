@@ -2589,6 +2589,21 @@ describe("flatpickr", () => {
       expect(fp.minuteElement!.value).toEqual("45");
     });
 
+    it("getDefaultHours() keeps default seconds below maxDate's", () => {
+      const fp = createInstance({
+        enableTime: true,
+        enableSeconds: true,
+        maxDate: new Date(2024, 5, 21, 12, 0, 24),
+        defaultHour: 12,
+        defaultMinute: 0,
+        defaultSeconds: 10,
+      });
+      expect(getDefaultHours(fp.config).seconds).toEqual(10);
+
+      fp.set("defaultSeconds", 30);
+      expect(getDefaultHours(fp.config).seconds).toEqual(24);
+    });
+
     it("time picker: default hours/mins", () => {
       createInstance({
         noCalendar: true,
@@ -2677,6 +2692,54 @@ describe("flatpickr", () => {
       incrementTime("hourElement", -1);
       incrementTime("hourElement", -1);
       expect(fp.input.value).toEqual("2021-07-01 05:30");
+    });
+
+    it("time picker: minTime/maxTime seconds only bound their own hour", () => {
+      createInstance({
+        enableTime: true,
+        enableSeconds: true,
+        time_24hr: true,
+        minTime: "12:00:12",
+        maxTime: "18:00:24",
+        defaultDate: "2024-06-18 13:00:11",
+      });
+
+      fp.open();
+
+      incrementTime("secondElement", -1);
+      expect(fp.input.value).toEqual("2024-06-18 13:00:06");
+
+      fp.setDate("2024-06-18 17:00:43");
+      incrementTime("secondElement", 1);
+      expect(fp.input.value).toEqual("2024-06-18 17:00:48");
+
+      fp.setDate("2024-06-18 12:00:12");
+      incrementTime("secondElement", -1);
+      expect(fp.input.value).toEqual("2024-06-18 12:00:12");
+
+      fp.setDate("2024-06-18 18:00:24");
+      incrementTime("secondElement", 1);
+      expect(fp.input.value).toEqual("2024-06-18 18:00:24");
+    });
+
+    it("time picker: minDate/maxDate seconds only bound their own hour", () => {
+      createInstance({
+        enableTime: true,
+        enableSeconds: true,
+        time_24hr: true,
+        minDate: "2024-06-18 12:00:12",
+        maxDate: "2024-06-21 12:00:24",
+        defaultDate: "2024-06-18 13:00:11",
+      });
+
+      fp.open();
+
+      incrementTime("secondElement", -1);
+      expect(fp.input.value).toEqual("2024-06-18 13:00:06");
+
+      fp.setDate("2024-06-21 07:00:43");
+      incrementTime("secondElement", 1);
+      expect(fp.input.value).toEqual("2024-06-21 07:00:48");
     });
 
     it("time picker: minDate/maxDate + preloading", () => {
