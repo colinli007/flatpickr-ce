@@ -45,7 +45,7 @@ export const Hebrew: CustomLocale = {
       "דצמבר",
     ],
   },
-  rangeSeparator: " אל ",
+  rangeSeparator: " עד ",
   time_24hr: true,
 };
 
