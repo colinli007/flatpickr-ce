@@ -300,6 +300,36 @@ describe("flatpickr", () => {
 
         expect(fp.selectedDates[0]).toEqual(new Date("2021-02-03T00:00:00"));
       });
+
+      describe("names in another case (flatpickr#3057)", () => {
+        it.each([
+          ["5 february 2025", "j F Y"],
+          ["5 FEBRUARY 2025", "j F Y"],
+          ["5 feb 2025", "j M Y"],
+          ["wed, 5 feb 2025", "D, j M Y"],
+          ["WEDNESDAY 5 February 2025", "l j F Y"],
+        ])("parses %s with %s", (value, format) => {
+          createInstance();
+
+          expect(fp.parseDate(value, format)).toEqual(new Date(2025, 1, 5));
+        });
+
+        it("parses month names with non-ASCII letters", () => {
+          createInstance({ locale: French });
+
+          expect(fp.parseDate("03 FÉVRIER 2021", "d F Y")).toEqual(
+            new Date(2021, 1, 3)
+          );
+        });
+
+        it.each(["pm", "PM", "Pm"])("parses %s", (amPM) => {
+          createInstance();
+
+          expect(fp.parseDate(`8/3/2017 1:30 ${amPM}`, "m/d/Y h:i K")).toEqual(
+            new Date(2017, 7, 3, 13, 30)
+          );
+        });
+      });
     });
 
     describe("time string parser", () => {
@@ -1356,6 +1386,17 @@ describe("flatpickr", () => {
 
         expect(fp.selectedDates).toEqual([]);
         expect(announced).toEqual([0]);
+      });
+
+      it("selects a month name typed in lowercase (flatpickr#3057)", () => {
+        createInstance({ allowInput: true, dateFormat: "j F Y" });
+
+        fp.input.focus();
+        fp.input.value = "5 february 2025";
+        pressEnter();
+
+        expect(fp.selectedDates).toEqual([new Date(2025, 1, 5)]);
+        expect(fp.input.value).toEqual("5 February 2025");
       });
     });
 

@@ -101,7 +101,7 @@ export const createDateParser = ({ config = defaults, l10n = english }) => (
 
         if (tokenRegex[token] && !escaped) {
           regexStr += tokenRegex[token];
-          const match = new RegExp(regexStr).exec(date);
+          const match = new RegExp(regexStr, "i").exec(date);
           if (match && (matched = true)) {
             ops[writeOrder[token] ?? 2].push({
               fn: revFormat[token],

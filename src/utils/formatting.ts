@@ -35,6 +35,11 @@ export const monthToStr = (
   locale: Locale
 ) => locale.months[shorthand ? "shorthand" : "longhand"][monthNumber];
 
+// The parser matches names with the i flag, which compares characters by their
+// upper case, so a matched month name is looked up the same way
+const monthIndex = (monthNames: string[], monthName: string) =>
+  monthNames.map((name) => name.toUpperCase()).indexOf(monthName.toUpperCase());
+
 export type RevFormatFn = (
   date: Date,
   data: string,
@@ -46,7 +51,7 @@ export type RevFormat = Record<string, RevFormatFn>;
 export const revFormat: RevFormat = {
   D: doNothing,
   F: function (dateObj: Date, monthName: string, locale: Locale) {
-    dateObj.setMonth(locale.months.longhand.indexOf(monthName), 1);
+    dateObj.setMonth(monthIndex(locale.months.longhand, monthName), 1);
   },
   G: (dateObj: Date, hour: string) => {
     dateObj.setHours((dateObj.getHours() >= 12 ? 12 : 0) + parseFloat(hour));
@@ -64,7 +69,7 @@ export const revFormat: RevFormat = {
     );
   },
   M: function (dateObj: Date, shortMonth: string, locale: Locale) {
-    dateObj.setMonth(locale.months.shorthand.indexOf(shortMonth), 1);
+    dateObj.setMonth(monthIndex(locale.months.shorthand, shortMonth), 1);
   },
   S: (dateObj: Date, seconds: string) => {
     dateObj.setSeconds(parseFloat(seconds));

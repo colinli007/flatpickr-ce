@@ -2343,9 +2343,7 @@ function FlatpickrInstance(
       .slice()
       .sort((a, b) => b.length - a.length)
       .join("|")})`;
-    tokenRegex.K = `(${self.l10n.amPM[0]}|${
-      self.l10n.amPM[1]
-    }|${self.l10n.amPM[0].toLowerCase()}|${self.l10n.amPM[1].toLowerCase()})`;
+    tokenRegex.K = `(${self.l10n.amPM[0]}|${self.l10n.amPM[1]})`;
 
     if (
       userConfig.time_24hr === undefined &&
