@@ -1830,6 +1830,70 @@ describe("flatpickr", () => {
       expect(fp.currentYear).toBe(2016);
     });
 
+    describe("keys in the month dropdown (flatpickr#3045)", () => {
+      const press = (type: string, target: Element, keyCode: number) => {
+        const evt = new CustomEvent(type, { bubbles: true, cancelable: true });
+        Object.assign(evt, {
+          keyCode,
+          key: ({
+            13: "Enter",
+            37: "ArrowLeft",
+            38: "ArrowUp",
+            39: "ArrowRight",
+            40: "ArrowDown",
+          } as Record<number, string>)[keyCode],
+        });
+        target.dispatchEvent(evt);
+        return evt;
+      };
+
+      it("doesn't take Enter on the month as a year", () => {
+        createInstance({ defaultDate: "2020-06-15" });
+        fp.open();
+
+        press("keydown", fp.monthsDropdownContainer, 13);
+        press("keyup", fp.monthsDropdownContainer, 13);
+
+        expect(fp.currentYear).toEqual(2020);
+        expect(fp.currentMonth).toEqual(5);
+      });
+
+      it("still reads every year input with showMonths > 1", () => {
+        createInstance({ showMonths: 2, defaultDate: "2020-01-22" });
+        fp.open();
+
+        fp.yearElements[1].value = "2030";
+        press("keyup", fp.yearElements[1], 13);
+
+        expect(fp.currentYear).toEqual(2030);
+      });
+
+      it("leaves the arrow keys to the dropdown", () => {
+        createInstance({ defaultDate: "2020-06-15", enableTime: true });
+        fp.open();
+        fp.monthsDropdownContainer.focus();
+
+        for (const keyCode of [37, 38, 39, 40]) {
+          const evt = press("keydown", fp.monthsDropdownContainer, keyCode);
+
+          expect(evt.defaultPrevented).toBe(false);
+          expect(document.activeElement).toBe(fp.monthsDropdownContainer);
+        }
+        expect(fp.currentYear).toEqual(2020);
+        expect(fp.currentMonth).toEqual(5);
+      });
+
+      it("still steps the year with the arrow keys in the year input", () => {
+        createInstance({ defaultDate: "2020-06-15" });
+        fp.open();
+
+        const evt = press("keydown", fp.currentYearElement, 38);
+
+        expect(evt.defaultPrevented).toBe(true);
+        expect(fp.currentYear).toEqual(2021);
+      });
+    });
+
     it("onKeyDown closes flatpickr on Enter when allowInput set to true", () => {
       createInstance({
         enableTime: true,

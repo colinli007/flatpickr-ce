@@ -393,6 +393,9 @@ function FlatpickrInstance(
    */
   function onYearInput(event: KeyboardEvent & IncrementEvent) {
     const eventTarget = getEventTarget(event) as HTMLInputElement;
+    // bound on monthNav, which also holds the month dropdown
+    if (self.yearElements.indexOf(eventTarget) === -1) return;
+
     const year = parseInt(eventTarget.value) + (event.delta || 0);
 
     if (
@@ -1817,6 +1820,11 @@ function FlatpickrInstance(
     const allowInput = self.config.allowInput;
     const allowKeydown = self.isOpen && (!allowInput || !isInput);
     const allowInlineKeydown = self.config.inline && isInput && !allowInput;
+    // the month dropdown moves through its options with the arrow keys itself
+    const isMonthDropdownArrowKey =
+      eventTarget === self.monthsDropdownContainer &&
+      e.keyCode >= 37 &&
+      e.keyCode <= 40;
 
     if (e.keyCode === 13 && isInput) {
       if (allowInput) {
@@ -1827,9 +1835,10 @@ function FlatpickrInstance(
         self.open();
       }
     } else if (
-      isCalendarElem(eventTarget as HTMLElement) ||
-      allowKeydown ||
-      allowInlineKeydown
+      !isMonthDropdownArrowKey &&
+      (isCalendarElem(eventTarget as HTMLElement) ||
+        allowKeydown ||
+        allowInlineKeydown)
     ) {
       const isTimeObj =
         !!self.timeContainer &&
