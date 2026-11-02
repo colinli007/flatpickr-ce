@@ -2040,6 +2040,94 @@ describe("flatpickr", () => {
         expect(fp.currentMonth).toEqual(0);
         expect(fp.currentYear).toEqual(2016);
       });
+
+      it("keeps the view within a minDate set after init (flatpickr#3002)", () => {
+        createInstance({ now: "2024-04-10" });
+
+        fp.set("minDate", "2024-06-15");
+        fp.clear();
+
+        expect(fp.currentMonth).toEqual(5);
+        expect(fp.currentYear).toEqual(2024);
+      });
+
+      it("keeps the view within a maxDate set after init", () => {
+        createInstance({ now: "2024-04-10" });
+
+        fp.set("maxDate", "2023-11-15");
+        fp.clear();
+
+        expect(fp.currentMonth).toEqual(10);
+        expect(fp.currentYear).toEqual(2023);
+      });
+
+      it("returns to minDate's month when it rules out the defaultDate", () => {
+        createInstance({ defaultDate: "2016-01-20" });
+
+        fp.set("minDate", "2016-03-05");
+        fp.clear();
+
+        expect(fp.currentMonth).toEqual(2);
+        expect(fp.currentYear).toEqual(2016);
+      });
+
+      it("moves the view off a selected date a later minDate rules out", () => {
+        createInstance({ defaultDate: "2016-01-20", now: "2016-01-10" });
+
+        fp.set("minDate", "2016-03-05");
+
+        expect(fp.selectedDates).toEqual([]);
+        expect(fp.latestSelectedDateObj).toBeUndefined();
+        expect(fp.currentMonth).toEqual(2);
+        expect(fp.currentYear).toEqual(2016);
+      });
+
+      it("moves the view off a selected date a later maxDate rules out", () => {
+        createInstance({ defaultDate: "2016-05-20", now: "2016-06-10" });
+
+        fp.set("maxDate", "2016-03-05");
+
+        expect(fp.latestSelectedDateObj).toBeUndefined();
+        expect(fp.currentMonth).toEqual(2);
+        expect(fp.currentYear).toEqual(2016);
+      });
+
+      it("keeps the latest pick through a minDate that still allows it", () => {
+        createInstance({
+          mode: "multiple",
+          defaultDate: ["2016-01-05", "2016-03-20"],
+          now: "2016-01-10",
+        });
+        expect(fp.latestSelectedDateObj).toEqual(new Date(2016, 0, 5));
+
+        fp.set("minDate", "2016-01-01");
+        expect(fp.latestSelectedDateObj).toEqual(new Date(2016, 0, 5));
+        expect(fp.currentMonth).toEqual(0);
+
+        fp.set("minDate", "2016-02-01");
+        expect(fp.selectedDates).toEqual([new Date(2016, 2, 20)]);
+        expect(fp.latestSelectedDateObj).toEqual(new Date(2016, 2, 20));
+        expect(fp.currentMonth).toEqual(2);
+      });
+
+      it("keeps the view within minDate when a range is abandoned", () => {
+        createInstance({ mode: "range", now: "2024-04-10" });
+
+        fp.set("minDate", "2024-06-15");
+        fp.open();
+        (fp.days.querySelector(
+          ".flatpickr-day:not(.flatpickr-disabled)"
+        ) as HTMLElement).dispatchEvent(
+          new MouseEvent("click", { bubbles: true })
+        );
+        document.body.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true })
+        );
+
+        expect(fp.selectedDates).toEqual([]);
+        expect(fp.currentMonth).toEqual(5);
+        expect(fp.currentYear).toEqual(2024);
+      });
     });
 
     it("triggers monthChange on jump", (done) => {

@@ -552,6 +552,18 @@ function FlatpickrInstance(
   }
 
   /**
+   * The date, or the minDate or maxDate it falls outside of; the view falls
+   * back to it when there is no selected date to show
+   */
+  function withinLimits(date: Date): Date {
+    const { minDate, maxDate } = self.config;
+
+    if (minDate && minDate.getTime() > date.getTime()) return minDate;
+    if (maxDate && maxDate.getTime() < date.getTime()) return maxDate;
+    return date;
+  }
+
+  /**
    * Set the calendar view to a particular date.
    * @param {Date} jumpDate the date to set the view to
    * @param {boolean} triggerChange if change events should be triggered
@@ -560,12 +572,7 @@ function FlatpickrInstance(
     const jumpTo =
       jumpDate !== undefined
         ? self.parseDate(jumpDate)
-        : self.latestSelectedDateObj ||
-          (self.config.minDate && self.config.minDate > self.now
-            ? self.config.minDate
-            : self.config.maxDate && self.config.maxDate < self.now
-            ? self.config.maxDate
-            : self.now);
+        : self.latestSelectedDateObj || withinLimits(self.now);
 
     const oldYear = self.currentYear;
     const oldMonth = self.currentMonth;
@@ -1478,8 +1485,10 @@ function FlatpickrInstance(
     self.selectedDates = [];
     self.latestSelectedDateObj = undefined;
     if (toInitial === true) {
-      self.currentYear = self._initialDate.getFullYear();
-      self.currentMonth = self._initialDate.getMonth();
+      // minDate and maxDate may have changed since init
+      const initialDate = withinLimits(self._initialDate);
+      self.currentYear = initialDate.getFullYear();
+      self.currentMonth = initialDate.getMonth();
     }
 
     if (self.config.enableTime === true) {
@@ -2135,6 +2144,14 @@ function FlatpickrInstance(
       if (self.selectedDates) {
         if (!self.config.allowInvalidPreload)
           self.selectedDates = filterEnabledDates(self.selectedDates, true);
+        // the view and the time inputs follow the latest pick; move it only
+        // when the new limit dropped it (#3002)
+        if (
+          self.latestSelectedDateObj &&
+          self.selectedDates.indexOf(self.latestSelectedDateObj) === -1
+        )
+          self.latestSelectedDateObj =
+            self.selectedDates[self.selectedDates.length - 1];
         if (!self.selectedDates.length && type === "min")
           setHoursFromDate(dateObj);
         updateValue();
@@ -2806,13 +2823,7 @@ function FlatpickrInstance(
     self._initialDate =
       self.selectedDates.length > 0
         ? self.selectedDates[0]
-        : self.config.minDate &&
-          self.config.minDate.getTime() > self.now.getTime()
-        ? self.config.minDate
-        : self.config.maxDate &&
-          self.config.maxDate.getTime() < self.now.getTime()
-        ? self.config.maxDate
-        : self.now;
+        : withinLimits(self.now);
 
     self.currentYear = self._initialDate.getFullYear();
     self.currentMonth = self._initialDate.getMonth();

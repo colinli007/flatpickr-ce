@@ -450,6 +450,17 @@ describe("monthSelect", () => {
       expect(selectedMonths(fp)).toEqual([]);
     });
 
+    it("stays within a minDate set after init on clear() (flatpickr#3002)", () => {
+      const fp = createInstance({ now: new Date(2024, 3, 10) });
+
+      fp.set("minDate", new Date(2025, 2, 1));
+      fp.clear();
+
+      expect(fp.currentYearElement.value).toEqual("2025");
+      expect(cellYears(fp)).toEqual(Array(12).fill(2025));
+      expect(disabledMonths(fp)).toEqual([0, 1]);
+    });
+
     it("applies a maxDate changed through set()", () => {
       const fp = createInstance();
 
