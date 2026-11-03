@@ -42,6 +42,29 @@ npm install flatpickr@npm:flatpickr-ce
 
 ## What's changed since flatpickr 4.6.13
 
+### 4.9.0
+
+- New yearSelect plugin: a year-only picker modeled on monthSelect, for single, multiple and range mode ([#5](https://github.com/colinli007/flatpickr-ce/issues/5), [#6](https://github.com/colinli007/flatpickr-ce/pull/6))
+- In range mode, a same-day range written as one date reads back as that range instead of a start that a click outside drops ([#3010](https://github.com/flatpickr/flatpickr/issues/3010))
+- rangePlugin with `allowInput` commits what is typed into its two inputs as one range: a click outside keeps the range, and `onChange` fires once per commit
+- A date or time with a field out of range, such as `02/31/2025` or `24:00`, is invalid instead of rolling over ([#2988](https://github.com/flatpickr/flatpickr/issues/2988))
+- Month names, weekday names and AM/PM are parsed in any case ([#3057](https://github.com/flatpickr/flatpickr/pull/3057))
+- `allowInvalidPreload` no longer throws on a value it can't parse ([#3000](https://github.com/flatpickr/flatpickr/issues/3000), [#2760](https://github.com/flatpickr/flatpickr/issues/2760), [#2856](https://github.com/flatpickr/flatpickr/issues/2856))
+- `clear()`, and `set("minDate")` or `set("maxDate")`, keep the view within the current limits ([#3002](https://github.com/flatpickr/flatpickr/issues/3002))
+- With `showMonths > 1`, picking a day in a shown month of the next year keeps the view ([#3003](https://github.com/flatpickr/flatpickr/issues/3003))
+- Enter and the arrow keys in the month dropdown no longer change the year or move the focus ([#3045](https://github.com/flatpickr/flatpickr/pull/3045))
+- Seconds are only clamped to `minTime`/`maxTime` within their hour ([#3023](https://github.com/flatpickr/flatpickr/issues/3023), [#3024](https://github.com/flatpickr/flatpickr/pull/3024))
+- With `wrap`, `static` and `altInput`, the altInput stays next to the input ([#3037](https://github.com/flatpickr/flatpickr/issues/3037))
+- The Hebrew range separator is " עד ", and the Breton name of Wednesday is fixed ([#3014](https://github.com/flatpickr/flatpickr/issues/3014), [#3088](https://github.com/flatpickr/flatpickr/pull/3088))
+
+Behavior changes to check when upgrading:
+
+- In range mode without `enableTime`, a string with one date (the input's value, `defaultDate`, `setDate`, typed text) is a same-day range, so the next day picked starts a new range instead of finishing it. With rangePlugin, `setDate("2024-04-19")` sets a same-day range in both inputs.
+- A date with a field out of range is reported to `errorHandler` and selects nothing, also in `minDate`, `maxDate`, `enable` and `disable`. `maxTime: "24:00"` is dropped; use `"23:59"`.
+- Hebrew ranges saved with " אל " read as a same-day range of their first date. Replace the separator in stored values, or keep it with `locale: { ...Hebrew, rangeSeparator: " אל " }`.
+- With rangePlugin and `allowInput`, an emptied or unparsable end leaves the other end as both ends instead of clearing the range, and an end typed before the start takes the start along.
+- With `wrap`, `static` and `altInput`, the altInput is inside the wrap element, which changes DOM snapshots.
+
 ### 4.8.0
 
 - A typed value is committed the same way on Enter, blur and a click outside, and `onChange` now fires when a click outside commits it ([#2941](https://github.com/flatpickr/flatpickr/issues/2941), [#3136](https://github.com/flatpickr/flatpickr/pull/3136))
