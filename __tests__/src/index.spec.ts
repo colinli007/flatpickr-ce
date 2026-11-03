@@ -3756,6 +3756,14 @@ describe("flatpickr", () => {
       expect(fp.l10n.months.longhand[0]).toEqual("January");
     });
 
+    it("By locale key of a loaded locale file (flatpickr#2848)", () => {
+      expect(flatpickr.l10ns.ga).toBe(Irish);
+      expect(flatpickr.l10ns.hr).not.toBe(Irish);
+
+      createInstance({ locale: "ga" });
+      expect(fp.l10n.months.longhand[0]).toEqual("Eanáir");
+    });
+
     it("By overriding default locale", () => {
       flatpickr.localize(Russian);
       expect(flatpickr.l10ns.default.months.longhand[0]).toEqual("Январь");

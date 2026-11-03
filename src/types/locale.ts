@@ -136,6 +136,7 @@ export type key =
   | "fi"
   | "fo"
   | "fr"
+  | "ga"
   | "gl"
   | "gr"
   | "he"
