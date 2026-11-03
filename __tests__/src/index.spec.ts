@@ -2311,6 +2311,115 @@ describe("flatpickr", () => {
       expect(fp.isEnabled("2016-10-25")).toBe(false);
     });
 
+    describe("enable and disable with a time of day (flatpickr#2855)", () => {
+      const day = "2025-03-10";
+      const value = "2025-03-10 16:00";
+      const at = new Date(2025, 2, 10, 16, 0);
+
+      it("keeps a value on a day enable lists", () => {
+        createInstance({ enableTime: true, enable: [day], defaultDate: value });
+        expect(fp.selectedDates).toEqual([at]);
+        expect(fp.input.value).toEqual(value);
+
+        fp.clear();
+        fp.setDate(value);
+        expect(fp.selectedDates).toEqual([at]);
+
+        fp.setDate("2025-03-11 16:00");
+        expect(fp.selectedDates).toEqual([]);
+      });
+
+      it("drops a value on a day disable lists", () => {
+        createInstance({
+          enableTime: true,
+          disable: [day],
+          defaultDate: value,
+        });
+        expect(fp.selectedDates).toEqual([]);
+
+        fp.setDate(value);
+        expect(fp.selectedDates).toEqual([]);
+
+        fp.setDate("2025-03-11 16:00");
+        expect(fp.selectedDates).toEqual([new Date(2025, 2, 11, 16, 0)]);
+      });
+
+      it("reads the last day of a range as enabled or disabled all day", () => {
+        const range = { from: "2025-03-08", to: day };
+
+        createInstance({
+          enableTime: true,
+          enable: [range],
+          defaultDate: value,
+        });
+        expect(fp.selectedDates).toEqual([at]);
+
+        createInstance({
+          enableTime: true,
+          disable: [range],
+          defaultDate: value,
+        });
+        expect(fp.selectedDates).toEqual([]);
+      });
+
+      it("gives a rule function the day, as a click does", () => {
+        const rule = jest.fn((d: Date) => d.getDate() === 10);
+        createInstance({
+          enableTime: true,
+          enable: [rule],
+          defaultDate: value,
+        });
+
+        expect(fp.selectedDates).toEqual([at]);
+        rule.mock.calls.forEach(([d]) => expect(d.getHours()).toBe(0));
+      });
+
+      it("keeps the dates of multiple and range on enabled days", () => {
+        createInstance({
+          mode: "multiple",
+          enableTime: true,
+          enable: [day],
+          defaultDate: [value, "2025-03-11 09:00"],
+        });
+        expect(fp.selectedDates).toEqual([at]);
+
+        createInstance({
+          mode: "range",
+          enableTime: true,
+          enable: [{ from: "2025-03-08", to: day }],
+          defaultDate: `2025-03-08 09:00 to ${value}`,
+        });
+        expect(fp.selectedDates).toEqual([new Date(2025, 2, 8, 9, 0), at]);
+      });
+
+      it("keeps a value typed with allowInput", () => {
+        createInstance({ enableTime: true, allowInput: true, enable: [day] });
+        fp.input.focus();
+        fp.input.value = value;
+        simulate("keydown", fp._input, { keyCode: 13 });
+
+        expect(fp.selectedDates).toEqual([at]);
+      });
+
+      it("still compares minDate and maxDate with the time", () => {
+        createInstance({
+          enableTime: true,
+          enable: [day],
+          minDate: "2025-03-10 12:00",
+          maxDate: "2025-03-10 18:00",
+        });
+
+        expect(fp.isEnabled("2025-03-10 10:00", false)).toBe(false);
+        expect(fp.isEnabled(value, false)).toBe(true);
+        expect(fp.isEnabled("2025-03-10 19:00", false)).toBe(false);
+
+        fp.setDate("2025-03-10 10:00");
+        expect(fp.selectedDates).toEqual([]);
+        fp.setDate(value);
+        expect(fp.selectedDates).toEqual([at]);
+      });
+    });
+
     describe("clear()", () => {
       it("resets currentMonth and currentYear", () => {
         createInstance({

@@ -237,6 +237,18 @@ describe("yearSelect", () => {
       click(cell(fp, 2021));
       expect(fp.selectedDates).toEqual([new Date(2021, 4, 3)]);
     });
+
+    it("picks minDate's time on a day enable lists (flatpickr#2855)", () => {
+      const minDate = new Date(2021, 4, 3, 14, 30);
+      fp = createInstance({ minDate, enable: [new Date(2021, 4, 3)] });
+      fp.open();
+      fp.changeYear(2021);
+
+      expect(cell(fp, 2021)!.classList).not.toContain("flatpickr-disabled");
+
+      click(cell(fp, 2021));
+      expect(fp.selectedDates).toEqual([minDate]);
+    });
   });
 
   describe("formats", () => {

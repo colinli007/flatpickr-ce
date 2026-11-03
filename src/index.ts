@@ -1712,6 +1712,11 @@ function FlatpickrInstance(
 
     if (dateToCheck === undefined) return false;
 
+    // enable and disable rule out days, as the calendar shows them: a time of
+    // day is checked against minDate and maxDate only (#2855)
+    const day = new Date(dateToCheck.getTime());
+    day.setHours(0, 0, 0, 0);
+
     const bool = !!self.config.enable,
       array = self.config.enable ?? self.config.disable;
 
@@ -1720,30 +1725,23 @@ function FlatpickrInstance(
 
       if (
         typeof d === "function" &&
-        d(dateToCheck) // disabled by function
+        d(day) // disabled by function
       )
         return bool;
-      else if (
-        d instanceof Date &&
-        dateToCheck !== undefined &&
-        d.getTime() === dateToCheck.getTime()
-      )
+      else if (d instanceof Date && d.getTime() === day.getTime())
         // disabled by date
         return bool;
       else if (typeof d === "string") {
         // disabled by date string
         const parsed = self.parseDate(d, undefined, true);
-        return parsed && parsed.getTime() === dateToCheck.getTime()
-          ? bool
-          : !bool;
+        return parsed && parsed.getTime() === day.getTime() ? bool : !bool;
       } else if (
         // disabled by range
         typeof d === "object" &&
-        dateToCheck !== undefined &&
         (d as DateRangeLimit).from &&
         (d as DateRangeLimit).to &&
-        dateToCheck.getTime() >= (d as DateRangeLimit<Date>).from.getTime() &&
-        dateToCheck.getTime() <= (d as DateRangeLimit<Date>).to.getTime()
+        day.getTime() >= (d as DateRangeLimit<Date>).from.getTime() &&
+        day.getTime() <= (d as DateRangeLimit<Date>).to.getTime()
       )
         return bool;
     }
