@@ -2228,6 +2228,76 @@ describe("flatpickr", () => {
       expect(fp.isOpen).toEqual(false);
     });
 
+    describe("Escape in the input with allowInput (flatpickr#2915)", () => {
+      const press = (keyCode: number) => {
+        const evt = new KeyboardEvent("keydown", {
+          keyCode,
+          bubbles: true,
+          cancelable: true,
+        });
+        fp._input.dispatchEvent(evt);
+        return evt;
+      };
+
+      it.each([
+        { allowInput: false },
+        { allowInput: true },
+        { allowInput: true, altInput: true },
+      ])("closes the calendar as without allowInput: %p", (config) => {
+        createInstance(config);
+        fp._input.focus();
+        expect(fp.isOpen).toBe(true);
+
+        const evt = press(27);
+
+        expect(fp.isOpen).toBe(false);
+        expect(evt.defaultPrevented).toBe(true);
+        expect(document.activeElement).toBe(fp._input);
+      });
+
+      it("leaves the typed text to be committed on blur", () => {
+        const onChange = jest.fn();
+        createInstance({ allowInput: true, onChange });
+        fp._input.focus();
+        fp._input.value = "2016-02-05";
+
+        press(27);
+
+        expect(fp._input.value).toEqual("2016-02-05");
+        expect(fp.selectedDates).toEqual([]);
+        expect(onChange).not.toHaveBeenCalled();
+
+        fp._input.blur();
+
+        expect(fp.selectedDates).toEqual([new Date(2016, 1, 5)]);
+        expect(onChange).toHaveBeenCalledTimes(1);
+      });
+
+      it("leaves Escape alone while the calendar is closed", () => {
+        const onClose = jest.fn();
+        createInstance({ allowInput: true, clickOpens: false, onClose });
+        fp._input.focus();
+
+        const evt = press(27);
+
+        expect(evt.defaultPrevented).toBe(false);
+        expect(onClose).not.toHaveBeenCalled();
+      });
+
+      it("keeps the other keys for typing", () => {
+        createInstance({ allowInput: true, enableTime: true });
+        fp._input.focus();
+
+        for (const keyCode of [8, 37, 38, 39, 40, 46]) {
+          const evt = press(keyCode);
+
+          expect(evt.defaultPrevented).toBe(false);
+          expect(fp.isOpen).toBe(true);
+          expect(document.activeElement).toBe(fp._input);
+        }
+      });
+    });
+
     it("enabling dates by function", () => {
       createInstance({
         enable: [(d) => d.getDate() === 6, new Date()],

@@ -1842,7 +1842,9 @@ function FlatpickrInstance(
       ? element.contains(eventTarget as HTMLElement)
       : eventTarget === self._input;
     const allowInput = self.config.allowInput;
-    const allowKeydown = self.isOpen && (!allowInput || !isInput);
+    // an input open to typing keeps its keys for editing, all but Escape
+    const isTypingKey = allowInput && isInput && e.keyCode !== 27;
+    const allowKeydown = self.isOpen && !isTypingKey;
     const allowInlineKeydown = self.config.inline && isInput && !allowInput;
     // the month dropdown moves through its options with the arrow keys itself
     const isMonthDropdownArrowKey =
