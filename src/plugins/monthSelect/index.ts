@@ -136,17 +136,12 @@ function monthSelectPlugin(pluginConfig?: Partial<Config>): Plugin {
       buildMonths();
 
       // createDay only marks selected dates that fall on the 1st, so mark the
-      // month of the first selected date instead
-      const selected = self.monthsContainer.querySelectorAll(".selected");
-      for (let index = 0; index < selected.length; index++) {
-        selected[index].classList.remove("selected");
-      }
-
-      const selectedDate = fp.selectedDates[0];
-      if (selectedDate && selectedDate.getFullYear() === fp.currentYear) {
-        self.monthsContainer.children[selectedDate.getMonth()].classList.add(
-          "selected"
-        );
+      // month of every selected date in the year shown
+      for (const date of fp.selectedDates) {
+        if (date.getFullYear() === fp.currentYear)
+          self.monthsContainer.children[date.getMonth()].classList.add(
+            "selected"
+          );
       }
     }
 
@@ -180,11 +175,10 @@ function monthSelectPlugin(pluginConfig?: Partial<Config>): Plugin {
         document.activeElement
       );
 
-      const selectedDate = new Date(
-        fp.currentYear,
-        date.getMonth(),
-        date.getDate()
-      );
+      const month = date.getMonth();
+      const selectedDate = new Date(fp.currentYear, month, date.getDate());
+      const isInMonth = (d: Date) =>
+        d.getFullYear() === fp.currentYear && d.getMonth() === month;
       let selectedDates: Date[] = [];
 
       switch (fp.config.mode) {
@@ -193,7 +187,10 @@ function monthSelectPlugin(pluginConfig?: Partial<Config>): Plugin {
           break;
 
         case "multiple":
-          selectedDates.push(selectedDate);
+          // picking a month again unselects it, whatever the day selected
+          selectedDates = fp.selectedDates.filter((d) => !isInMonth(d));
+          if (selectedDates.length === fp.selectedDates.length)
+            selectedDates.push(selectedDate);
           break;
 
         case "range":
@@ -208,6 +205,9 @@ function monthSelectPlugin(pluginConfig?: Partial<Config>): Plugin {
       }
 
       fp.setDate(selectedDates, true);
+      // setDate shows the last selected date; stay on the year picked, as a
+      // click on a day does, and tell onYearChange where the view ends up
+      fp.jumpToDate(selectedDate, true);
 
       if (focusedIndex !== -1)
         (self.monthsContainer.children[focusedIndex] as HTMLElement).focus();

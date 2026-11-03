@@ -347,6 +347,134 @@ describe("monthSelect", () => {
         expect(fn).toHaveBeenCalled();
       });
     });
+
+    it("marks both ends as selected", () => {
+      const fp = createInstance({
+        mode: "range",
+        defaultDate: [new Date(2025, 1, 1), new Date(2025, 5, 1)],
+      });
+
+      const selected = Array.from(getMonthCells(fp))
+        .filter((cell) => cell.classList.contains("selected"))
+        .map((cell) => cell.textContent);
+      expect(selected).toEqual(["February", "June"]);
+    });
+
+    it("stays on the year of an end picked before the start", () => {
+      const fp = createInstance({ mode: "range" });
+      fp.changeYear(2025);
+      getMonthCells(fp)[5].dispatchEvent(new MouseEvent("click"));
+      fp.changeYear(2024);
+
+      getMonthCells(fp)[2].dispatchEvent(new MouseEvent("click"));
+
+      expect(fp.selectedDates).toEqual([
+        new Date(2024, 2, 1),
+        new Date(2025, 5, 1),
+      ]);
+      expect(fp.currentYear).toEqual(2024);
+    });
+  });
+
+  describe("multiple mode (flatpickr#2849, flatpickr#2858)", () => {
+    const monthCells = (instance: Instance) =>
+      Array.from(
+        instance.rContainer!.querySelectorAll<HTMLElement>(
+          ".flatpickr-monthSelect-month"
+        )
+      );
+
+    const selectedMonths = (instance: Instance) =>
+      monthCells(instance)
+        .filter((cell) => cell.classList.contains("selected"))
+        .map((cell) => cell.textContent);
+
+    const click = (instance: Instance, month: number) =>
+      monthCells(instance)[month].dispatchEvent(new MouseEvent("click"));
+
+    it("adds a month to the selection and removes it on a second pick", () => {
+      const onChange = jest.fn();
+      const fp = createInstance({
+        mode: "multiple",
+        minDate: "2022-01",
+        maxDate: "2023-05",
+        defaultDate: ["2023-02"],
+        onChange,
+        plugins: [monthSelectPlugin({ dateFormat: "Y-m" })],
+      });
+      fp.open();
+
+      click(fp, 2);
+      click(fp, 3);
+      expect(fp.input.value).toEqual("2023-02, 2023-03, 2023-04");
+      expect(selectedMonths(fp)).toEqual(["February", "March", "April"]);
+
+      click(fp, 1);
+      expect(fp.input.value).toEqual("2023-03, 2023-04");
+      expect(selectedMonths(fp)).toEqual(["March", "April"]);
+      expect(onChange).toHaveBeenCalledTimes(3);
+      expect(fp.isOpen).toBe(true);
+    });
+
+    it("marks every selected month of the shown year", () => {
+      const fp = createInstance({
+        mode: "multiple",
+        defaultDate: [
+          new Date(2024, 2, 1),
+          new Date(2025, 4, 15),
+          new Date(2025, 6, 1),
+        ],
+      });
+
+      fp.changeYear(2025);
+      expect(selectedMonths(fp)).toEqual(["May", "July"]);
+
+      fp.changeYear(2024);
+      expect(selectedMonths(fp)).toEqual(["March"]);
+    });
+
+    it("unselects a month whose selected date isn't the 1st", () => {
+      const fp = createInstance({
+        mode: "multiple",
+        defaultDate: [new Date(2025, 4, 15), new Date(2025, 6, 1)],
+      });
+
+      click(fp, 4);
+
+      expect(fp.selectedDates).toEqual([new Date(2025, 6, 1)]);
+      expect(selectedMonths(fp)).toEqual(["July"]);
+    });
+
+    it("stays on the year of a month unselected", () => {
+      const fp = createInstance({
+        mode: "multiple",
+        defaultDate: [new Date(2025, 2, 1)],
+      });
+      fp.changeYear(2024);
+
+      click(fp, 4);
+      expect(fp.currentYear).toEqual(2024);
+
+      click(fp, 4);
+      expect(fp.selectedDates).toEqual([new Date(2025, 2, 1)]);
+      expect(fp.currentYear).toEqual(2024);
+      expect(selectedMonths(fp)).toEqual([]);
+    });
+
+    it("stays on the year of the last month unselected", () => {
+      const fp = createInstance({
+        mode: "multiple",
+        now: new Date(2026, 0, 1),
+      });
+      fp.changeYear(2024);
+
+      click(fp, 4);
+      click(fp, 4);
+
+      expect(fp.selectedDates).toEqual([]);
+      expect(fp.input.value).toEqual("");
+      expect(fp.currentYear).toEqual(2024);
+    });
   });
 
   describe("syncing with the instance state", () => {
@@ -616,6 +744,24 @@ describe("monthSelect", () => {
         keyEvent("keydown", document.activeElement!, 39);
 
         expect(selectedMonths(fp)).toEqual(["May"]);
+        expect(document.activeElement).toBe(monthCells(fp)[5]);
+      });
+
+      it("stays on a month unselected with Enter in multiple mode", () => {
+        const fp = createMountedInstance({
+          inline: true,
+          mode: "multiple",
+          defaultDate: [new Date(2025, 4, 1), new Date(2026, 1, 1)],
+        });
+        fp.changeYear(2025);
+        const may = monthCells(fp)[4];
+
+        may.focus();
+        keyEvent("keydown", may, 13);
+        keyEvent("keydown", document.activeElement!, 39);
+
+        expect(fp.selectedDates).toEqual([new Date(2026, 1, 1)]);
+        expect(fp.currentYear).toEqual(2025);
         expect(document.activeElement).toBe(monthCells(fp)[5]);
       });
     });
