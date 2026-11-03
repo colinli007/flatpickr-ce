@@ -146,6 +146,10 @@ export type Instance = Elements &
     __hideNextMonthArrow: boolean;
     __hidePrevMonthArrow: boolean;
     _positionCalendar: (customPositionElement?: HTMLElement) => void;
+    /** Writes the selected dates into the inputs; rangePlugin adds its own */
+    _showValue: () => void;
+    /** The text allowInput commits, typed since _showValue, if any */
+    _typedValue: () => string | undefined;
 
     utils: {
       getDaysInMonth: (month?: number, year?: number) => number;

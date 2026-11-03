@@ -21,6 +21,40 @@ function rangePlugin(config: Config = {}): Plugin {
     // the anchor flatpickr itself uses for fp._input
     const firstInputAnchor = () => fp.config.positionElement || fp._input;
 
+    // the selected dates as the inputs show them: the start in fp._input and
+    // the end in the second input
+    const shownValue = () => {
+      const [first = "", second = ""] = fp.selectedDates.map((d) =>
+        fp.formatDate(d, dateFormat)
+      );
+      return [first, second];
+    };
+
+    // What was typed into the inputs since they showed the selected dates, if
+    // anything, as the range flatpickr commits: both ends, or none
+    const typedValue = () => {
+      const shown = shownValue();
+      const ends = [fp._input.value, secondInput.value];
+      const typed = [0, 1].filter((i) => ends[i] !== shown[i]);
+
+      if (typed.length === 0) return undefined;
+
+      const dates = ends.map((text) => fp.parseDate(text, dateFormat));
+
+      // a typed end that was emptied or doesn't parse leaves the other end as
+      // both ends, or none when that one doesn't parse either
+      typed.forEach((i) => {
+        if (!dates[i]) ends[i] = dates[1 - i] ? ends[1 - i] : "";
+      });
+
+      // one end typed past the other takes it along, as a day picked past it
+      // does in onValueUpdate
+      if (typed.length === 1 && dates[0] && dates[1] && dates[0] > dates[1])
+        ends[1 - typed[0]] = ends[typed[0]];
+
+      return ends.join(fp.l10n.rangeSeparator);
+    };
+
     const createSecondInput = () => {
       if (config.input) {
         secondInput =
@@ -80,11 +114,8 @@ function rangePlugin(config: Config = {}): Plugin {
       if (fp.config.allowInput)
         fp._bind(secondInput, "keydown", (e: KeyboardEvent) => {
           if (e.key === "Enter") {
-            fp.setDate(
-              [fp.selectedDates[0], secondInput.value],
-              true,
-              dateFormat
-            );
+            const typed = typedValue();
+            if (typed !== undefined) fp.setDate(typed, true, dateFormat);
             secondInput.click();
           }
         });
@@ -112,6 +143,16 @@ function rangePlugin(config: Config = {}): Plugin {
           secondInput.setAttribute("readonly", "readonly");
         }
 
+        // flatpickr's own write keeps the whole range in fp.input with altInput
+        const showValue = fp._showValue;
+        fp._showValue = () => {
+          showValue();
+          const [first, second] = shownValue();
+          fp._input.value = first;
+          secondInput.value = second;
+        };
+        fp._typedValue = typedValue;
+
         // flatpickr itself opens the calendar from fp._input, before this runs
         fp._bind(fp._input, "focus", () => {
           const anchor = firstInputAnchor();
@@ -125,16 +166,6 @@ function rangePlugin(config: Config = {}): Plugin {
           _secondInputFocused = false;
           fp.jumpToDate(fp.selectedDates[0]);
         });
-
-        if (fp.config.allowInput)
-          fp._bind(fp._input, "keydown", (e: KeyboardEvent) => {
-            if (e.key === "Enter")
-              fp.setDate(
-                [fp._input.value, fp.selectedDates[1]],
-                true,
-                dateFormat
-              );
-          });
 
         fp.setDate(fp.selectedDates, false);
         plugin.onValueUpdate(fp.selectedDates);
@@ -151,7 +182,6 @@ function rangePlugin(config: Config = {}): Plugin {
           setTimeout(() => {
             if (fp.selectedDates.length) return;
 
-            secondInput.value = "";
             _prevDates = [];
           }, 10);
         }
@@ -172,8 +202,9 @@ function rangePlugin(config: Config = {}): Plugin {
         if (!secondInput) return;
 
         // one side of the range is left, from a day picked on the calendar or
-        // a typed side that didn't parse: keep the other side (a range ruled
-        // out, or dropping both, leaves nothing to keep)
+        // setDate with one date: keep the other side (a range ruled out, or
+        // dropping both, leaves nothing to keep). Typed ends come in pairs
+        // from typedValue
         const isEdit = selDates.length === 1 && _prevDates.length === 2;
 
         if (isEdit) {
@@ -195,12 +226,6 @@ function rangePlugin(config: Config = {}): Plugin {
         } else {
           _prevDates = [...selDates];
         }
-
-        const [first = "", second = ""] = fp.selectedDates.map((d) =>
-          fp.formatDate(d, dateFormat)
-        );
-        fp._input.value = first;
-        secondInput.value = second;
       },
     };
 

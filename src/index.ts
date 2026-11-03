@@ -84,6 +84,8 @@ function FlatpickrInstance(
   self._bind = bind;
   self._setHoursFromDate = setHoursFromDate;
   self._positionCalendar = positionCalendar;
+  self._showValue = showValue;
+  self._typedValue = typedValue;
 
   self.changeMonth = changeMonth;
   self.changeYear = changeYear;
@@ -1481,14 +1483,11 @@ function FlatpickrInstance(
   }
 
   function clear(triggerChangeEvent = true, toInitial = true) {
-    self.input.value = "";
-
-    if (self.altInput !== undefined) self.altInput.value = "";
-
     if (self.mobileInput !== undefined) self.mobileInput.value = "";
 
     self.selectedDates = [];
     self.latestSelectedDateObj = undefined;
+    self._showValue();
     if (toInitial === true) {
       // minDate and maxDate may have changed since init
       const initialDate = withinLimits(self._initialDate);
@@ -1771,12 +1770,23 @@ function FlatpickrInstance(
   }
 
   /**
+   * What was typed into the input since showValue() wrote it, if anything.
+   * A plugin that lays the value out across inputs of its own (rangePlugin)
+   * reads it from those
+   */
+  function typedValue() {
+    return self._input.value.trimEnd() === getDateStr()
+      ? undefined
+      : self._input.value;
+  }
+
+  /**
    * Applies what was typed into the input, if anything, without announcing it.
    * Returns the state to compare against when announcing.
    */
   function commitTypedValue() {
-    // nothing typed since flatpickr last wrote the input
-    if (self._input.value.trimEnd() === getDateStr()) return undefined;
+    const typed = self._typedValue();
+    if (typed === undefined) return undefined;
 
     const committed = {
       times: getSelectedTimes(),
@@ -1785,7 +1795,7 @@ function FlatpickrInstance(
     };
 
     self.setDate(
-      self._input.value,
+      typed,
       false,
       self.config.altInput ? self.config.altFormat : self.config.dateFormat
     );
@@ -3098,13 +3108,21 @@ function FlatpickrInstance(
         self.mobileInput.value = mobileValue;
     }
 
+    self._showValue();
+
+    if (triggerChange !== false) triggerEvent("onValueUpdate");
+  }
+
+  /**
+   * Writes the selected dates into the input and altInput. A plugin that lays
+   * the value out across inputs of its own (rangePlugin) writes those too
+   */
+  function showValue() {
     self.input.value = getDateStr(self.config.dateFormat);
 
     if (self.altInput !== undefined) {
       self.altInput.value = getDateStr(self.config.altFormat);
     }
-
-    if (triggerChange !== false) triggerEvent("onValueUpdate");
   }
 
   function onMonthNavClick(e: MouseEvent) {

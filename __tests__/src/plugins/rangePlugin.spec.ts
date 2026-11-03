@@ -1,7 +1,7 @@
 import flatpickr from "index";
 import rangePlugin, { Config } from "plugins/rangePlugin";
 import { Options } from "types/options";
-import { Instance } from "types/instance";
+import { DayElement, Instance } from "types/instance";
 
 flatpickr.defaultConfig.animate = false;
 
@@ -419,7 +419,7 @@ describe("rangePlugin", () => {
     secondInput.remove();
   });
 
-  it("announces the range it clears when clicking outside with allowInput", () => {
+  it("keeps the range when clicking outside with allowInput", () => {
     const input = document.createElement("input");
     const secondInput = document.createElement("input");
     document.body.append(input, secondInput);
@@ -438,14 +438,358 @@ describe("rangePlugin", () => {
     document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     jest.runAllTimers();
 
-    expect(fp.selectedDates).toEqual([]);
-    expect(onChange).toHaveBeenCalledTimes(1);
-    expect(secondInput.value).toEqual("");
+    expect(fp.selectedDates).toEqual([
+      new Date(2017, 9, 20),
+      new Date(2017, 9, 25),
+    ]);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(secondInput.value).toEqual("2017-10-25");
     expect(consoleError).not.toHaveBeenCalled();
 
     consoleError.mockRestore();
     fp.destroy();
     input.remove();
     secondInput.remove();
+  });
+
+  // the inputs show the start and the end, and commit the range they spell
+  describe("typing into the inputs", () => {
+    let input: HTMLInputElement,
+      secondInput: HTMLInputElement,
+      fp: Instance,
+      onChange: jest.Mock,
+      onValueUpdate: jest.Mock;
+
+    const create = (options: Options = {}) => {
+      fp = flatpickr(input, {
+        plugins: [rangePlugin({ input: secondInput })],
+        allowInput: true,
+        defaultDate: ["2017-10-20", "2017-10-25"],
+        onChange,
+        onValueUpdate,
+        ...options,
+      });
+    };
+
+    beforeEach(() => {
+      input = document.createElement("input");
+      secondInput = document.createElement("input");
+      document.body.append(input, secondInput);
+      onChange = jest.fn();
+      onValueUpdate = jest.fn();
+    });
+
+    afterEach(() => {
+      fp.destroy();
+      input.remove();
+      secondInput.remove();
+    });
+
+    const range = (...days: number[]) =>
+      days.map((day) => new Date(2017, 9, day));
+
+    const shown = () => [fp._input.value, secondInput.value];
+
+    const pressEnter = (elem: HTMLInputElement) => {
+      elem.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          keyCode: 13,
+          bubbles: true,
+        })
+      );
+      jest.runAllTimers();
+    };
+
+    const clickOutside = () => {
+      document.body.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true })
+      );
+      jest.runAllTimers();
+    };
+
+    const focus = (elem: HTMLInputElement) => {
+      elem.focus();
+      jest.runAllTimers();
+    };
+
+    const clickDay = (day: number) => {
+      (Array.from(fp.days.childNodes) as DayElement[])
+        .find((d) => d.dateObj.getMonth() === 9 && d.dateObj.getDate() === day)!
+        .click();
+      jest.runAllTimers();
+    };
+
+    it("stays silent when moving to the second input without typing", () => {
+      create();
+      focus(input);
+      focus(secondInput);
+
+      expect(fp.selectedDates).toEqual(range(20, 25));
+      expect(onValueUpdate).not.toHaveBeenCalled();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("stays silent on Enter without typing", () => {
+      create();
+      focus(input);
+      pressEnter(input);
+      focus(secondInput);
+      pressEnter(secondInput);
+
+      expect(fp.selectedDates).toEqual(range(20, 25));
+      expect(onValueUpdate).not.toHaveBeenCalled();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("keeps the end when moving on from a typed start", () => {
+      create();
+      focus(input);
+      input.value = "2017-10-22";
+      focus(secondInput);
+
+      expect(fp.selectedDates).toEqual(range(22, 25));
+      expect(shown()).toEqual(["2017-10-22", "2017-10-25"]);
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    it("announces a typed start once on Enter", () => {
+      create();
+      focus(input);
+      input.value = "2017-10-22";
+      pressEnter(input);
+
+      expect(fp.selectedDates).toEqual(range(22, 25));
+      expect(shown()).toEqual(["2017-10-22", "2017-10-25"]);
+      expect(onValueUpdate).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the start when a typed end is committed by Enter", () => {
+      create();
+      focus(secondInput);
+      secondInput.value = "2017-10-28";
+      pressEnter(secondInput);
+
+      expect(fp.selectedDates).toEqual(range(20, 28));
+      expect(shown()).toEqual(["2017-10-20", "2017-10-28"]);
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    it("commits a typed end when clicking outside", () => {
+      create();
+      focus(secondInput);
+      secondInput.value = "2017-10-28";
+      clickOutside();
+
+      expect(fp.selectedDates).toEqual(range(20, 28));
+      expect(shown()).toEqual(["2017-10-20", "2017-10-28"]);
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    it("commits both ends typed before either is committed", () => {
+      create();
+      focus(secondInput);
+      secondInput.value = "2017-10-28";
+      focus(input);
+      input.value = "2017-10-22";
+      focus(secondInput);
+
+      expect(fp.selectedDates).toEqual(range(22, 28));
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    it("takes the end along with a typed start past it, as picking a day does", () => {
+      create();
+      focus(input);
+      input.value = "2017-10-26";
+      focus(secondInput);
+
+      expect(fp.selectedDates).toEqual(range(26, 26));
+      expect(shown()).toEqual(["2017-10-26", "2017-10-26"]);
+    });
+
+    it("takes the start along with a typed end before it", () => {
+      create();
+      focus(secondInput);
+      secondInput.value = "2017-10-18";
+      pressEnter(secondInput);
+
+      expect(fp.selectedDates).toEqual(range(18, 18));
+      expect(shown()).toEqual(["2017-10-18", "2017-10-18"]);
+    });
+
+    it("takes the start along with a typed end before it when clickOpens is false", () => {
+      create({ clickOpens: false });
+      secondInput.value = "2017-10-18";
+      pressEnter(secondInput);
+
+      expect(fp.selectedDates).toEqual(range(18, 18));
+    });
+
+    // the second input commits on Enter and outside clicks only
+    describe("an end emptied or typed as text that can't be parsed", () => {
+      const errorHandler = jest.fn();
+
+      beforeEach(() => errorHandler.mockClear());
+
+      const commits: Record<string, (typedInto: HTMLInputElement) => void> = {
+        "moving to the second input": () => focus(secondInput),
+        Enter: (typedInto) => pressEnter(typedInto),
+        "clicking outside": () => clickOutside(),
+      };
+
+      it.each([
+        ["start", "", "moving to the second input"],
+        ["start", "", "Enter"],
+        ["start", "", "clicking outside"],
+        ["start", "garbage", "moving to the second input"],
+        ["start", "garbage", "Enter"],
+        ["start", "garbage", "clicking outside"],
+        ["end", "", "Enter"],
+        ["end", "", "clicking outside"],
+        ["end", "garbage", "Enter"],
+        ["end", "garbage", "clicking outside"],
+      ])(
+        "keeps the other end as both ends: the %s as %j, then %s",
+        (end, text, commit) => {
+          create({ errorHandler });
+          const typedInto = end === "start" ? fp._input : secondInput;
+          const kept = end === "start" ? 25 : 20;
+          focus(typedInto);
+          typedInto.value = text;
+          commits[commit](typedInto);
+
+          expect(fp.selectedDates).toEqual(range(kept, kept));
+          expect(shown()).toEqual([`2017-10-${kept}`, `2017-10-${kept}`]);
+          expect(onChange).toHaveBeenCalledTimes(1);
+          expect(errorHandler).toHaveBeenCalledTimes(text ? 1 : 0);
+        }
+      );
+
+      it("keeps the other typed end as both ends", () => {
+        create({ errorHandler });
+        focus(secondInput);
+        secondInput.value = "2017-10-28";
+        focus(input);
+        input.value = "garbage";
+        clickOutside();
+
+        expect(fp.selectedDates).toEqual(range(28, 28));
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(errorHandler).toHaveBeenCalledTimes(1);
+      });
+
+      it("drops the range when neither typed end can be parsed", () => {
+        create({ errorHandler });
+        focus(secondInput);
+        secondInput.value = "garbage";
+        focus(input);
+        input.value = "rubbish";
+        focus(secondInput);
+
+        expect(fp.selectedDates).toEqual([]);
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(errorHandler).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    it("announces an end picked on the calendar once after leaving the first input", () => {
+      create();
+      focus(input);
+      clickDay(22);
+      expect(fp.selectedDates).toEqual(range(22, 25));
+      onChange.mockClear();
+
+      focus(secondInput);
+      clickDay(27);
+
+      expect(fp.selectedDates).toEqual(range(22, 27));
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    it("builds a range typed start first, then end", () => {
+      create({ defaultDate: undefined });
+      focus(input);
+      input.value = "2017-10-20";
+      focus(secondInput);
+
+      expect(fp.selectedDates).toEqual(range(20));
+      expect(shown()).toEqual(["2017-10-20", ""]);
+
+      secondInput.value = "2017-10-25";
+      pressEnter(secondInput);
+
+      expect(fp.selectedDates).toEqual(range(20, 25));
+    });
+
+    // flatpickr#3108: a range keeps both ends or neither
+    it("drops a typed start alone when clicking outside", () => {
+      create({ defaultDate: undefined });
+      focus(input);
+      input.value = "2017-10-20";
+      clickOutside();
+
+      expect(fp.selectedDates).toEqual([]);
+      expect(shown()).toEqual(["", ""]);
+    });
+
+    it("keeps a same-day range and the view when clicking outside without typing", () => {
+      const onMonthChange = jest.fn();
+      create({ defaultDate: ["2017-10-20", "2017-10-20"], onMonthChange });
+      focus(input);
+      fp.changeMonth(1);
+      clickOutside();
+
+      expect(fp.selectedDates).toEqual(range(20, 20));
+      expect(fp.currentMonth).toEqual(10);
+      expect(onMonthChange).toHaveBeenCalledTimes(1);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("shows the range again after committing a typed start that keeps it", () => {
+      create();
+      focus(input);
+      input.value = "2017-10-20 ";
+      pressEnter(input);
+
+      expect(fp.selectedDates).toEqual(range(20, 25));
+      expect(shown()).toEqual(["2017-10-20", "2017-10-25"]);
+    });
+
+    it("keeps the whole range in the original input with altInput", () => {
+      create({ altInput: true, altFormat: "d/m/Y" });
+      focus(fp._input);
+      fp._input.value = "22/10/2017";
+      focus(secondInput);
+
+      expect(fp.selectedDates).toEqual(range(22, 25));
+      expect(input.value).toEqual("2017-10-22 to 2017-10-25");
+      expect(shown()).toEqual(["22/10/2017", "25/10/2017"]);
+    });
+
+    it("shows a range set without triggerChange in both inputs", () => {
+      create();
+      fp.setDate(["2017-10-01", "2017-10-05"]);
+
+      expect(shown()).toEqual(["2017-10-01", "2017-10-05"]);
+    });
+
+    it("empties both inputs when setDate clears the range without triggerChange", () => {
+      create();
+      fp.setDate([]);
+
+      expect(shown()).toEqual(["", ""]);
+    });
+
+    it("keeps a range set without triggerChange when moving between the inputs", () => {
+      create();
+      fp.setDate(["2017-10-01", "2017-10-05"]);
+      focus(input);
+      focus(secondInput);
+
+      expect(fp.selectedDates).toEqual(range(1, 5));
+      expect(onChange).not.toHaveBeenCalled();
+    });
   });
 });
