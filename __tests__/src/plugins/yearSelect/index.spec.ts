@@ -391,6 +391,29 @@ describe("yearSelect", () => {
         fp.close();
         expect(fp.selectedDates).toHaveLength(0);
       });
+
+      // the range is written as its one year (flatpickr#3010)
+      it("reads a same-year range back and keeps it on close", () => {
+        fp.setDate([new Date(2000, 0, 1), new Date(2000, 0, 1)]);
+        const input = document.createElement("input");
+        input.value = fp.input.value;
+        expect(input.value).toEqual("2000");
+        fp.destroy();
+
+        fp = flatpickr(input, {
+          plugins: [yearSelectPlugin()],
+          mode: "range",
+        }) as Instance;
+        expect(fp.selectedDates).toEqual([
+          new Date(2000, 0, 1),
+          new Date(2000, 0, 1),
+        ]);
+
+        fp.open();
+        fp.close();
+        expect(fp.selectedDates).toHaveLength(2);
+        expect(fp.input.value).toEqual("2000");
+      });
     });
   });
 

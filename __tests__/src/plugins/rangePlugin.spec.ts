@@ -130,15 +130,75 @@ describe("rangePlugin", () => {
   it("starts the cloned second input empty", () => {
     const wrapper = document.createElement("div");
     const input = document.createElement("input");
-    input.value = "2017-10-20";
+    input.value = "2017-10-20 to 2017-10-25";
     wrapper.appendChild(input);
     const fp = flatpickr(input, {
       plugins: [rangePlugin()],
       dateFormat: "Y-m-d",
     });
 
-    expect(fp.selectedDates).toEqual([new Date(2017, 9, 20)]);
-    expect((input.nextSibling as HTMLInputElement).value).toEqual("");
+    expect(fp.selectedDates).toEqual([
+      new Date(2017, 9, 20),
+      new Date(2017, 9, 25),
+    ]);
+    expect((input.nextSibling as HTMLInputElement).value).toEqual("2017-10-25");
+  });
+
+  // flatpickr writes a same-day range as its one date (flatpickr#3010)
+  describe("preloading one date", () => {
+    const sameDay = [new Date(2017, 9, 20), new Date(2017, 9, 20)];
+
+    const preload = (options: Options = {}) => {
+      const input = document.createElement("input");
+      input.value = "2017-10-20";
+      document.body.append(input);
+      const fp = flatpickr(input, { plugins: [rangePlugin()], ...options });
+      const secondInput = input.nextSibling as HTMLInputElement;
+
+      const clickOutside = () => {
+        fp.open();
+        document.body.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true })
+        );
+        jest.runAllTimers();
+      };
+
+      return { fp, input, secondInput, clickOutside };
+    };
+
+    afterEach(() => {
+      document.body.innerHTML = "";
+    });
+
+    it("reads it in the first input alone as a same-day range", () => {
+      const { fp, input, secondInput, clickOutside } = preload();
+      expect(fp.selectedDates).toEqual(sameDay);
+      expect([input.value, secondInput.value]).toEqual([
+        "2017-10-20",
+        "2017-10-20",
+      ]);
+
+      clickOutside();
+      expect(fp.selectedDates).toEqual(sameDay);
+      fp.destroy();
+    });
+
+    it("reads it in the original input with altInput as a same-day range", () => {
+      const { fp, input, secondInput, clickOutside } = preload({
+        altInput: true,
+        altFormat: "d/m/Y",
+      });
+      expect(fp.selectedDates).toEqual(sameDay);
+
+      clickOutside();
+      expect(fp.selectedDates).toEqual(sameDay);
+      expect([input.value, fp._input.value, secondInput.value]).toEqual([
+        "2017-10-20",
+        "20/10/2017",
+        "20/10/2017",
+      ]);
+      fp.destroy();
+    });
   });
 
   it("should set readonly attribute when allowInput is false", () => {
@@ -372,9 +432,8 @@ describe("rangePlugin", () => {
     secondInput.remove();
   });
 
-  // _input only shows the first date with this plugin, so flatpickr reads it
-  // as an edit and the range gets cleared, as it always has; now it's announced
-  // and the second input follows
+  // a lone string is read as both ends (#3010); when neither parses, nothing is
+  // left to select, so the range is cleared and both inputs follow
   it("clears both inputs when setDate can't parse the new value", () => {
     const secondInput = document.createElement("input");
     const errorHandler = jest.fn();
@@ -450,6 +509,37 @@ describe("rangePlugin", () => {
     fp.destroy();
     input.remove();
     secondInput.remove();
+  });
+
+  it("sets a same-day range from one date in a string, and one end otherwise", () => {
+    const secondInput = document.createElement("input");
+    const fp = createInstance({
+      plugins: [rangePlugin({ input: secondInput })],
+      defaultDate: ["2017-10-20", "2017-10-25"],
+    });
+    const shown = () => [fp._input.value, secondInput.value];
+
+    // a range string, read as flatpickr reads it without the plugin
+    fp.setDate("2017-10-22", true);
+    expect(fp.selectedDates).toEqual([
+      new Date(2017, 9, 22),
+      new Date(2017, 9, 22),
+    ]);
+    expect(shown()).toEqual(["2017-10-22", "2017-10-22"]);
+
+    fp.setDate(["2017-10-20", "2017-10-25"], true);
+    fp.setDate(["2017-10-22"], true);
+    expect(fp.selectedDates).toEqual([
+      new Date(2017, 9, 22),
+      new Date(2017, 9, 25),
+    ]);
+
+    fp.setDate(new Date(2017, 9, 23), true);
+    expect(fp.selectedDates).toEqual([
+      new Date(2017, 9, 23),
+      new Date(2017, 9, 25),
+    ]);
+    expect(shown()).toEqual(["2017-10-23", "2017-10-25"]);
   });
 
   // the inputs show the start and the end, and commit the range they spell

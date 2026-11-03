@@ -1042,6 +1042,127 @@ describe("flatpickr", () => {
       });
     });
 
+    // A same-day range is written as its one date without enableTime (#1478)
+    describe("a range written as one date (flatpickr#3010)", () => {
+      const sameDay = [new Date(2024, 3, 19), new Date(2024, 3, 19)];
+
+      const preloaded = (value: string, config: Options = {}) => {
+        const input = document.createElement("input");
+        input.value = value;
+        return createInstance({ mode: "range", ...config }, input);
+      };
+
+      const dayElem = (date: Date) =>
+        Array.from(fp.days.querySelectorAll<DayElement>(".flatpickr-day")).find(
+          (day) => day.dateObj.getTime() === date.getTime()
+        )!;
+
+      it("reads back as both ends and outlives an outside click", () => {
+        createInstance({ mode: "range" });
+        fp.setDate(sameDay);
+        const written = fp.input.value;
+        expect(written).toEqual("2024-04-19");
+
+        const onChange = jest.fn();
+        preloaded(written, { onChange });
+        expect(fp.selectedDates).toEqual(sameDay);
+
+        fp.open();
+        pressOutside();
+        expect(fp.selectedDates).toEqual(sameDay);
+        expect(fp.input.value).toEqual("2024-04-19");
+        expect(onChange).not.toHaveBeenCalled();
+      });
+
+      it("reads as both ends from defaultDate and setDate", () => {
+        createInstance({ mode: "range", defaultDate: "2024-04-19" });
+        expect(fp.selectedDates).toEqual(sameDay);
+
+        fp.clear();
+        fp.setDate("2024-04-19");
+        expect(fp.selectedDates).toEqual(sameDay);
+        expect(fp.input.value).toEqual("2024-04-19");
+      });
+
+      it("reads as both ends from the input with altInput", () => {
+        preloaded("2024-04-19", { altInput: true, altFormat: "F j, Y" });
+        expect(fp.selectedDates).toEqual(sameDay);
+        expect(fp.altInput!.value).toEqual("April 19, 2024");
+
+        fp.open();
+        pressOutside();
+        expect(fp.selectedDates).toEqual(sameDay);
+      });
+
+      it("leaves one date given as an array or a Date as the start", () => {
+        createInstance({ mode: "range" });
+
+        fp.setDate(["2024-04-19"]);
+        expect(fp.selectedDates).toEqual([sameDay[0]]);
+
+        fp.setDate(new Date(2024, 3, 19));
+        expect(fp.selectedDates).toEqual([sameDay[0]]);
+      });
+
+      describe("typed with allowInput", () => {
+        const onChange = jest.fn();
+
+        beforeEach(() => {
+          onChange.mockClear();
+          createInstance({ mode: "range", allowInput: true, onChange });
+          fp.input.focus();
+          fp.input.value = "2024-04-19";
+        });
+
+        it("is committed as both ends by Enter", () => {
+          simulate("keydown", fp._input, { keyCode: 13 });
+
+          expect(fp.selectedDates).toEqual(sameDay);
+          expect(fp.input.value).toEqual("2024-04-19");
+          expect(onChange).toHaveBeenCalledTimes(1);
+
+          // the range is complete: a day picked next starts a new one
+          fp.open();
+          clickOn(dayElem(new Date(2024, 3, 22)));
+          expect(fp.selectedDates).toEqual([new Date(2024, 3, 22)]);
+        });
+
+        it("is committed as both ends by clicking outside", () => {
+          pressOutside();
+          fp.input.blur();
+
+          expect(fp.selectedDates).toEqual(sameDay);
+          expect(fp.input.value).toEqual("2024-04-19");
+          expect(onChange).toHaveBeenCalledTimes(1);
+        });
+      });
+
+      it("reads as the start with enableTime, which writes a same-day range as two", () => {
+        createInstance({ mode: "range", enableTime: true, allowInput: true });
+        const start = new Date(2024, 3, 19, 10, 0);
+
+        fp.input.focus();
+        fp.input.value = "2024-04-19 10:00";
+        simulate("keydown", fp._input, { keyCode: 13 });
+        expect(fp.selectedDates).toEqual([start]);
+
+        fp.setDate("2024-04-19 10:00");
+        expect(fp.selectedDates).toEqual([start]);
+
+        fp.setDate([start, start]);
+        expect(fp.input.value).toEqual("2024-04-19 10:00 to 2024-04-19 10:00");
+      });
+
+      it("reports a date it can't parse once for each end", () => {
+        const errorHandler = jest.fn();
+        createInstance({ mode: "range", errorHandler });
+
+        fp.setDate("not a date");
+        expect(fp.selectedDates).toEqual([]);
+        expect(errorHandler).toHaveBeenCalledTimes(2);
+      });
+    });
+
     describe("set() time options (flatpickr#3083)", () => {
       const selectFirstDay = () =>
         clickOn(fp.days.querySelector(".flatpickr-day:not(.prevMonthDay)")!);
@@ -1526,7 +1647,7 @@ describe("flatpickr", () => {
         });
 
         fp.input.focus();
-        fp.input.value = "2026-01-07";
+        fp.input.value = "2026-01-07 to ";
         pressOutside();
         fp.input.blur();
 
@@ -3364,7 +3485,7 @@ describe("flatpickr", () => {
       simulate("mouseover", fp.days.childNodes[15]);
       expect(fp.selectedDates.length).toEqual(0);
 
-      fp.setDate("2016-1-17");
+      fp.setDate(["2016-1-17"]);
       expect(fp.selectedDates.length).toEqual(1);
 
       simulate("mouseover", fp.days.childNodes[32]);
@@ -3377,7 +3498,7 @@ describe("flatpickr", () => {
 
       fp.clear();
       fp.set("disable", ["2016-1-12", "2016-1-20"]);
-      fp.setDate("2016-1-17");
+      fp.setDate(["2016-1-17"]);
 
       simulate("mouseover", day(32));
       expect(day(32).classList.contains("endRange")).toEqual(false);

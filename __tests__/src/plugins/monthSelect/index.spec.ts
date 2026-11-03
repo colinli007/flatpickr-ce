@@ -573,6 +573,27 @@ describe("monthSelect", () => {
       });
     });
 
+    // the range is written as its one month (flatpickr#3010)
+    it("reads a same-month range back and keeps it on close", () => {
+      const april = [new Date(2024, 3, 1), new Date(2024, 3, 1)];
+      const written = createInstance({ mode: "range", defaultDate: april })
+        .input.value;
+      expect(written).toEqual("April 2024");
+
+      const input = document.createElement("input");
+      input.value = written;
+      const fp = flatpickr(input, {
+        plugins: [monthSelectPlugin({})],
+        mode: "range",
+      });
+      expect(fp.selectedDates).toEqual(april);
+
+      fp.open();
+      fp.close();
+      expect(fp.selectedDates).toEqual(april);
+      expect(fp.input.value).toEqual("April 2024");
+    });
+
     describe("focus after selecting a month", () => {
       it("stays on the month selected with Enter", () => {
         const fp = createMountedInstance({ inline: true });

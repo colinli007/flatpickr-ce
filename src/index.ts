@@ -2742,6 +2742,11 @@ function FlatpickrInstance(
             .split(self.l10n.rangeSeparator)
             .map((date) => self.parseDate(date, format));
 
+          // getDateStr() writes a same-day range as its one date without
+          // enableTime (#1478): it reads back as both ends (#3010)
+          if (dates.length === 1 && !self.config.enableTime)
+            dates.push(self.parseDate(inputDate, format));
+
           break;
 
         default:

@@ -84,10 +84,12 @@ function rangePlugin(config: Config = {}): Plugin {
       if (!fp.config.defaultDate && secondInput.value) {
         const parsedDate = fp.parseDate(secondInput.value, dateFormat);
 
-        // the inputs preload as one range: this end only pairs with a kept
-        // start, and onReady's setDate then checks the pair (#3108)
-        if (parsedDate && fp.selectedDates.length === 1)
-          fp.selectedDates.push(parsedDate);
+        // the inputs preload as one range: this end replaces the one flatpickr
+        // read from the first input (a lone date is read as both, #3010) and
+        // only pairs with a kept start; onReady's setDate then checks the
+        // pair (#3108)
+        if (parsedDate && fp.selectedDates.length > 0)
+          fp.selectedDates = [fp.selectedDates[0], parsedDate];
       }
 
       secondInput.setAttribute("data-fp-omit", "");
