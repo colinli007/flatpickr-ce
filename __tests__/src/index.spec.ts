@@ -1,4 +1,5 @@
 import flatpickr from "index";
+import { Kurdish } from "l10n/ckb";
 import { French } from "l10n/fr";
 import { Irish } from "l10n/ga";
 import { Japanese } from "l10n/ja";
@@ -3771,6 +3772,32 @@ describe("flatpickr", () => {
 
       createInstance({ locale: "vi" });
       expect(fp.l10n.months.longhand[0]).toEqual("Tháng một");
+    });
+
+    it("abbreviates Kurdish (Sorani) weekdays (flatpickr#2895)", () => {
+      createInstance({ locale: Kurdish });
+
+      const weekdays = Array.from(
+        fp.weekdayContainer.querySelectorAll(".flatpickr-weekday"),
+        (weekday) => (weekday.textContent || "").trim()
+      );
+      expect(weekdays).toEqual([
+        "شەممە",
+        "یەک",
+        "دوو",
+        "سێ",
+        "چوار",
+        "پێنج",
+        "هەینی",
+      ]);
+
+      // Sunday, 2 February 2025, through Saturday
+      for (let day = 2; day <= 8; day++) {
+        const date = new Date(2025, 1, day);
+        const formatted = fp.formatDate(date, "D j F Y");
+        expect(formatted.split(" ")[0]).toEqual(weekdays[(day - 1) % 7]);
+        expect(fp.parseDate(formatted, "D j F Y")).toEqual(date);
+      }
     });
 
     it("By overriding default locale", () => {
