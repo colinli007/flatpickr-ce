@@ -3,6 +3,7 @@ import { Kurdish } from "l10n/ckb";
 import { French } from "l10n/fr";
 import { Irish } from "l10n/ga";
 import { Japanese } from "l10n/ja";
+import { Norwegian } from "l10n/no";
 import { Russian } from "l10n/ru";
 import { Vietnamese } from "l10n/vn";
 import { Instance, DayElement } from "types/instance";
@@ -3772,6 +3773,14 @@ describe("flatpickr", () => {
 
       createInstance({ locale: "vi" });
       expect(fp.l10n.months.longhand[0]).toEqual("Tháng một");
+    });
+
+    it("By ISO code nb for Norwegian Bokmål (flatpickr#2904)", () => {
+      expect(flatpickr.l10ns.nb).toBe(Norwegian);
+      expect(flatpickr.l10ns.no).toBe(Norwegian);
+
+      createInstance({ locale: "nb" });
+      expect(fp.l10n.weekdays.longhand[2]).toEqual("Tirsdag");
     });
 
     it("abbreviates Kurdish (Sorani) weekdays (flatpickr#2895)", () => {

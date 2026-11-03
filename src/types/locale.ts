@@ -159,6 +159,7 @@ export type key =
   | "ms"
   | "my"
   | "nl"
+  | "nb"
   | "nn"
   | "no"
   | "pa"
