@@ -3,6 +3,7 @@ import { French } from "l10n/fr";
 import { Irish } from "l10n/ga";
 import { Japanese } from "l10n/ja";
 import { Russian } from "l10n/ru";
+import { Vietnamese } from "l10n/vn";
 import { Instance, DayElement } from "types/instance";
 import { Options, DateRangeLimit } from "types/options";
 import confirmDatePlugin from "plugins/confirmDate/confirmDate";
@@ -3762,6 +3763,14 @@ describe("flatpickr", () => {
 
       createInstance({ locale: "ga" });
       expect(fp.l10n.months.longhand[0]).toEqual("Eanáir");
+    });
+
+    it("By ISO code vi for Vietnamese (flatpickr#2867)", () => {
+      expect(flatpickr.l10ns.vi).toBe(Vietnamese);
+      expect(flatpickr.l10ns.vn).toBe(Vietnamese);
+
+      createInstance({ locale: "vi" });
+      expect(fp.l10n.months.longhand[0]).toEqual("Tháng một");
     });
 
     it("By overriding default locale", () => {
