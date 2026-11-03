@@ -60,6 +60,7 @@ export const Finnish: CustomLocale = {
     return ".";
   },
   time_24hr: true,
+  rangeSeparator: "–",
   yearAriaLabel: "vuosi",
   monthAriaLabel: "kuukausi",
   hourAriaLabel: "tunti",
