@@ -29,7 +29,7 @@ description: >
 
 ## 第 1 步：排任务队列
 
-用户给了编号就用编号。否则读清单 `gh issue view 3 -R colinli007/flatpickr-ce --json body --jq .body`，按未勾选项所在小节归类：
+用户给了编号就用编号。否则读清单 `gh issue view 8 -R colinli007/flatpickr-ce --json body --jq .body`，按未勾选项所在小节归类：
 
 | 小节 / 标记 | 归为 |
 | --- | --- |
