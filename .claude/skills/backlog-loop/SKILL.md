@@ -1,10 +1,10 @@
 ---
 name: backlog-loop
 description: >
-  把 issue-fix-check 串成循环，批量处理进度清单 colinli007/flatpickr-ce#3：主会话只做编排，每个任务新起一个执行者（Opus）修复并自验，
+  把 issue-fix-check 串成循环，批量处理进度清单 colinli007/flatpickr-ce#8：主会话只做编排，每个任务新起一个执行者（Opus）修复并自验，
   按 diff 分级新起一个 Fable 检查者评审，通过就提交，不通过就搁置进 stash，然后接着下一个；每个任务的执行者和检查者都是全新 agent，
-  不带上一个任务的上下文。一批跑完汇总结果，并拟好 issue #3 的更新给用户确认。
-  用户输入 `/backlog-loop`、说「把清单里的 issue 一个个修下去」「批量处理 backlog」「循环跑 issue #3」「自动修完一个接下一个」时使用。
+  不带上一个任务的上下文。一批跑完汇总结果，并拟好 issue #8 的更新给用户确认。
+  用户输入 `/backlog-loop`、说「把清单里的 issue 一个个修下去」「批量处理 backlog」「循环跑 issue #8」「自动修完一个接下一个」时使用。
   只处理一个 issue / PR 时用 issue-fix-check。
 ---
 
@@ -105,10 +105,10 @@ python3 .claude/skills/issue-fix-check/scripts/classify.py <任务目录>/fix.di
 ## 需要你决定
 每个搁置 / 待决定项：问题、候选改法、我的建议，详情见 <任务目录>/report.md（写完整绝对路径）
 
-## issue #3 更新草稿
+## issue #8 更新草稿
 已提交项要改成的行：勾选，行尾按清单现有写法写 commit 和一句处理说明
 ```
 
-issue #3 的更新等用户确认后一次性用 `gh issue edit 3 -R colinli007/flatpickr-ce --body-file <文件>` 改，改之前重新取一次正文，在最新版本上替换，不覆盖用户这期间的手动修改。不推送、不发版、不在上游回复。
+issue #8 的更新等用户确认后一次性用 `gh issue edit 8 -R colinli007/flatpickr-ce --body-file <文件>` 改，改之前重新取一次正文，在最新版本上替换，不覆盖用户这期间的手动修改。不推送、不发版、不在上游回复。
 
 用户对某个搁置项拍板后：`git stash list` 找到对应项，`git stash pop`，按决定修改，然后接 issue-fix-check 第 3 步往下。原检查者已经不在，复查要新起，分级加 `--round2`。
