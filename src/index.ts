@@ -2559,6 +2559,11 @@ function FlatpickrInstance(
     e.preventDefault();
     e.stopPropagation();
 
+    // a tap, or Enter, can pick a day no hover has come to: mark the days the
+    // range can't reach first, as a hover would
+    if (self.config.mode === "range")
+      onMouseOver(getEventTarget(e) as DayElement);
+
     const isSelectable = (day: Element) =>
       day.classList &&
       day.classList.contains("flatpickr-day") &&

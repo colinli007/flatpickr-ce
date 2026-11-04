@@ -3700,6 +3700,96 @@ describe("flatpickr", () => {
       expect(fp.input.value).toEqual("2016-01-13 to 2016-01-17");
     });
 
+    describe("a day past a disabled one, picked without a hover (flatpickr#2974)", () => {
+      const dayElem = (date: string) =>
+        Array.from(
+          fp.daysContainer!.querySelectorAll<DayElement>(".flatpickr-day")
+        ).find(
+          (day) =>
+            !day.classList.contains("hidden") &&
+            fp.formatDate(day.dateObj, "Y-m-d") === date
+        )!;
+
+      const pick = (date: string) => clickOn(dayElem(date));
+      const hover = (date: string) => simulate("mouseover", dayElem(date));
+      const enter = (date: string) =>
+        simulate("keydown", dayElem(date), { keyCode: 13 }); // "Enter"
+
+      const selected = () =>
+        fp.selectedDates.map((date) => fp.formatDate(date, "Y-m-d"));
+
+      function open(config: Options) {
+        createInstance({ disable: ["2025-07-15"], ...config });
+        fp.jumpToDate("2025-07-01");
+        fp.open();
+      }
+
+      it("doesn't end a range across it", () => {
+        const onChange = jest.fn();
+        open({ mode: "range", onChange });
+
+        pick("2025-07-10");
+        onChange.mockClear();
+        pick("2025-07-20");
+
+        expect(selected()).toEqual(["2025-07-10"]);
+        expect(onChange).not.toHaveBeenCalled();
+        expect(dayElem("2025-07-20").classList.contains("notAllowed")).toBe(
+          true
+        );
+      });
+
+      it.each([
+        [
+          "an end before the start, across it",
+          () => (pick("2025-07-20"), pick("2025-07-10")),
+          ["2025-07-20"],
+        ],
+        [
+          "an end before it",
+          () => (pick("2025-07-10"), pick("2025-07-14")),
+          ["2025-07-10", "2025-07-14"],
+        ],
+        [
+          "an end across it, hovered first",
+          () => (pick("2025-07-10"), hover("2025-07-20"), pick("2025-07-20")),
+          ["2025-07-10"],
+        ],
+      ])("keeps the outcome of %s", (_, act, expected) => {
+        open({ mode: "range" });
+        act();
+        expect(selected()).toEqual(expected);
+      });
+
+      it.each([
+        [
+          "a click in single mode",
+          { defaultDate: "2025-07-10" },
+          () => pick("2025-07-20"),
+          ["2025-07-20"],
+        ],
+        [
+          "Enter in single mode",
+          { defaultDate: "2025-07-10" },
+          () => enter("2025-07-20"),
+          ["2025-07-20"],
+        ],
+        [
+          "a click in multiple mode",
+          { mode: "multiple" },
+          () => (pick("2025-07-10"), pick("2025-07-20")),
+          ["2025-07-10", "2025-07-20"],
+        ],
+      ] as [string, Options, () => void, string[]][])(
+        "still picks it with %s",
+        (_, config, act, expected) => {
+          open(config);
+          act();
+          expect(selected()).toEqual(expected);
+        }
+      );
+    });
+
     it("adds disabled class to disabled prev/next month arrows", () => {
       const isArrowDisabled = (which: "prevMonthNav" | "nextMonthNav") =>
         fp[which].classList.contains("flatpickr-disabled");
