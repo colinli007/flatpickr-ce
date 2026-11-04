@@ -2205,6 +2205,77 @@ describe("flatpickr", () => {
       });
     });
 
+    describe("a year past what a Date can hold (flatpickr#2906)", () => {
+      const typeYear = (year: string) => {
+        for (let i = 1; i <= year.length; i++) {
+          fp.currentYearElement.value = year.slice(0, i);
+          const evt = new CustomEvent("keyup", { bubbles: true });
+          Object.assign(evt, { key: year[i - 1] });
+          fp.currentYearElement.dispatchEvent(evt);
+        }
+      };
+
+      // an Invalid Date month builds no day at all
+      const expectDays = () => expect(fp.days.childNodes).toHaveLength(42);
+
+      it("ignores a typed 7-digit year and keeps the calendar working", () => {
+        createInstance({ defaultDate: "2023-05-31" });
+        fp.open();
+
+        typeYear("1234567");
+
+        expect(fp.currentYear).toEqual(123456);
+        expect(fp.currentYearElement.value).toEqual("1234567");
+        expectDays();
+
+        clickOn(fp.nextMonthNav);
+
+        expect(fp.currentYear).toEqual(123456);
+        expect(fp.currentMonth).toEqual(5);
+        expect(fp.currentYearElement.value).toEqual("123456");
+        expectDays();
+      });
+
+      it("ignores a 7-digit year entered with Enter", () => {
+        createInstance({ defaultDate: "2023-05-31" });
+        fp.open();
+
+        fp.currentYearElement.value = "20232020";
+        const evt = new CustomEvent("keyup", { bubbles: true });
+        Object.assign(evt, { key: "Enter" });
+        fp.currentYearElement.dispatchEvent(evt);
+
+        expect(fp.currentYear).toEqual(2023);
+        expectDays();
+      });
+
+      it("ignores changeYear() to such a year, either way", () => {
+        createInstance({ defaultDate: "2023-05-31" });
+        const onYearChange = jest.fn();
+        fp.set("onYearChange", onYearChange);
+
+        fp.changeYear(1234567);
+        fp.changeYear(-1234567);
+
+        expect(fp.currentYear).toEqual(2023);
+        expect(fp.currentYearElement.value).toEqual("2023");
+        expect(onYearChange).not.toHaveBeenCalled();
+      });
+
+      it("goes by the month shown in the last year a Date reaches", () => {
+        createInstance({ defaultDate: "2023-01-15" });
+
+        fp.changeYear(275760);
+        expect(fp.currentYear).toEqual(275760);
+        expectDays();
+
+        fp.changeYear(2023);
+        fp.changeMonth(9, false);
+        fp.changeYear(275760);
+        expect(fp.currentYear).toEqual(2023);
+      });
+    });
+
     it("onKeyDown closes flatpickr on Enter when allowInput set to true", () => {
       createInstance({
         enableTime: true,

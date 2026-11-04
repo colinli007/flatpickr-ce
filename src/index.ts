@@ -1661,6 +1661,8 @@ function FlatpickrInstance(
   function changeYear(newYear: number) {
     if (
       !newYear ||
+      // a Date can't hold the month shown, past 275760 or before -271821
+      isNaN(new Date(newYear, self.currentMonth, 1).getTime()) ||
       (self.config.minDate && newYear < self.config.minDate.getFullYear()) ||
       (self.config.maxDate && newYear > self.config.maxDate.getFullYear())
     )
