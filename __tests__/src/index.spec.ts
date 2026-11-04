@@ -3133,6 +3133,83 @@ describe("flatpickr", () => {
           expect(fp.mobileInput).toBeUndefined();
         });
       });
+
+      describe("min and max #2860", () => {
+        it("follow set()", () => {
+          mockAgent = "Android";
+          createInstance({ minDate: "2016-10-10" });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+          expect(mobileInput.min).toBe("2016-10-10");
+
+          fp.set("minDate", "2016-10-12");
+          fp.set("maxDate", "2016-10-20");
+          expect(mobileInput.min).toBe("2016-10-12");
+          expect(mobileInput.max).toBe("2016-10-20");
+
+          fp.set({ minDate: "2016-10-01", maxDate: "2016-10-31" });
+          expect(mobileInput.min).toBe("2016-10-01");
+          expect(mobileInput.max).toBe("2016-10-31");
+
+          fp.set("minDate", null);
+          expect(mobileInput.hasAttribute("min")).toBe(false);
+          expect(mobileInput.max).toBe("2016-10-31");
+        });
+
+        it("follow a direct config assignment", () => {
+          mockAgent = "Android";
+          createInstance({ minDate: "2016-10-10", maxDate: "2016-10-20" });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+
+          fp.config.minDate = new Date(2016, 9, 12);
+          expect(mobileInput.min).toBe("2016-10-12");
+
+          fp.config.maxDate = undefined;
+          expect(mobileInput.hasAttribute("max")).toBe(false);
+        });
+
+        it("are written as a date and time with enableTime", () => {
+          mockAgent = "Android";
+          createInstance({ enableTime: true, minDate: "2016-10-10 09:30" });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+          expect(mobileInput.min).toBe("2016-10-10T09:30:00");
+
+          // seconds in min would move the step's grid off whole minutes
+          fp.set("minDate", new Date(2016, 9, 10, 14, 23, 47));
+          fp.set("maxDate", new Date(2016, 9, 20, 18, 45, 30));
+          expect(mobileInput.min).toBe("2016-10-10T14:23:00");
+          expect(mobileInput.max).toBe("2016-10-20T18:45:00");
+        });
+
+        it("are written as a time with noCalendar", () => {
+          mockAgent = "Android";
+          createInstance({
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            minDate: "02:30",
+          });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+          expect(mobileInput.type).toBe("time");
+          expect(mobileInput.min).toBe("02:30:00");
+
+          fp.set("maxDate", "18:00");
+          expect(mobileInput.max).toBe("18:00:00");
+        });
+
+        it("follow the input type set() switches to", () => {
+          mockAgent = "Android";
+          createInstance({ minDate: "2016-10-10", maxDate: "2016-10-20" });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+
+          fp.set("enableTime", true);
+          expect(mobileInput.min).toBe("2016-10-10T00:00:00");
+          expect(mobileInput.max).toBe("2016-10-20T00:00:00");
+
+          fp.set("enableTime", false);
+          expect(mobileInput.min).toBe("2016-10-10");
+          expect(mobileInput.max).toBe("2016-10-20");
+        });
+      });
     });
 
     it("selectDate() + onChange() through GUI", () => {

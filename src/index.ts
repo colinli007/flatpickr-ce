@@ -2184,6 +2184,8 @@ function FlatpickrInstance(
           dateObj !== undefined &&
           inverseDateObj.getFullYear() === dateObj.getFullYear();
       }
+
+      if (self.mobileInput !== undefined) setMobileLimit(type);
     };
   }
 
@@ -2940,6 +2942,23 @@ function FlatpickrInstance(
         : inputType === "date"
         ? "Y-m-d"
         : "H:i:S";
+
+    setMobileLimit("min");
+    setMobileLimit("max");
+  }
+
+  // minDate or maxDate as the native input's min or max, in the input's format
+  // (#2860). Cut to the minute: min is where the input's step, 60 s by
+  // default, counts from, and seconds in it would leave every whole minute a
+  // step mismatch
+  function setMobileLimit(type: "min" | "max") {
+    const mobileInput = self.mobileInput as HTMLInputElement;
+    const limit = self.config[`${type}Date` as "minDate" | "maxDate"];
+    if (limit === undefined) return mobileInput.removeAttribute(type);
+
+    const minute = new Date(limit.getTime());
+    minute.setSeconds(0, 0);
+    mobileInput[type] = self.formatDate(minute, self.mobileFormatStr as string);
   }
 
   function setupMobile() {
@@ -2959,12 +2978,6 @@ function FlatpickrInstance(
         self.mobileFormatStr as string
       );
     }
-
-    if (self.config.minDate)
-      self.mobileInput.min = self.formatDate(self.config.minDate, "Y-m-d");
-
-    if (self.config.maxDate)
-      self.mobileInput.max = self.formatDate(self.config.maxDate, "Y-m-d");
 
     if (self.input.getAttribute("step"))
       self.mobileInput.step = String(self.input.getAttribute("step"));
