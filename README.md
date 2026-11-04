@@ -42,6 +42,37 @@ npm install flatpickr@npm:flatpickr-ce
 
 ## What's changed since flatpickr 4.6.13
 
+### 4.10.0
+
+- The native mobile input follows `set("minDate")` and `set("maxDate")`, and its `min` and `max` are a date and time with `enableTime` and a time with `noCalendar`, on a time its picker can offer ([#2860](https://github.com/flatpickr/flatpickr/issues/2860))
+- With `enableSeconds`, the native mobile input shows and picks seconds ([#2908](https://github.com/flatpickr/flatpickr/issues/2908))
+- New `secondIncrement` option for the seconds input; without it the seconds step by `minuteIncrement` as before ([#2912](https://github.com/flatpickr/flatpickr/pull/2912))
+- A time off its increment, as `minDate` can give, no longer keeps a form with the calendar inside it from submitting, and `set("hourIncrement")` and `set("minuteIncrement")` apply at once ([#2923](https://github.com/flatpickr/flatpickr/issues/2923))
+- `enable` and `disable` are checked by day for a value with a time, as for a click ([#2855](https://github.com/flatpickr/flatpickr/issues/2855))
+- The default time is held to `minDate` and `maxDate` only on their own day, so a date-only `maxDate` no longer turns it into 00:00 ([#2894](https://github.com/flatpickr/flatpickr/issues/2894))
+- In multiple mode, dates typed without the space after the conjunction, such as `01/08/2023,02/08/2023`, are read as separate dates ([#2922](https://github.com/flatpickr/flatpickr/issues/2922))
+- monthSelect's multiple mode adds and removes months on click ([#2849](https://github.com/flatpickr/flatpickr/issues/2849), [#2858](https://github.com/flatpickr/flatpickr/issues/2858))
+- In range mode, a tapped end can no longer cross a disabled day ([#2974](https://github.com/flatpickr/flatpickr/pull/2974))
+- With `allowInput`, Escape in the input closes the calendar ([#2915](https://github.com/flatpickr/flatpickr/pull/2915))
+- `set("locale")` switches the time inputs to the locale's 12- or 24-hour form and AM/PM ([#2954](https://github.com/flatpickr/flatpickr/issues/2954))
+- A year past what a Date can hold leaves the calendar as it was instead of breaking it ([#2906](https://github.com/flatpickr/flatpickr/issues/2906))
+- `element._flatpickr` is the instance in the hooks `init` fires and in plugins ([#2977](https://github.com/flatpickr/flatpickr/issues/2977))
+- The airbnb theme's IE rule is a media query that CSS parsers such as lightningcss accept ([#2976](https://github.com/flatpickr/flatpickr/issues/2976))
+- The main entry is typed as `export =`, so the default import works under `moduleResolution` `node16` and `nodenext` ([#2857](https://github.com/flatpickr/flatpickr/pull/2857))
+- Locales: Finnish ranges are separated with an en dash and Indonesian ones with "sampai"; Irish is registered as `ga`, Vietnamese also as `vi` and Norwegian also as `nb`; the Kurdish (Sorani) weekday shorthand is abbreviated ([#2842](https://github.com/flatpickr/flatpickr/pull/2842), [#2966](https://github.com/flatpickr/flatpickr/pull/2966), [#2848](https://github.com/flatpickr/flatpickr/pull/2848), [#2867](https://github.com/flatpickr/flatpickr/pull/2867), [#2904](https://github.com/flatpickr/flatpickr/pull/2904), [#2895](https://github.com/flatpickr/flatpickr/pull/2895))
+
+Behavior changes to check when upgrading:
+
+- Finnish ranges saved with " to " and Indonesian ones saved with " - " read as a same-day range of their first date. Replace the separator in stored values, or keep it with `locale: { ...Finnish, rangeSeparator: " to " }`.
+- `locale: "hr"` no longer gives Irish; use `"ga"`.
+- TypeScript: under `moduleResolution` `node` with neither `esModuleInterop` nor `allowSyntheticDefaultImports`, the default import is an error (TS1259); turn on `allowSyntheticDefaultImports`. `import * as flatpickr` is typed as the function itself, so `flatpickr.default(...)` no longer compiles.
+- A value with a time (`defaultDate`, `setDate`, typed text) on a day `disable` lists is dropped, and one on a day `enable` lists is kept; an `enable` or `disable` function is called with midnight of its day, as for a click.
+- In multiple mode, a conjunction without leading whitespace whose trimmed part appears in `dateFormat`, such as the default ", " with `"j,M,Y"`, now splits a date apart. A custom `parseDate` gets each date with the whitespace around it trimmed.
+- With the native mobile input and `enableTime` or `noCalendar`, the native picker keeps to `minDate` and `maxDate`, which it ignored. A value kept outside them, as `allowInvalidPreload` keeps one, leaves the input invalid, so its form doesn't submit until it's changed.
+- The calendar's hour, minute and second inputs have no `step` attribute.
+- With `enableTime`, `set("locale")` rebuilds the time inputs, so listeners attached directly to them are lost, as on `set("time_24hr")`.
+- In monthSelect, the view stays on the year of the month picked.
+
 ### 4.9.0
 
 - New yearSelect plugin: a year-only picker modeled on monthSelect, for single, multiple and range mode ([#5](https://github.com/colinli007/flatpickr-ce/issues/5), [#6](https://github.com/colinli007/flatpickr-ce/pull/6))
