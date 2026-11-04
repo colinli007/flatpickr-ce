@@ -4773,6 +4773,75 @@ describe("flatpickr", () => {
       });
     });
 
+    describe("the instance on its element (flatpickr#2977)", () => {
+      it("is there in the hooks init fires", () => {
+        const el = document.createElement("input");
+        const seen: (Instance | undefined)[] = [];
+        const record = () => {
+          seen.push(el._flatpickr);
+        };
+        createInstance({ onDayCreate: record, onReady: record }, el);
+
+        expect(seen.length).toBeGreaterThan(1);
+        seen.forEach((instance) => expect(instance).toBe(fp));
+      });
+
+      it("is the new one when the element is set up again", () => {
+        const el = document.createElement("input");
+        const seen: (Instance | undefined)[] = [];
+        const record = () => {
+          seen.push(el._flatpickr);
+        };
+        const first = flatpickr(el, {
+          onReady: record,
+          onDestroy: record,
+        }) as Instance;
+        const second = flatpickr(el, { onReady: record }) as Instance;
+
+        expect(seen.length).toBe(3);
+        expect(seen[0]).toBe(first);
+        expect(seen[1]).toBe(first);
+        expect(seen[2]).toBe(second);
+        expect(el._flatpickr).toBe(second);
+        second.destroy();
+      });
+
+      it("is each element's own with several elements", () => {
+        const els = [
+          document.createElement("input"),
+          document.createElement("input"),
+        ];
+        const seen: boolean[] = [];
+        const instances = flatpickr(els, {
+          onReady: (_, __, instance) => {
+            seen.push(instance.element._flatpickr === instance);
+          },
+        });
+
+        expect(seen).toEqual([true, true]);
+        expect(els[0]._flatpickr).toBe(instances[0]);
+        expect(els[1]._flatpickr).toBe(instances[1]);
+        instances.forEach((instance) => instance.destroy());
+      });
+
+      it("isn't left there when init throws", () => {
+        const consoleError = jest.spyOn(console, "error").mockImplementation();
+        const el = document.createElement("input");
+        const instances = flatpickr(el, {
+          plugins: [
+            () => {
+              throw new Error("plugin");
+            },
+          ],
+        });
+
+        expect(instances).toEqual([]);
+        expect(el._flatpickr).toBeUndefined();
+        expect(consoleError).toHaveBeenCalledTimes(1);
+        consoleError.mockRestore();
+      });
+    });
+
     describe("onDaysBuilt", () => {
       it("fires after setDate moves to another year", () => {
         const years: number[] = [];

@@ -3239,7 +3239,15 @@ function FlatpickrInstance(
     }
   }
 
-  init();
+  // Hooks init fires, onReady among them, may look the instance up on its
+  // element. One whose init throws isn't handed out, so it doesn't stay there
+  element._flatpickr = self;
+  try {
+    init();
+  } catch (e) {
+    element._flatpickr = undefined;
+    throw e;
+  }
   return self;
 }
 
@@ -3265,8 +3273,7 @@ function _flatpickr(
         node._flatpickr = undefined;
       }
 
-      node._flatpickr = FlatpickrInstance(node, config || {});
-      instances.push(node._flatpickr);
+      instances.push(FlatpickrInstance(node, config || {}));
     } catch (e) {
       console.error(e);
     }
