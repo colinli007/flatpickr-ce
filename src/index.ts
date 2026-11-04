@@ -200,19 +200,23 @@ function FlatpickrInstance(
   }
 
   /**
+   * The day the time inputs' time goes on while no date is selected: today,
+   * or the minDate or maxDate it falls outside of, as the calendar opens on.
+   * A copy, as its time gets set
+   */
+  function defaultTimeDate() {
+    return new Date(withinLimits(new Date()).getTime());
+  }
+
+  /**
    * The handler for all events targeting the time inputs
    */
   function updateTime(
     e?: MouseEvent | IncrementEvent | KeyboardEvent | FocusEvent
   ) {
     if (self.selectedDates.length === 0) {
-      const defaultDate =
-        self.config.minDate === undefined ||
-        compareDates(new Date(), self.config.minDate) >= 0
-          ? new Date()
-          : new Date(self.config.minDate.getTime());
-
-      const defaults = getDefaultHours(self.config);
+      const defaultDate = defaultTimeDate();
+      const defaults = getDefaultHours(self.config, defaultDate);
       defaultDate.setHours(
         defaults.hours,
         defaults.minutes,
@@ -1255,7 +1259,7 @@ function FlatpickrInstance(
     if (self.config.noCalendar)
       self.calendarContainer.classList.add("noCalendar");
 
-    const defaults = getDefaultHours(self.config);
+    const defaults = getDefaultHours(self.config, defaultTimeDate());
 
     self.timeContainer = createElement<HTMLDivElement>("div", "flatpickr-time");
     self.timeContainer.tabIndex = -1;
@@ -1496,7 +1500,10 @@ function FlatpickrInstance(
     }
 
     if (self.config.enableTime === true) {
-      const { hours, minutes, seconds } = getDefaultHours(self.config);
+      const { hours, minutes, seconds } = getDefaultHours(
+        self.config,
+        defaultTimeDate()
+      );
       setHours(hours, minutes, seconds);
     }
 

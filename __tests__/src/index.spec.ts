@@ -3433,7 +3433,7 @@ describe("flatpickr", () => {
         defaultHour: 2,
         defaultMinute: 45,
       });
-      const values = getDefaultHours(fp.config);
+      const values = getDefaultHours(fp.config, new Date());
       expect(values.hours).toEqual(2);
       expect(values.minutes).toEqual(45);
       expect(fp.hourElement!.value).toEqual("02");
@@ -3449,10 +3449,94 @@ describe("flatpickr", () => {
         defaultMinute: 0,
         defaultSeconds: 10,
       });
-      expect(getDefaultHours(fp.config).seconds).toEqual(10);
+      const maxDay = new Date(2024, 5, 21);
+      expect(getDefaultHours(fp.config, maxDay).seconds).toEqual(10);
 
       fp.set("defaultSeconds", 30);
-      expect(getDefaultHours(fp.config).seconds).toEqual(24);
+      expect(getDefaultHours(fp.config, maxDay).seconds).toEqual(24);
+    });
+
+    describe("default time within minDate and maxDate", () => {
+      beforeEach(() => {
+        jest.setSystemTime(new Date(2023, 5, 1, 9));
+      });
+
+      afterEach(() => {
+        jest.setSystemTime(jest.getRealSystemTime());
+      });
+
+      const expectTime = (hours: string, minutes: string) => {
+        expect(fp.hourElement!.value).toEqual(hours);
+        expect(fp.minuteElement!.value).toEqual(minutes);
+      };
+
+      it("keeps defaultHour and defaultMinute with a date-only maxDate #2894", () => {
+        createInstance({
+          dateFormat: "Y-m-d H:i",
+          enableTime: true,
+          defaultHour: 12,
+          defaultMinute: 30,
+          minDate: "2023-04-21",
+          maxDate: "2024-04-21",
+          time_24hr: true,
+          minuteIncrement: 15,
+          inline: true,
+        });
+        expectTime("12", "30");
+      });
+
+      it("keeps the default time on the day of a date-only maxDate", () => {
+        createInstance({
+          enableTime: true,
+          defaultMinute: 30,
+          maxDate: "2023-06-01",
+        });
+        expectTime("12", "30");
+
+        clickOn(
+          Array.from(
+            fp.days.querySelectorAll<DayElement>(".flatpickr-day")
+          ).find((day) => fp.formatDate(day.dateObj, "Y-m-d") === "2023-06-01")!
+        );
+        expect(fp.selectedDates[0]).toEqual(new Date(2023, 5, 1, 12, 30));
+
+        fp.clear();
+        expectTime("12", "30");
+
+        incrementTime("minuteElement", 1);
+        expect(fp.selectedDates[0]).toEqual(new Date(2023, 5, 1, 12, 35));
+      });
+
+      it("holds the default time within maxDate's time on its own day only", () => {
+        createInstance({ enableTime: true, maxDate: "2023-06-01 10:00" });
+        expectTime("10", "00");
+
+        createInstance({ enableTime: true, maxDate: "2023-06-02 10:00" });
+        expectTime("12", "00");
+      });
+
+      it("holds the default time within minDate's time on its own day only", () => {
+        createInstance({ enableTime: true, minDate: "2023-06-01 14:00" });
+        expectTime("02", "00");
+
+        createInstance({ enableTime: true, minDate: "2023-05-31 14:00" });
+        expectTime("12", "00");
+
+        // a later minDate is the day a time picked first goes on
+        createInstance({ enableTime: true, minDate: "2023-06-05 14:00" });
+        expectTime("02", "00");
+
+        incrementTime("minuteElement", 1);
+        expect(fp.selectedDates[0]).toEqual(new Date(2023, 5, 5, 14, 5));
+      });
+
+      it("puts a time picked first on an earlier maxDate's day", () => {
+        createInstance({ enableTime: true, maxDate: "2023-05-30" });
+        expectTime("12", "00");
+
+        incrementTime("minuteElement", 1);
+        expect(fp.selectedDates[0]).toEqual(new Date(2023, 4, 30, 12, 5));
+      });
     });
 
     it("time picker: default hours/mins", () => {

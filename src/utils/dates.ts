@@ -186,12 +186,22 @@ export const duration = {
   DAY: 86400000,
 };
 
-export function getDefaultHours(config: ParsedOptions) {
+/**
+ * The default time for a date on the given day. minDate and maxDate hold it
+ * only on their own day, and only when set with a time: a date-only limit
+ * leaves its whole day open, as for the time inputs (setHoursFromInputs)
+ */
+export function getDefaultHours(config: ParsedOptions, date: Date) {
   let hours = config.defaultHour;
   let minutes = config.defaultMinute;
   let seconds = config.defaultSeconds;
 
-  if (config.minDate !== undefined) {
+  const holdsTime = (limit: Date | undefined): limit is Date =>
+    limit !== undefined &&
+    compareDates(date, limit) === 0 &&
+    (limit.getHours() > 0 || limit.getMinutes() > 0 || limit.getSeconds() > 0);
+
+  if (holdsTime(config.minDate)) {
     const minHour = config.minDate.getHours();
     const minMinutes = config.minDate.getMinutes();
     const minSeconds = config.minDate.getSeconds();
@@ -208,7 +218,7 @@ export function getDefaultHours(config: ParsedOptions) {
       seconds = config.minDate.getSeconds();
   }
 
-  if (config.maxDate !== undefined) {
+  if (holdsTime(config.maxDate)) {
     const maxHr = config.maxDate.getHours();
     const maxMinutes = config.maxDate.getMinutes();
     hours = Math.min(hours, maxHr);
