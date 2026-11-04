@@ -2672,7 +2672,7 @@ function FlatpickrInstance(
   }
 
   const CALLBACKS: { [k in keyof Options]: Function[] } = {
-    locale: [setupLocale, updateWeekdays],
+    locale: [setupLocale, updateWeekdays, rebuildTime],
     showMonths: [buildMonths, setCalendarWidth, buildWeekdays],
     minDate: [jumpToDate],
     maxDate: [jumpToDate],

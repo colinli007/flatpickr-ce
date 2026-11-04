@@ -1272,6 +1272,42 @@ describe("flatpickr", () => {
         expect(fp.amPM).toBeUndefined();
       });
 
+      it("locale rebuilds the time picker in its time_24hr (flatpickr#2954)", () => {
+        createInstance({
+          enableTime: true,
+          noCalendar: true,
+          defaultDate: "15:30",
+        });
+        fp.set("locale", French);
+
+        expect(fp.config.time_24hr).toBe(true);
+        expect(fp.amPM).toBeUndefined();
+        expect(fp.hourElement!.value).toEqual("15");
+        expect(fp.hourElement!.getAttribute("max")).toEqual("23");
+        expect(fp.hourElement!.getAttribute("aria-label")).toEqual("heure");
+        expect(fp.timeContainer!.classList).toContain("time24hr");
+        expect(fp.calendarContainer.firstChild).toBe(fp.timeContainer);
+        expect(
+          fp.calendarContainer.querySelectorAll(".flatpickr-time").length
+        ).toEqual(1);
+
+        fp.set("locale", "default");
+        expect(fp.config.time_24hr).toBe(false);
+        expect(fp.hourElement!.value).toEqual("03");
+        expect(fp.amPM!.textContent).toEqual("PM");
+
+        incrementTime("hourElement", 1);
+        expect(fp.selectedDates[0].getHours()).toEqual(16);
+      });
+
+      it("locale leaves a picker without enableTime without a time picker", () => {
+        createInstance();
+        fp.set("locale", French);
+
+        expect(fp.timeContainer).toBeUndefined();
+        expect(fp.calendarContainer.classList).not.toContain("hasTime");
+      });
+
       it("keeps plugin elements after the time picker", () => {
         createInstance({
           plugins: [confirmDatePlugin({ showAlways: true })],
@@ -1300,6 +1336,26 @@ describe("flatpickr", () => {
         expect(fp.mobileInput!.type).toEqual("datetime-local");
         expect(fp.mobileFormatStr).toEqual("Y-m-d\\TH:i:S");
         expect(fp.mobileInput!.value).toMatch(/^2024-01-01T00:00/);
+      });
+
+      it("locale leaves the native mobile input as it was", () => {
+        mockAgent = "Android";
+        createInstance({
+          enableTime: true,
+          noCalendar: true,
+          enableSeconds: true,
+          minDate: "02:30",
+          defaultDate: "15:30:20",
+        });
+        const mobileInput = fp.mobileInput!;
+        fp.set("locale", French);
+
+        expect(fp.mobileInput).toBe(mobileInput);
+        expect(mobileInput.type).toEqual("time");
+        expect(mobileInput.step).toEqual("1");
+        expect(mobileInput.min).toEqual("02:30:00");
+        expect(mobileInput.value).toEqual("15:30:20");
+        expect(fp.mobileFormatStr).toEqual("H:i:S");
       });
     });
 
