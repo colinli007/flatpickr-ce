@@ -3281,6 +3281,93 @@ describe("flatpickr", () => {
           expect(mobileInput.max).toBe("2016-10-20");
         });
       });
+
+      describe("seconds #2908", () => {
+        it("get a step of 1 s with enableSeconds", () => {
+          mockAgent = "Android";
+          createInstance({
+            enableTime: true,
+            noCalendar: true,
+            enableSeconds: true,
+            defaultDate: "00:00:00",
+          });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+          // with a step of whole minutes, "00:00:00" shows as "00:00"
+          expect(mobileInput.type).toBe("time");
+          expect(mobileInput.step).toBe("1");
+          expect(mobileInput.value).toBe("00:00:00");
+        });
+
+        it("leave a value with seconds valid with enableSeconds", () => {
+          mockAgent = "Android";
+          createInstance({ enableTime: true, enableSeconds: true });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+
+          fp.setDate("2016-10-10 14:23:47");
+          expect(mobileInput.validity.stepMismatch).toBe(false);
+        });
+
+        it("follow set()", () => {
+          mockAgent = "Android";
+          createInstance({ enableTime: true });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+          expect(mobileInput.hasAttribute("step")).toBe(false);
+
+          fp.set("enableSeconds", true);
+          expect(mobileInput.step).toBe("1");
+
+          fp.set("enableSeconds", false);
+          expect(mobileInput.hasAttribute("step")).toBe(false);
+        });
+
+        it("keep the input's own step", () => {
+          const el = document.createElement("input");
+          el.setAttribute("step", "60");
+
+          mockAgent = "Android";
+          createInstance({ enableTime: true, enableSeconds: true }, el);
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+          expect(mobileInput.step).toBe("60");
+
+          fp.set("enableSeconds", false);
+          expect(mobileInput.step).toBe("60");
+        });
+
+        it("keep the seconds of min and max with a step of seconds", () => {
+          mockAgent = "Android";
+          createInstance({
+            enableTime: true,
+            enableSeconds: true,
+            minDate: new Date(2016, 9, 10, 14, 23, 47),
+          });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+          expect(mobileInput.min).toBe("2016-10-10T14:23:47");
+
+          fp.set("maxDate", new Date(2016, 9, 20, 18, 45, 30));
+          expect(mobileInput.max).toBe("2016-10-20T18:45:30");
+
+          fp.set("enableSeconds", false);
+          expect(mobileInput.min).toBe("2016-10-10T14:23:00");
+          expect(mobileInput.max).toBe("2016-10-20T18:45:00");
+        });
+
+        it("cut min and max to the minute by the input's own step", () => {
+          const minDate = new Date(2016, 9, 10, 14, 23, 47);
+          const el = document.createElement("input");
+
+          el.setAttribute("step", "60");
+          mockAgent = "Android";
+          createInstance(
+            { enableTime: true, enableSeconds: true, minDate },
+            el
+          );
+          expect(fp.mobileInput!.min).toBe("2016-10-10T14:23:00");
+
+          el.setAttribute("step", "1");
+          createInstance({ enableTime: true, minDate }, el);
+          expect(fp.mobileInput!.min).toBe("2016-10-10T14:23:47");
+        });
+      });
     });
 
     it("selectDate() + onChange() through GUI", () => {

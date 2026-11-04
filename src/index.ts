@@ -2937,13 +2937,14 @@ function FlatpickrInstance(
   }
 
   function setMobileInputType() {
+    const mobileInput = self.mobileInput as HTMLInputElement;
     const inputType = self.config.enableTime
       ? self.config.noCalendar
         ? "time"
         : "datetime-local"
       : "date";
 
-    (self.mobileInput as HTMLInputElement).type = inputType;
+    mobileInput.type = inputType;
 
     self.mobileFormatStr =
       inputType === "datetime-local"
@@ -2952,22 +2953,30 @@ function FlatpickrInstance(
         ? "Y-m-d"
         : "H:i:S";
 
+    // With a step of whole minutes, 60 s by default, a time input shows the
+    // seconds only when the value has some: "00:00:00" shows as "00:00"
+    // (#2908). The input's own step comes first
+    const step =
+      self.input.getAttribute("step") || (self.config.enableSeconds ? "1" : "");
+    if (step) mobileInput.step = step;
+    else mobileInput.removeAttribute("step");
+
     setMobileLimit("min");
     setMobileLimit("max");
   }
 
   // minDate or maxDate as the native input's min or max, in the input's format
-  // (#2860). Cut to the minute: min is where the input's step, 60 s by
-  // default, counts from, and seconds in it would leave every whole minute a
-  // step mismatch
+  // (#2860). min is where the input's step counts from: with a step of whole
+  // minutes, 60 s by default, seconds in it would leave every whole minute a
+  // step mismatch, so they're cut; a step of seconds keeps them (#2908)
   function setMobileLimit(type: "min" | "max") {
     const mobileInput = self.mobileInput as HTMLInputElement;
     const limit = self.config[`${type}Date` as "minDate" | "maxDate"];
     if (limit === undefined) return mobileInput.removeAttribute(type);
 
-    const minute = new Date(limit.getTime());
-    minute.setSeconds(0, 0);
-    mobileInput[type] = self.formatDate(minute, self.mobileFormatStr as string);
+    const date = new Date(limit.getTime());
+    if (Number(mobileInput.step || 60) % 60 === 0) date.setSeconds(0, 0);
+    mobileInput[type] = self.formatDate(date, self.mobileFormatStr as string);
   }
 
   function setupMobile() {
@@ -2987,9 +2996,6 @@ function FlatpickrInstance(
         self.mobileFormatStr as string
       );
     }
-
-    if (self.input.getAttribute("step"))
-      self.mobileInput.step = String(self.input.getAttribute("step"));
 
     self.input.type = "hidden";
     if (self.altInput !== undefined) self.altInput.type = "hidden";
