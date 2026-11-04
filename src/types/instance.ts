@@ -150,6 +150,8 @@ export type Instance = Elements &
     _showValue: () => void;
     /** The text allowInput commits, typed since _showValue, if any */
     _typedValue: () => string | undefined;
+    /** How far a time input steps: hourIncrement, or minuteIncrement */
+    _getIncrement: (input: HTMLInputElement) => number;
 
     utils: {
       getDaysInMonth: (month?: number, year?: number) => number;

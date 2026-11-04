@@ -86,6 +86,7 @@ function FlatpickrInstance(
   self._positionCalendar = positionCalendar;
   self._showValue = showValue;
   self._typedValue = typedValue;
+  self._getIncrement = getIncrement;
 
   self.changeMonth = changeMonth;
   self.changeYear = changeYear;
@@ -640,6 +641,19 @@ function FlatpickrInstance(
     const event = createEvent("increment") as IncrementEvent;
     event.delta = delta;
     input && input.dispatchEvent(event);
+  }
+
+  // How far the arrows, the arrow keys and scrollPlugin step a time input; the
+  // seconds go with the minutes. Read from config rather than kept in a step
+  // attribute, which the browser checks as a constraint: a time off the step,
+  // as minDate can give, would keep the form the calendar is in from
+  // submitting (#2923). A data attribute gives it as a string
+  function getIncrement(input: HTMLInputElement) {
+    return Number(
+      input === self.hourElement
+        ? self.config.hourIncrement
+        : self.config.minuteIncrement
+    );
   }
 
   function build() {
@@ -1298,12 +1312,6 @@ function FlatpickrInstance(
         : defaults.minutes
     );
 
-    self.hourElement.setAttribute("step", self.config.hourIncrement.toString());
-    self.minuteElement.setAttribute(
-      "step",
-      self.config.minuteIncrement.toString()
-    );
-
     self.hourElement.setAttribute("min", self.config.time_24hr ? "0" : "1");
     self.hourElement.setAttribute("max", self.config.time_24hr ? "23" : "12");
     self.hourElement.setAttribute("maxlength", "2");
@@ -1334,10 +1342,6 @@ function FlatpickrInstance(
           : defaults.seconds
       );
 
-      self.secondElement.setAttribute(
-        "step",
-        self.minuteElement.getAttribute("step") as string
-      );
       self.secondElement.setAttribute("min", "0");
       self.secondElement.setAttribute("max", "59");
       self.secondElement.setAttribute("maxlength", "2");
@@ -3197,7 +3201,7 @@ function FlatpickrInstance(
 
     const min = parseFloat(input.getAttribute("min") as string),
       max = parseFloat(input.getAttribute("max") as string),
-      step = parseFloat(input.getAttribute("step") as string),
+      step = getIncrement(input),
       curValue = parseInt(input.value, 10),
       delta =
         (e as IncrementEvent).delta ||

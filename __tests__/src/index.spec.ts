@@ -3111,6 +3111,100 @@ describe("flatpickr", () => {
       });
     });
 
+    describe("time inputs off their increments in a form (flatpickr#2923)", () => {
+      let form: HTMLFormElement;
+      let input: HTMLInputElement;
+
+      beforeEach(() => {
+        form = document.createElement("form");
+        input = document.createElement("input");
+        form.appendChild(input);
+        document.body.appendChild(form);
+      });
+
+      afterEach(() => {
+        fp.destroy();
+        form.remove();
+      });
+
+      const createInForm = (config: Options) => {
+        createInstance({ enableTime: true, ...config }, input);
+        expect(form.contains(fp.calendarContainer)).toBe(true);
+      };
+
+      const placements: [string, () => Options][] = [
+        ["static", () => ({ static: true })],
+        ["inline", () => ({ inline: true })],
+        ["appendTo", () => ({ appendTo: form })],
+      ];
+
+      for (const [name, placement] of placements) {
+        it(`leaves the form valid with a minute held to minDate (${name})`, () => {
+          createInForm({
+            ...placement(),
+            // the default time is held to 14:07, off the default increment of 5
+            minDate: "2099-06-05 14:07",
+          });
+
+          expect(fp.minuteElement!.value).toEqual("07");
+          expect(form.checkValidity()).toBe(true);
+        });
+      }
+
+      it("leaves the form valid with an hour and seconds off their increments", () => {
+        createInForm({
+          inline: true,
+          enableSeconds: true,
+          time_24hr: true,
+          hourIncrement: 2,
+          defaultDate: "2099-06-05 13:07:37",
+        });
+
+        expect(form.checkValidity()).toBe(true);
+      });
+
+      it("steps by hourIncrement and minuteIncrement, the seconds with the minutes", () => {
+        createInForm({
+          inline: true,
+          enableSeconds: true,
+          time_24hr: true,
+          hourIncrement: 2,
+          minuteIncrement: 10,
+          defaultDate: "2099-06-05 13:07:37",
+        });
+
+        incrementTime("hourElement", 1);
+        incrementTime("minuteElement", 1);
+        incrementTime("secondElement", -1);
+        expect(fp.input.value).toEqual("2099-06-05 15:17:27");
+
+        simulate("keydown", fp.minuteElement!, { keyCode: 38, which: 38 });
+        expect(fp.input.value).toEqual("2099-06-05 15:27:27");
+      });
+
+      it("steps by increments given through set()", () => {
+        createInForm({ inline: true, defaultDate: "2099-06-05 13:07" });
+        fp.set({ hourIncrement: 3, minuteIncrement: 15 });
+
+        incrementTime("hourElement", 1);
+        incrementTime("minuteElement", 1);
+        expect(fp.input.value).toEqual("2099-06-05 16:22");
+      });
+
+      it("steps by an hourIncrement given as a data attribute", () => {
+        const input = document.createElement("input");
+        input.setAttribute("data-hour-increment", "1");
+        createInstance(
+          { enableTime: true, defaultDate: "2099-06-05 11:00" },
+          input
+        );
+
+        incrementTime("hourElement", 1);
+        expect(fp.amPM!.textContent).toEqual("PM");
+        expect(fp.selectedDates[0]).toEqual(new Date(2099, 5, 5, 12, 0));
+      });
+    });
+
     describe("mobile calendar", () => {
       describe(".isMobile", () => {
         it("returns true", () => {

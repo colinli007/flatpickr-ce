@@ -19,7 +19,7 @@ function momentPlugin(config: Config): Plugin {
       const unit = Array.from(input.classList)
         .filter((name) => name.startsWith("flatpickr-"))
         .map((name) => name.substring(10))[0];
-      const step = parseFloat(input.getAttribute("step") as string);
+      const step = fp._getIncrement(input);
 
       date.add(step * event.delta, unit);
       fp.setDate(date.toDate());
