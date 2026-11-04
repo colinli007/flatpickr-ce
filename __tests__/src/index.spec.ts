@@ -3476,7 +3476,7 @@ describe("flatpickr", () => {
           // seconds in min would move the step's grid off whole minutes
           fp.set("minDate", new Date(2016, 9, 10, 14, 23, 47));
           fp.set("maxDate", new Date(2016, 9, 20, 18, 45, 30));
-          expect(mobileInput.min).toBe("2016-10-10T14:23:00");
+          expect(mobileInput.min).toBe("2016-10-10T14:24:00");
           expect(mobileInput.max).toBe("2016-10-20T18:45:00");
         });
 
@@ -3508,6 +3508,40 @@ describe("flatpickr", () => {
           fp.set("enableTime", false);
           expect(mobileInput.min).toBe("2016-10-10");
           expect(mobileInput.max).toBe("2016-10-20");
+        });
+
+        it("raise a min with seconds to a time flatpickr keeps", () => {
+          mockAgent = "Android";
+          createInstance({
+            enableTime: true,
+            minDate: new Date(2016, 9, 10, 14, 23, 47),
+          });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+          expect(mobileInput.min).toBe("2016-10-10T14:24:00");
+
+          // the earliest value the native picker offers is selected
+          mobileInput.value = mobileInput.min;
+          simulate("change", mobileInput);
+          expect(fp.selectedDates).toHaveLength(1);
+        });
+
+        it("raise a min with milliseconds with a step of seconds", () => {
+          mockAgent = "Android";
+          createInstance({
+            enableTime: true,
+            enableSeconds: true,
+            minDate: new Date(2016, 9, 10, 14, 23, 47, 500),
+            maxDate: new Date(2016, 9, 20, 18, 45, 30, 500),
+          });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+          expect(mobileInput.min).toBe("2016-10-10T14:23:48");
+          expect(mobileInput.max).toBe("2016-10-20T18:45:30");
+        });
+
+        it("keep min on its day with a date input", () => {
+          mockAgent = "Android";
+          createInstance({ minDate: new Date(2016, 9, 10, 23, 59, 30) });
+          expect(fp.mobileInput!.min).toBe("2016-10-10");
         });
       });
 
@@ -3576,7 +3610,7 @@ describe("flatpickr", () => {
           expect(mobileInput.max).toBe("2016-10-20T18:45:30");
 
           fp.set("enableSeconds", false);
-          expect(mobileInput.min).toBe("2016-10-10T14:23:00");
+          expect(mobileInput.min).toBe("2016-10-10T14:24:00");
           expect(mobileInput.max).toBe("2016-10-20T18:45:00");
         });
 
@@ -3590,7 +3624,7 @@ describe("flatpickr", () => {
             { enableTime: true, enableSeconds: true, minDate },
             el
           );
-          expect(fp.mobileInput!.min).toBe("2016-10-10T14:23:00");
+          expect(fp.mobileInput!.min).toBe("2016-10-10T14:24:00");
 
           el.setAttribute("step", "1");
           createInstance({ enableTime: true, minDate }, el);

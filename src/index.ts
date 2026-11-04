@@ -2975,16 +2975,23 @@ function FlatpickrInstance(
   }
 
   // minDate or maxDate as the native input's min or max, in the input's format
-  // (#2860). min is where the input's step counts from: with a step of whole
-  // minutes, 60 s by default, seconds in it would leave every whole minute a
-  // step mismatch, so they're cut; a step of seconds keeps them (#2908)
+  // (#2860). min is where the input's step counts from, so it's put on a whole
+  // minute with a step of whole minutes, 60 s by default, and on a whole second
+  // with a step of seconds (#2908). The native picker offers only those: min
+  // is raised to the next one, as flatpickr drops a value before minDate, and
+  // max is cut to the one before. A date input holds no time, and raising min
+  // there could move it a day on
   function setMobileLimit(type: "min" | "max") {
     const mobileInput = self.mobileInput as HTMLInputElement;
     const limit = self.config[`${type}Date` as "minDate" | "maxDate"];
     if (limit === undefined) return mobileInput.removeAttribute(type);
 
     const date = new Date(limit.getTime());
-    if (Number(mobileInput.step || 60) % 60 === 0) date.setSeconds(0, 0);
+    const unit = Number(mobileInput.step || 60) % 60 === 0 ? 60 : 1;
+    const round =
+      type === "min" && mobileInput.type !== "date" ? Math.ceil : Math.floor;
+    const seconds = date.getSeconds() + date.getMilliseconds() / 1000;
+    date.setSeconds(round(seconds / unit) * unit, 0);
     mobileInput[type] = self.formatDate(date, self.mobileFormatStr as string);
   }
 
