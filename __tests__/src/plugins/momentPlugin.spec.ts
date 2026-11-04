@@ -37,4 +37,23 @@ describe("momentPlugin", () => {
 
     fp.destroy();
   });
+
+  it("adds secondIncrement to the seconds when it's given", () => {
+    const added: [number, string][] = [];
+    const fp = flatpickr(document.createElement("input"), {
+      enableTime: true,
+      enableSeconds: true,
+      secondIncrement: 15,
+      defaultDate: new Date(2099, 5, 5, 13, 7, 37),
+      plugins: [momentPlugin({ moment: fakeMoment(added) })],
+    }) as Instance;
+
+    (fp.secondElement!.parentNode!.querySelector(
+      ".arrowUp"
+    ) as HTMLElement).click();
+
+    expect(added).toEqual([[15, "second"]]);
+
+    fp.destroy();
+  });
 });

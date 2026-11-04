@@ -644,15 +644,18 @@ function FlatpickrInstance(
   }
 
   // How far the arrows, the arrow keys and scrollPlugin step a time input; the
-  // seconds go with the minutes. Read from config rather than kept in a step
-  // attribute, which the browser checks as a constraint: a time off the step,
-  // as minDate can give, would keep the form the calendar is in from
-  // submitting (#2923). A data attribute gives it as a string
+  // seconds go with the minutes unless secondIncrement is given (#2912). Read
+  // from config rather than kept in a step attribute, which the browser checks
+  // as a constraint: a time off the step, as minDate can give, would keep the
+  // form the calendar is in from submitting (#2923). A data attribute gives it
+  // as a string
   function getIncrement(input: HTMLInputElement) {
     return Number(
       input === self.hourElement
         ? self.config.hourIncrement
-        : self.config.minuteIncrement
+        : input === self.minuteElement
+        ? self.config.minuteIncrement
+        : self.config.secondIncrement ?? self.config.minuteIncrement
     );
   }
 

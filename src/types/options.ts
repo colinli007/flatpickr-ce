@@ -254,6 +254,10 @@ Use it along with "enableTime" to create a time picker. */
   /* HTML for the left arrow icon, used to switch months. */
   prevArrow: string;
 
+  /* Adjusts the step for the second input (incl. scrolling)
+  Defaults to minuteIncrement */
+  secondIncrement: number;
+
   /* Whether to display the current month name in shorthand mode, e.g. "Sep" instead "September" */
   shorthandCurrentMonth: boolean;
 
@@ -339,6 +343,7 @@ export interface ParsedOptions {
   position: BaseOptions["position"];
   positionElement?: HTMLElement;
   prevArrow: string;
+  secondIncrement?: number;
   shorthandCurrentMonth: boolean;
   showMonths: number;
   static: boolean;

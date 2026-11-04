@@ -150,7 +150,7 @@ export type Instance = Elements &
     _showValue: () => void;
     /** The text allowInput commits, typed since _showValue, if any */
     _typedValue: () => string | undefined;
-    /** How far a time input steps: hourIncrement, or minuteIncrement */
+    /** How far a time input steps: hourIncrement, minuteIncrement, or secondIncrement for the seconds, minuteIncrement when it isn't given */
     _getIncrement: (input: HTMLInputElement) => number;
 
     utils: {

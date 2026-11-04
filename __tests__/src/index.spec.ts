@@ -3709,6 +3709,84 @@ describe("flatpickr", () => {
       expect(fp.hourElement.value).toEqual("09");
     });
 
+    describe("secondIncrement (flatpickr#2912)", () => {
+      it("steps the seconds input apart from the minutes", () => {
+        createInstance({
+          enableTime: true,
+          enableSeconds: true,
+          secondIncrement: 15,
+          defaultDate: "2017-1-1 10:00:30",
+        });
+
+        incrementTime("secondElement", 1);
+        expect(fp.secondElement!.value).toEqual("45");
+
+        incrementTime("minuteElement", 1);
+        expect(fp.minuteElement!.value).toEqual("05");
+        expect(fp.secondElement!.value).toEqual("45");
+
+        fp.open();
+        simulate("keydown", fp.secondElement!, { keyCode: 40, which: 40 });
+        expect(fp.secondElement!.value).toEqual("30");
+      });
+
+      it("defaults to minuteIncrement", () => {
+        createInstance({
+          enableTime: true,
+          enableSeconds: true,
+          minuteIncrement: 10,
+          defaultDate: "2017-1-1 10:00:30",
+        });
+
+        incrementTime("secondElement", 1);
+        expect(fp.secondElement!.value).toEqual("40");
+
+        fp.set("minuteIncrement", 1);
+        incrementTime("secondElement", 1);
+        expect(fp.secondElement!.value).toEqual("41");
+      });
+
+      it("takes a value given through set()", () => {
+        createInstance({
+          enableTime: true,
+          enableSeconds: true,
+          defaultDate: "2017-1-1 10:00:30",
+        });
+        fp.set("secondIncrement", 1);
+
+        incrementTime("secondElement", -1);
+        expect(fp.secondElement!.value).toEqual("29");
+      });
+
+      it("applies to seconds added through set()", () => {
+        createInstance({
+          enableTime: true,
+          secondIncrement: 20,
+          defaultDate: "2017-1-1 10:00:00",
+        });
+        fp.set("enableSeconds", true);
+
+        incrementTime("secondElement", 1);
+        expect(fp.secondElement!.value).toEqual("20");
+      });
+
+      it("takes a data attribute", () => {
+        const input = document.createElement("input");
+        input.setAttribute("data-second-increment", "15");
+        createInstance(
+          {
+            enableTime: true,
+            enableSeconds: true,
+            defaultDate: "2017-1-1 10:00:20",
+          },
+          input
+        );
+
+        incrementTime("secondElement", 1);
+        expect(fp.secondElement!.value).toEqual("35");
+      });
+    });
+
     it("time input respects minDate", () => {
       createInstance({
         enableTime: true,
