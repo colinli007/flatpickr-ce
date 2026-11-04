@@ -2751,11 +2751,16 @@ function FlatpickrInstance(
           dates = [self.parseDate(inputDate, format)];
           break;
 
-        case "multiple":
+        case "multiple": {
+          // The space after a conjunction only spaces the dates out: "a,b"
+          // reads as two dates with ", " (#2922). The space before it keeps
+          // " et " from splitting "juillet"
+          const conjunction = self.config.conjunction;
           dates = inputDate
-            .split(self.config.conjunction)
-            .map((date) => self.parseDate(date, format));
+            .split(conjunction.replace(/\s+$/, "") || conjunction)
+            .map((date) => self.parseDate(date.trim(), format));
           break;
+        }
 
         case "range":
           dates = inputDate

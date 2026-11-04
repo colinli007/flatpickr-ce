@@ -1166,6 +1166,85 @@ describe("flatpickr", () => {
       });
     });
 
+    describe("multiple dates written with a conjunction (flatpickr#2922)", () => {
+      const aug = (...days: number[]) =>
+        days.map((day) => new Date(2023, 7, day));
+
+      it("reads dates typed without the space after the comma", () => {
+        createInstance({
+          mode: "multiple",
+          dateFormat: "d/m/Y",
+          allowInput: true,
+        });
+        fp.input.focus();
+        fp.input.value = "01/08/2023,02/08/2023,     03/08/2023,  05/08/2023";
+        simulate("keydown", fp._input, { keyCode: 13 });
+
+        expect(fp.selectedDates).toEqual(aug(1, 2, 3, 5));
+        expect(fp.input.value).toEqual(
+          "01/08/2023, 02/08/2023, 03/08/2023, 05/08/2023"
+        );
+      });
+
+      it("reads back the dates it wrote with the default conjunction", () => {
+        createInstance({ mode: "multiple", dateFormat: "d/m/Y" });
+        fp.setDate("01/08/2023, 02/08/2023");
+
+        expect(fp.selectedDates).toEqual(aug(1, 2));
+      });
+
+      it("doesn't split a date on a conjunction's text inside it", () => {
+        createInstance({
+          mode: "multiple",
+          locale: French,
+          dateFormat: "j F Y",
+          conjunction: " et ",
+        });
+        fp.setDate("1 juillet 2023 et 2 juillet 2023");
+        expect(fp.selectedDates).toEqual([
+          new Date(2023, 6, 1),
+          new Date(2023, 6, 2),
+        ]);
+
+        createInstance({ mode: "multiple", conjunction: " - " });
+        fp.setDate("2023-08-01 - 2023-08-02");
+        expect(fp.selectedDates).toEqual(aug(1, 2));
+
+        createInstance({
+          mode: "multiple",
+          dateFormat: "d/m/Y",
+          conjunction: " / ",
+        });
+        fp.setDate("01/08/2023 / 02/08/2023");
+        expect(fp.selectedDates).toEqual(aug(1, 2));
+      });
+
+      it("gives parseDate each date without the space around it", () => {
+        const parseDate = jest.fn((str: string) => {
+          const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(str);
+          return match
+            ? new Date(+match[3], +match[2] - 1, +match[1])
+            : new Date(NaN);
+        });
+        createInstance({ mode: "multiple", dateFormat: "d/m/Y", parseDate });
+        fp.setDate("01/08/2023, 02/08/2023");
+
+        expect(parseDate.mock.calls.map(([str]) => str)).toEqual([
+          "01/08/2023",
+          "02/08/2023",
+        ]);
+        expect(fp.selectedDates).toEqual(aug(1, 2));
+      });
+
+      it("splits on a conjunction of only spaces as it is", () => {
+        createInstance({ mode: "multiple", conjunction: " " });
+        fp.setDate("2023-08-01 2023-08-02  2023-08-03");
+
+        expect(fp.selectedDates).toEqual(aug(1, 2, 3));
+        expect(fp.input.value).toEqual("2023-08-01 2023-08-02 2023-08-03");
+      });
+    });
+
     describe("set() time options (flatpickr#3083)", () => {
       const selectFirstDay = () =>
         clickOn(fp.days.querySelector(".flatpickr-day:not(.prevMonthDay)")!);
