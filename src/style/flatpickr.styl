@@ -403,7 +403,10 @@
       background: alpha($invertedBg, 0.05)
 
     .flatpickr-monthDropdown-month
-      background-color: $monthBackground
+      // The options are drawn in the browser's popup, not over the calendar:
+      // give them the color the month row shows, a transparent month
+      // background included, so their text isn't on the popup's own color.
+      background-color: blend($monthBackground, $calendarBackground)
       outline: none
       padding: 0
 
