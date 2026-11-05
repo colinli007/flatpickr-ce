@@ -62,6 +62,7 @@ export const Swedish: CustomLocale = {
   monthAriaLabel: "månad",
   hourAriaLabel: "timme",
   minuteAriaLabel: "minut",
+  secondAriaLabel: "sekund",
 
   ordinal: () => {
     return ".";

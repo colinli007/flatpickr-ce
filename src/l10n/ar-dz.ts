@@ -49,6 +49,7 @@ export const AlgerianArabic: CustomLocale = {
   monthAriaLabel: "شهر",
   hourAriaLabel: "ساعة",
   minuteAriaLabel: "دقيقة",
+  secondAriaLabel: "ثانية",
   time_24hr: true,
 };
 

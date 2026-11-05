@@ -63,6 +63,7 @@ export const Polish: CustomLocale = {
   monthAriaLabel: "miesiąc",
   hourAriaLabel: "godzina",
   minuteAriaLabel: "minuta",
+  secondAriaLabel: "sekunda",
 
   ordinal: () => {
     return ".";

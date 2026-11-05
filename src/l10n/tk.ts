@@ -79,6 +79,7 @@ export const Turkmen: CustomLocale = {
   monthAriaLabel: "Aý",
   hourAriaLabel: "Sagat",
   minuteAriaLabel: "Minut",
+  secondAriaLabel: "Sekunt",
   time_24hr: true,
 };
 

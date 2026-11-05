@@ -71,6 +71,7 @@ export const Breton: CustomLocale = {
   monthAriaLabel: "Miz",
   hourAriaLabel: "Eur",
   minuteAriaLabel: "Munud",
+  secondAriaLabel: "Eilenn",
   time_24hr: false,
 };
 

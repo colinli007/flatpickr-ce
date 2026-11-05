@@ -66,6 +66,7 @@ export const Afrikaans: CustomLocale = {
   monthAriaLabel: "Maand",
   hourAriaLabel: "Uur",
   minuteAriaLabel: "Minuut",
+  secondAriaLabel: "Sekonde",
   time_24hr: true,
   firstDayOfWeek: 0,
 };

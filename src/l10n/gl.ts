@@ -64,6 +64,7 @@ export const Galician: CustomLocale = {
   monthAriaLabel: "Mes",
   hourAriaLabel: "Hora",
   minuteAriaLabel: "Minuto",
+  secondAriaLabel: "Segundo",
   time_24hr: true,
 };
 

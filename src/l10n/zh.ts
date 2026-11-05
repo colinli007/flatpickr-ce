@@ -63,6 +63,7 @@ export const Mandarin: CustomLocale = {
   monthAriaLabel: "月",
   hourAriaLabel: "小时",
   minuteAriaLabel: "分钟",
+  secondAriaLabel: "秒",
 };
 
 fp.l10ns.zh = Mandarin;

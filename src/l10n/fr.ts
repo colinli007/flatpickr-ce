@@ -70,6 +70,7 @@ export const French: CustomLocale = {
   monthAriaLabel: "mois",
   hourAriaLabel: "heure",
   minuteAriaLabel: "minute",
+  secondAriaLabel: "seconde",
 };
 
 fp.l10ns.fr = French;

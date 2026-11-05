@@ -64,6 +64,7 @@ export const German: CustomLocale = {
   monthAriaLabel: "Monat",
   hourAriaLabel: "Stunde",
   minuteAriaLabel: "Minute",
+  secondAriaLabel: "Sekunde",
 };
 
 fp.l10ns.de = German;

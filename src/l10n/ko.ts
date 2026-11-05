@@ -64,6 +64,7 @@ export const Korean: CustomLocale = {
   monthAriaLabel: "월",
   hourAriaLabel: "시",
   minuteAriaLabel: "분",
+  secondAriaLabel: "초",
 };
 
 fp.l10ns.ko = Korean;

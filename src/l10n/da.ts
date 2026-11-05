@@ -66,6 +66,7 @@ export const Danish: CustomLocale = {
   monthAriaLabel: "måned",
   hourAriaLabel: "time",
   minuteAriaLabel: "minut",
+  secondAriaLabel: "sekund",
 };
 
 fp.l10ns.da = Danish;

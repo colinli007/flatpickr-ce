@@ -65,6 +65,7 @@ export const Armenian: CustomLocale = {
   monthAriaLabel: "Ամիս",
   hourAriaLabel: "Ժամ",
   minuteAriaLabel: "Րոպե",
+  secondAriaLabel: "Վայրկյան",
   time_24hr: true,
 };
 

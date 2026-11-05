@@ -60,6 +60,7 @@ export const Portuguese: CustomLocale = {
   monthAriaLabel: "mês",
   hourAriaLabel: "hora",
   minuteAriaLabel: "minuto",
+  secondAriaLabel: "segundo",
 };
 
 fp.l10ns.pt = Portuguese;

@@ -1346,6 +1346,7 @@ function FlatpickrInstance(
 
       const secondInput = createNumberInput("flatpickr-second", {
         id: `${idPrefix}-second`,
+        "aria-label": self.l10n.secondAriaLabel,
       });
       self.secondElement = secondInput.getElementsByTagName(
         "input"

@@ -5015,6 +5015,27 @@ describe("flatpickr", () => {
       expect(fp.selectedDates[0]).toEqual(new Date(2025, 0, 1, 3, 30));
     });
 
+    it("labels the seconds input as the hour and minute ones (flatpickr#2821)", () => {
+      const labelsOf = (instance: Instance) =>
+        [
+          instance.hourElement,
+          instance.minuteElement,
+          instance.secondElement,
+        ].map((input) => input!.getAttribute("aria-label"));
+      const timeConfig = { enableTime: true, enableSeconds: true };
+
+      createInstance(timeConfig);
+      expect(labelsOf(fp)).toEqual(["Hour", "Minute", "Second"]);
+      expect(fp.secondElement!.id).not.toEqual("");
+
+      fp.set("locale", French);
+      expect(labelsOf(fp)).toEqual(["heure", "minute", "seconde"]);
+
+      // a locale without the labels reads the default ones
+      createInstance({ ...timeConfig, locale: Russian });
+      expect(labelsOf(fp)).toEqual(["Hour", "Minute", "Second"]);
+    });
+
     it("abbreviates Kurdish (Sorani) weekdays (flatpickr#2895)", () => {
       createInstance({ locale: Kurdish });
 

@@ -66,6 +66,7 @@ export const Azerbaijan: CustomLocale = {
   monthAriaLabel: "Ay",
   hourAriaLabel: "Saat",
   minuteAriaLabel: "Dəqiqə",
+  secondAriaLabel: "Saniyə",
   time_24hr: true,
 };
 

@@ -65,6 +65,7 @@ export const Basque: CustomLocale = {
   monthAriaLabel: "Hilabetea",
   hourAriaLabel: "Ordua",
   minuteAriaLabel: "Minutua",
+  secondAriaLabel: "Segundoa",
   time_24hr: true,
 };
 

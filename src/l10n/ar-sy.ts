@@ -54,6 +54,7 @@ export const SyrianArabic: CustomLocale = {
   monthAriaLabel: "شهر",
   hourAriaLabel: "ساعة",
   minuteAriaLabel: "دقيقة",
+  secondAriaLabel: "ثانية",
   time_24hr: false,
 };
 
