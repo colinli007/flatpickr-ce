@@ -44,6 +44,17 @@ const DEBOUNCED_CHANGE_MS = 300;
 // Instances created so far, which numbers their fields' ids
 let instanceCount = 0;
 
+// weekdays and months each hold two lists that are used apart, so a custom
+// locale that gives only one of them keeps the other from the base locale
+function mergeLocale(base: Locale, custom?: Partial<CustomLocale>): Locale {
+  return {
+    ...base,
+    ...custom,
+    weekdays: { ...base.weekdays, ...custom?.weekdays },
+    months: { ...base.months, ...custom?.months },
+  };
+}
+
 function FlatpickrInstance(
   element: HTMLElement,
   instanceConfig?: Options
@@ -2382,14 +2393,14 @@ function FlatpickrInstance(
         new Error(`flatpickr: invalid locale ${self.config.locale}`)
       );
 
-    self.l10n = {
-      ...(flatpickr.l10ns.default as Locale),
-      ...(typeof self.config.locale === "object"
+    self.l10n = mergeLocale(
+      flatpickr.l10ns.default,
+      typeof self.config.locale === "object"
         ? self.config.locale
         : self.config.locale !== "default"
         ? flatpickr.l10ns[self.config.locale as LocaleKey]
-        : undefined),
-    };
+        : undefined
+    );
 
     tokenRegex.D = `(${self.l10n.weekdays.shorthand.join("|")})`;
     tokenRegex.l = `(${self.l10n.weekdays.longhand.join("|")})`;
@@ -3352,10 +3363,7 @@ flatpickr.l10ns = {
 };
 
 flatpickr.localize = (l10n: CustomLocale) => {
-  flatpickr.l10ns.default = {
-    ...flatpickr.l10ns.default,
-    ...l10n,
-  };
+  flatpickr.l10ns.default = mergeLocale(flatpickr.l10ns.default, l10n);
 };
 flatpickr.setDefaults = (config: Options) => {
   flatpickr.defaultConfig = {

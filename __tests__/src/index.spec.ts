@@ -4,6 +4,7 @@ import { Arabic } from "l10n/ar";
 import { AlgerianArabic } from "l10n/ar-dz";
 import { SyrianArabic } from "l10n/ar-sy";
 import { Kurdish } from "l10n/ckb";
+import English from "l10n/default";
 import { Basque } from "l10n/eu";
 import { French } from "l10n/fr";
 import { Irish } from "l10n/ga";
@@ -16,6 +17,7 @@ import { Ukrainian } from "l10n/uk";
 import { Vietnamese } from "l10n/vn";
 import { Mandarin } from "l10n/zh";
 import { Instance, DayElement } from "types/instance";
+import { CustomLocale } from "types/locale";
 import { Options, DateRangeLimit } from "types/options";
 import confirmDatePlugin from "plugins/confirmDate/confirmDate";
 import { getDefaultHours } from "utils/dates";
@@ -4877,6 +4879,78 @@ describe("flatpickr", () => {
         }
       }
     );
+
+    describe("with only one of the weekday or month name lists (flatpickr#2654, flatpickr#2693)", () => {
+      const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+      const months = [
+        "Janeiro",
+        "Fevereiro",
+        "Março",
+        "Abril",
+        "Maio",
+        "Junho",
+        "Julho",
+        "Agosto",
+        "Setembro",
+        "Outubro",
+        "Novembro",
+        "Dezembro",
+      ];
+      // outside the CustomLocale type, as in the reports, which are plain JS
+      const partial = {
+        firstDayOfWeek: 1,
+        weekdays: { shorthand: weekdays },
+        months: { longhand: months },
+      } as Options["locale"];
+
+      const expectPartialLocale = () => {
+        expect(fp.l10n.weekdays.shorthand).toEqual(weekdays);
+        expect(fp.l10n.weekdays.longhand).toEqual(English.weekdays.longhand);
+        expect(fp.l10n.months.shorthand).toEqual(English.months.shorthand);
+        expect(fp.l10n.months.longhand).toEqual(months);
+
+        const date = new Date(2022, 3, 3);
+        for (const format of ["D l j M Y", "l j F Y"]) {
+          const formatted = fp.formatDate(date, format);
+          expect(fp.parseDate(formatted, format)).toEqual(date);
+        }
+        expect(fp.formatDate(date, "D j F")).toEqual("Dom 3 Abril");
+      };
+
+      it("fills the other list from the default locale", () => {
+        createInstance({
+          locale: partial,
+          enableTime: true,
+          dateFormat: "d-m-Y H:i",
+        });
+
+        expectPartialLocale();
+        expect(
+          Array.from(
+            fp.weekdayContainer.querySelectorAll(".flatpickr-weekday")
+          ).map((day) => day.textContent!.trim())
+        ).toEqual([...weekdays.slice(1), weekdays[0]]);
+      });
+
+      it("with set('locale')", () => {
+        createInstance();
+        fp.set("locale", partial);
+
+        expectPartialLocale();
+      });
+
+      it("with flatpickr.localize", () => {
+        const defaultLocale = flatpickr.l10ns.default;
+        try {
+          flatpickr.localize(partial as CustomLocale);
+          createInstance();
+
+          expectPartialLocale();
+        } finally {
+          flatpickr.l10ns.default = defaultLocale;
+        }
+      });
+    });
 
     it("By locale config option", () => {
       createInstance({
