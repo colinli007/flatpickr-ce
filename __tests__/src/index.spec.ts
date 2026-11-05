@@ -1,4 +1,5 @@
 import flatpickr from "index";
+import { Afrikaans } from "l10n/af";
 import { Kurdish } from "l10n/ckb";
 import { Basque } from "l10n/eu";
 import { French } from "l10n/fr";
@@ -4943,6 +4944,32 @@ describe("flatpickr", () => {
       expect(fp.l10n.months.longhand[0]).toEqual("Urtarrila");
       // Euskaltzaindia's abbreviation for Asteartea is "ar.", not "as."
       expect(fp.formatDate(new Date(2025, 0, 7), "D")).toEqual("ar.");
+    });
+
+    it("By language code af for Afrikaans (flatpickr#2765)", () => {
+      expect(flatpickr.l10ns.af).toBe(Afrikaans);
+
+      createInstance({ locale: "af", enableTime: true });
+      expect(fp.l10n.months.longhand[0]).toEqual("Januarie");
+      // CLDR's Afrikaans time format is HH:mm and its abbreviation for
+      // Maart is Mrt.
+      expect(fp.config.time_24hr).toBe(true);
+      expect(fp.amPM).toBeUndefined();
+      expect(fp.formatDate(new Date(2025, 2, 1), "M")).toEqual("Mrt");
+
+      const ordinals = [1, 2, 8, 9, 19, 20, 21, 31].map((day) =>
+        fp.formatDate(new Date(2025, 0, day), "J")
+      );
+      expect(ordinals).toEqual([
+        "1ste",
+        "2de",
+        "8ste",
+        "9de",
+        "19de",
+        "20ste",
+        "21ste",
+        "31ste",
+      ]);
     });
 
     it("abbreviates Kurdish (Sorani) weekdays (flatpickr#2895)", () => {
