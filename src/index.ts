@@ -2977,25 +2977,32 @@ function FlatpickrInstance(
     setMobileLimit("max");
   }
 
-  // minDate or maxDate as the native input's min or max, in the input's format
-  // (#2860). min is where the input's step counts from, so it's put on a whole
-  // minute with a step of whole minutes, 60 s by default, and on a whole second
-  // with a step of seconds (#2908). The native picker offers only those: min
-  // is raised to the next one, as flatpickr drops a value before minDate, and
-  // max is cut to the one before. A date input holds no time, and raising min
-  // there could move it a day on
+  // minDate or maxDate as the native input's min or max (#2860). The native
+  // picker offers only the times on the input's step: min is raised to the
+  // next one, as flatpickr drops a value before minDate, and max is cut to the
+  // one before. A date input holds no time, and raising min there could move
+  // it a day on
   function setMobileLimit(type: "min" | "max") {
     const mobileInput = self.mobileInput as HTMLInputElement;
     const limit = self.config[`${type}Date` as "minDate" | "maxDate"];
     if (limit === undefined) return mobileInput.removeAttribute(type);
 
-    const date = new Date(limit.getTime());
-    const unit = Number(mobileInput.step || 60) % 60 === 0 ? 60 : 1;
     const round =
       type === "min" && mobileInput.type !== "date" ? Math.ceil : Math.floor;
-    const seconds = date.getSeconds() + date.getMilliseconds() / 1000;
-    date.setSeconds(round(seconds / unit) * unit, 0);
-    mobileInput[type] = self.formatDate(date, self.mobileFormatStr as string);
+    mobileInput[type] = formatMobileDate(limit, round);
+  }
+
+  // A date in the native input's format, put on its step: on a whole minute
+  // with a step of whole minutes, 60 s by default, and on a whole second with
+  // a step of seconds (#2908). min is where the step counts from, and a value
+  // off it is a step mismatch that keeps the form from submitting (#2393)
+  function formatMobileDate(date: Date, round = Math.floor) {
+    const { step } = self.mobileInput as HTMLInputElement;
+    const unit = Number(step || 60) % 60 === 0 ? 60 : 1;
+    const onStep = new Date(date.getTime());
+    const seconds = onStep.getSeconds() + onStep.getMilliseconds() / 1000;
+    onStep.setSeconds(round(seconds / unit) * unit, 0);
+    return self.formatDate(onStep, self.mobileFormatStr as string);
   }
 
   function setupMobile() {
@@ -3010,9 +3017,8 @@ function FlatpickrInstance(
     self.mobileInput.placeholder = self.input.placeholder;
 
     if (self.selectedDates.length > 0) {
-      self.mobileInput.defaultValue = self.mobileInput.value = self.formatDate(
-        self.selectedDates[0],
-        self.mobileFormatStr as string
+      self.mobileInput.defaultValue = self.mobileInput.value = formatMobileDate(
+        self.selectedDates[0]
       );
     }
 
@@ -3149,7 +3155,7 @@ function FlatpickrInstance(
     if (self.mobileInput !== undefined && self.mobileFormatStr) {
       const mobileValue =
         self.latestSelectedDateObj !== undefined
-          ? self.formatDate(self.latestSelectedDateObj, self.mobileFormatStr)
+          ? formatMobileDate(self.latestSelectedDateObj)
           : "";
       const currentDate = self.parseDate(
         self.mobileInput.value,

@@ -3631,6 +3631,97 @@ describe("flatpickr", () => {
           expect(fp.mobileInput!.min).toBe("2016-10-10T14:23:47");
         });
       });
+
+      describe("a value with seconds #2393", () => {
+        const withSeconds = new Date(2016, 9, 10, 14, 23, 47);
+
+        it("is cut to the minute with a step of whole minutes", () => {
+          mockAgent = "Android";
+          createInstance({ enableTime: true, defaultDate: withSeconds });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+          expect(mobileInput.value).toBe("2016-10-10T14:23");
+          // without a min, the step counts from the value attribute
+          expect(mobileInput.defaultValue).toBe("2016-10-10T14:23:00");
+          expect(fp.selectedDates[0]).toEqual(withSeconds);
+
+          fp.setDate(new Date(2016, 9, 12, 9, 5, 30));
+          expect(mobileInput.value).toBe("2016-10-12T09:05");
+          expect(mobileInput.validity.stepMismatch).toBe(false);
+        });
+
+        it("is cut to the minute in a time input", () => {
+          mockAgent = "Android";
+          createInstance({
+            enableTime: true,
+            noCalendar: true,
+            defaultDate: withSeconds,
+          });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+          expect(mobileInput.type).toBe("time");
+          expect(mobileInput.value).toBe("14:23:00");
+
+          fp.setDate(new Date(2016, 9, 12, 9, 5, 30));
+          expect(mobileInput.value).toBe("09:05:00");
+          expect(mobileInput.validity.stepMismatch).toBe(false);
+        });
+
+        it("lies on the step counted from min", () => {
+          mockAgent = "Android";
+          createInstance({
+            enableTime: true,
+            minDate: new Date(2016, 9, 1, 8, 0, 30),
+            defaultDate: withSeconds,
+          });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+          expect(mobileInput.min).toBe("2016-10-01T08:01:00");
+          expect(mobileInput.validity.stepMismatch).toBe(false);
+        });
+
+        it("keeps its seconds with a step of seconds", () => {
+          mockAgent = "Android";
+          createInstance({
+            enableTime: true,
+            noCalendar: true,
+            defaultDate: withSeconds,
+          });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+
+          fp.set("enableSeconds", true);
+          expect(mobileInput.value).toBe("14:23:47");
+
+          fp.set("enableSeconds", false);
+          expect(mobileInput.value).toBe("14:23:00");
+        });
+
+        it("follows the input's own step", () => {
+          const el = document.createElement("input");
+          el.setAttribute("step", "1");
+
+          mockAgent = "Android";
+          const config = {
+            enableTime: true,
+            noCalendar: true,
+            defaultDate: withSeconds,
+          };
+          createInstance(config, el);
+          expect(fp.mobileInput!.value).toBe("14:23:47");
+
+          el.setAttribute("step", "60");
+          createInstance({ ...config, enableSeconds: true }, el);
+          expect(fp.mobileInput!.value).toBe("14:23:00");
+        });
+
+        it("picked in the native input is put on its step", () => {
+          mockAgent = "Android";
+          createInstance({ enableTime: true });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+
+          mobileInput.value = "2016-10-10T14:23:47";
+          simulate("change", mobileInput);
+          expect(mobileInput.value).toBe("2016-10-10T14:23");
+          expect(mobileInput.validity.stepMismatch).toBe(false);
+        });
+      });
     });
 
     it("selectDate() + onChange() through GUI", () => {
