@@ -364,6 +364,18 @@ function FlatpickrInstance(
   }
 
   /**
+   * Puts the default time on the time inputs, the time a date picked while
+   * none is selected gets
+   */
+  function setDefaultHours() {
+    const { hours, minutes, seconds } = getDefaultHours(
+      self.config,
+      defaultTimeDate()
+    );
+    setHours(hours, minutes, seconds);
+  }
+
+  /**
    * Sets the hours, minutes, and optionally seconds
    * of the latest selected date object and the
    * corresponding time inputs
@@ -1506,13 +1518,7 @@ function FlatpickrInstance(
       self.currentMonth = initialDate.getMonth();
     }
 
-    if (self.config.enableTime === true) {
-      const { hours, minutes, seconds } = getDefaultHours(
-        self.config,
-        defaultTimeDate()
-      );
-      setHours(hours, minutes, seconds);
-    }
+    if (self.config.enableTime === true) setDefaultHours();
 
     self.redraw();
 
@@ -2183,8 +2189,9 @@ function FlatpickrInstance(
         )
           self.latestSelectedDateObj =
             self.selectedDates[self.selectedDates.length - 1];
-        if (!self.selectedDates.length && type === "min")
-          setHoursFromDate(dateObj);
+        // with none selected, the time inputs show the default time, which
+        // the new limit may hold, as after clear() (#1869)
+        if (!self.selectedDates.length) setDefaultHours();
         updateValue();
       }
 
