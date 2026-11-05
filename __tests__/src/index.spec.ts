@@ -10,6 +10,7 @@ import { Norwegian } from "l10n/no";
 import { Russian } from "l10n/ru";
 import { Turkmen } from "l10n/tk";
 import { Vietnamese } from "l10n/vn";
+import { Mandarin } from "l10n/zh";
 import { Instance, DayElement } from "types/instance";
 import { Options, DateRangeLimit } from "types/options";
 import confirmDatePlugin from "plugins/confirmDate/confirmDate";
@@ -4970,6 +4971,30 @@ describe("flatpickr", () => {
         "21ste",
         "31ste",
       ]);
+    });
+
+    it("writes and reads 上午 and 下午 for Mandarin AM/PM (flatpickr#2771)", () => {
+      createInstance({
+        locale: Mandarin,
+        enableTime: true,
+        defaultDate: new Date(2025, 0, 1, 15, 30),
+      });
+
+      expect(fp.formatDate(new Date(2025, 0, 1, 9, 30), "K")).toEqual("上午");
+      expect(fp.formatDate(new Date(2025, 0, 1, 15, 30), "K")).toEqual("下午");
+      expect(fp.parseDate("2025-01-01 3:30 下午", "Y-m-d h:i K")).toEqual(
+        new Date(2025, 0, 1, 15, 30)
+      );
+      expect(fp.parseDate("2025-01-01 12:30 上午", "Y-m-d h:i K")).toEqual(
+        new Date(2025, 0, 1, 0, 30)
+      );
+
+      const amPM = fp.amPM as HTMLSpanElement;
+      expect(amPM.textContent).toEqual("下午");
+
+      simulate("click", amPM, { which: 1 }, MouseEvent);
+      expect(amPM.textContent).toEqual("上午");
+      expect(fp.selectedDates[0]).toEqual(new Date(2025, 0, 1, 3, 30));
     });
 
     it("abbreviates Kurdish (Sorani) weekdays (flatpickr#2895)", () => {
