@@ -11,6 +11,7 @@ import { Japanese } from "l10n/ja";
 import { Norwegian } from "l10n/no";
 import { Russian } from "l10n/ru";
 import { Turkmen } from "l10n/tk";
+import { Ukrainian } from "l10n/uk";
 import { Vietnamese } from "l10n/vn";
 import { Mandarin } from "l10n/zh";
 import { Instance, DayElement } from "types/instance";
@@ -5013,6 +5014,21 @@ describe("flatpickr", () => {
       simulate("click", amPM, { which: 1 }, MouseEvent);
       expect(amPM.textContent).toEqual("上午");
       expect(fp.selectedDates[0]).toEqual(new Date(2025, 0, 1, 3, 30));
+    });
+
+    it("separates Ukrainian ranges with an em dash (flatpickr#2826)", () => {
+      createInstance({
+        locale: Ukrainian,
+        mode: "range",
+        defaultDate: [new Date(2025, 0, 1), new Date(2025, 0, 5)],
+      });
+      expect(fp.input.value).toEqual("2025-01-01 — 2025-01-05");
+
+      fp.setDate("2025-02-10 — 2025-02-14");
+      expect(fp.selectedDates).toEqual([
+        new Date(2025, 1, 10),
+        new Date(2025, 1, 14),
+      ]);
     });
 
     it("labels the seconds input as the hour and minute ones (flatpickr#2821)", () => {
