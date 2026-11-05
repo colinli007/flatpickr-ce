@@ -1,5 +1,6 @@
 import flatpickr from "index";
 import { Kurdish } from "l10n/ckb";
+import { Basque } from "l10n/eu";
 import { French } from "l10n/fr";
 import { Irish } from "l10n/ga";
 import { Greek } from "l10n/gr";
@@ -4832,6 +4833,15 @@ describe("flatpickr", () => {
         "30-njy",
         "31-nji",
       ]);
+    });
+
+    it("By language code eu for Basque (flatpickr#2706)", () => {
+      expect(flatpickr.l10ns.eu).toBe(Basque);
+
+      createInstance({ locale: "eu" });
+      expect(fp.l10n.months.longhand[0]).toEqual("Urtarrila");
+      // Euskaltzaindia's abbreviation for Asteartea is "ar.", not "as."
+      expect(fp.formatDate(new Date(2025, 0, 7), "D")).toEqual("ar.");
     });
 
     it("abbreviates Kurdish (Sorani) weekdays (flatpickr#2895)", () => {
