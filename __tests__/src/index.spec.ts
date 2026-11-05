@@ -1,6 +1,7 @@
 import flatpickr from "index";
 import { Afrikaans } from "l10n/af";
 import { Arabic } from "l10n/ar";
+import { AlgerianArabic } from "l10n/ar-dz";
 import { SyrianArabic } from "l10n/ar-sy";
 import { Kurdish } from "l10n/ckb";
 import { Basque } from "l10n/eu";
@@ -4974,6 +4975,14 @@ describe("flatpickr", () => {
         "21ste",
         "31ste",
       ]);
+    });
+
+    it("By locale key ar_dz for Algerian Arabic (flatpickr#2830)", () => {
+      expect(flatpickr.l10ns.ar_dz).toBe(AlgerianArabic);
+      expect(flatpickr.l10ns.ar).toBe(Arabic);
+
+      createInstance({ locale: "ar_dz" });
+      expect(fp.l10n.months.longhand[0]).toEqual("جانفي");
     });
 
     it("By locale key ar_sy for Levantine Arabic (flatpickr#2774)", () => {

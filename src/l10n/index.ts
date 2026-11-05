@@ -2,6 +2,7 @@ import { key, CustomLocale } from "../types/locale";
 
 import { Afrikaans as af } from "./af";
 import { Arabic as ar } from "./ar";
+import { AlgerianArabic as arDz } from "./ar-dz";
 import { SyrianArabic as arSy } from "./ar-sy";
 import { Austria as at } from "./at";
 import { Azerbaijan as az } from "./az";
@@ -75,6 +76,7 @@ import { MandarinTraditional as zhTw } from "./zh_tw";
 const l10n: Record<key, CustomLocale> = {
   af,
   ar,
+  ar_dz: arDz,
   ar_sy: arSy,
   at,
   az,
