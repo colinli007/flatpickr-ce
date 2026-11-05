@@ -2,6 +2,7 @@ import flatpickr from "index";
 import { Kurdish } from "l10n/ckb";
 import { French } from "l10n/fr";
 import { Irish } from "l10n/ga";
+import { Greek } from "l10n/gr";
 import { Japanese } from "l10n/ja";
 import { Norwegian } from "l10n/no";
 import { Russian } from "l10n/ru";
@@ -4794,6 +4795,14 @@ describe("flatpickr", () => {
 
       createInstance({ locale: "vi" });
       expect(fp.l10n.months.longhand[0]).toEqual("Tháng một");
+    });
+
+    it("By ISO code el for Greek (flatpickr#2796)", () => {
+      expect(flatpickr.l10ns.el).toBe(Greek);
+      expect(flatpickr.l10ns.gr).toBe(Greek);
+
+      createInstance({ locale: "el" });
+      expect(fp.l10n.months.longhand[0]).toEqual("Ιανουάριος");
     });
 
     it("By ISO code nb for Norwegian Bokmål (flatpickr#2904)", () => {
