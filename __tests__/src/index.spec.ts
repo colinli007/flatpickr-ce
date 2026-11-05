@@ -3404,6 +3404,36 @@ describe("flatpickr", () => {
           expect(mobileInput.required).toBe(true);
         });
 
+        describe("tabindex #2672", () => {
+          it("keeps the input's place in the tab order", () => {
+            mockAgent = "Android";
+            createInstance();
+
+            expect(fp.mobileInput!.tabIndex).toBe(0);
+          });
+
+          it("copies the input's tabindex", () => {
+            const el = document.createElement("input");
+            el.tabIndex = -1;
+
+            mockAgent = "Android";
+            createInstance({}, el);
+
+            expect(fp.mobileInput!.tabIndex).toBe(-1);
+          });
+
+          it("copies the input's tabindex with altInput", () => {
+            const el = document.createElement("input");
+            el.tabIndex = 3;
+
+            mockAgent = "Android";
+            createInstance({ altInput: true }, el);
+
+            expect(fp.altInput!.tabIndex).toBe(3);
+            expect(fp.mobileInput!.tabIndex).toBe(3);
+          });
+        });
+
         it("with confirmDatePlugin", () => {
           mockAgent = "Android";
           createInstance({
