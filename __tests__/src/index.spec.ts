@@ -1,5 +1,7 @@
 import flatpickr from "index";
 import { Afrikaans } from "l10n/af";
+import { Arabic } from "l10n/ar";
+import { SyrianArabic } from "l10n/ar-sy";
 import { Kurdish } from "l10n/ckb";
 import { Basque } from "l10n/eu";
 import { French } from "l10n/fr";
@@ -4971,6 +4973,22 @@ describe("flatpickr", () => {
         "21ste",
         "31ste",
       ]);
+    });
+
+    it("By locale key ar_sy for Levantine Arabic (flatpickr#2774)", () => {
+      expect(flatpickr.l10ns.ar_sy).toBe(SyrianArabic);
+      expect(flatpickr.l10ns.ar).toBe(Arabic);
+
+      createInstance({ locale: "ar_sy", enableTime: true });
+      expect(fp.l10n.months.longhand[0]).toEqual("كانون الثاني");
+      expect(fp.formatDate(new Date(2025, 4, 1), "F")).toEqual("أيار");
+      // As Arabic: Saturday first, as in Syria, Jordan and Iraq, and a
+      // 12-hour clock with ص and م, as in CLDR's ar-SY.
+      expect(fp.l10n.firstDayOfWeek).toBe(6);
+      expect(fp.config.time_24hr).toBe(false);
+      expect(fp.formatDate(new Date(2025, 0, 1, 15, 30), "h:i K")).toEqual(
+        "3:30 م"
+      );
     });
 
     it("writes and reads 上午 and 下午 for Mandarin AM/PM (flatpickr#2771)", () => {
