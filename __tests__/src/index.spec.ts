@@ -5,6 +5,7 @@ import { Irish } from "l10n/ga";
 import { Japanese } from "l10n/ja";
 import { Norwegian } from "l10n/no";
 import { Russian } from "l10n/ru";
+import { Turkmen } from "l10n/tk";
 import { Vietnamese } from "l10n/vn";
 import { Instance, DayElement } from "types/instance";
 import { Options, DateRangeLimit } from "types/options";
@@ -4801,6 +4802,27 @@ describe("flatpickr", () => {
 
       createInstance({ locale: "nb" });
       expect(fp.l10n.weekdays.longhand[2]).toEqual("Tirsdag");
+    });
+
+    it("By language code tk for Turkmen (flatpickr#2664)", () => {
+      expect(flatpickr.l10ns.tk).toBe(Turkmen);
+
+      createInstance({ locale: "tk" });
+      expect(fp.l10n.months.longhand[0]).toEqual("Ýanwar");
+
+      const ordinals = [1, 6, 9, 10, 20, 26, 30, 31].map((day) =>
+        fp.formatDate(new Date(2025, 0, day), "J")
+      );
+      expect(ordinals).toEqual([
+        "1-nji",
+        "6-njy",
+        "9-njy",
+        "10-njy",
+        "20-nji",
+        "26-njy",
+        "30-njy",
+        "31-nji",
+      ]);
     });
 
     it("abbreviates Kurdish (Sorani) weekdays (flatpickr#2895)", () => {

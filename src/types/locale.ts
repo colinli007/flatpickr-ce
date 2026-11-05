@@ -175,6 +175,7 @@ export type key =
   | "sv"
   | "tg"
   | "th"
+  | "tk"
   | "tr"
   | "uk"
   | "vi"
