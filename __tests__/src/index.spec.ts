@@ -5620,10 +5620,9 @@ describe("flatpickr", () => {
       return fp;
     }
 
-    // the calendar's height is the sum of its children's
     function stubHeights(fp: Instance, viewport: number, calendar: number) {
       stub(window, "innerHeight", viewport);
-      stub(fp.calendarContainer.children[0], "offsetHeight", calendar);
+      stub(fp.calendarContainer, "offsetHeight", calendar);
     }
 
     beforeEach(() => {
@@ -5844,6 +5843,32 @@ describe("flatpickr", () => {
       // 200 + 250 - 200 - 2
       expect(fp.calendarContainer.style.top).toEqual("248px");
       expect(fp.calendarContainer.classList.contains("arrowBottom")).toBe(true);
+    });
+
+    // padding and a border make the calendar 30px taller than its children
+    function stubPaddedHeights(fp: Instance) {
+      stubRect(fp._positionElement, 300, 50, 100);
+      stubHeights(fp, 600, 280);
+      stub(fp.calendarContainer.children[0], "offsetHeight", 250);
+    }
+
+    it("goes above when its padding and border don't fit below", () => {
+      const fp = position();
+      stubPaddedHeights(fp);
+      fp._positionCalendar();
+
+      // 270px below the input: 200 + 300 - 280 - 2
+      expect(fp.calendarContainer.style.top).toEqual("218px");
+      expect(fp.calendarContainer.classList.contains("arrowBottom")).toBe(true);
+    });
+
+    it("doesn't cover the input when placed above with padding and a border", () => {
+      const fp = position({ position: "above" });
+      stubPaddedHeights(fp);
+      fp._positionCalendar();
+
+      // its bottom, 218 + 280, is 2px above the input's top, 200 + 300
+      expect(fp.calendarContainer.style.top).toEqual("218px");
     });
 
     it("leaves static and inline calendars pointing at the input", () => {
