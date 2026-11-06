@@ -97,6 +97,7 @@ function FlatpickrInstance(
   self._positionCalendar = positionCalendar;
   self._showValue = showValue;
   self._typedValue = typedValue;
+  self._startNewRange = startNewRange;
   self._getIncrement = getIncrement;
 
   self.changeMonth = changeMonth;
@@ -2588,6 +2589,16 @@ function FlatpickrInstance(
     }
   }
 
+  /**
+   * Makes way for a day picked on a range that has both ends: a new range,
+   * from no dates and at the default time, which the day takes from the time
+   * inputs. rangePlugin makes the pick an edit of one end, which keeps the
+   * time the time inputs show for it
+   */
+  function startNewRange() {
+    self.clear(false, false);
+  }
+
   function selectDate(e: MouseEvent | KeyboardEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -2632,9 +2643,7 @@ function FlatpickrInstance(
       if (selectedIndex) self.selectedDates.splice(parseInt(selectedIndex), 1);
       else self.selectedDates.push(selectedDate);
     } else if (self.config.mode === "range") {
-      if (self.selectedDates.length === 2) {
-        self.clear(false, false);
-      }
+      if (self.selectedDates.length === 2) self._startNewRange();
       self.latestSelectedDateObj = selectedDate;
       self.selectedDates.push(selectedDate);
 

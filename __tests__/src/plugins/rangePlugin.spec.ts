@@ -899,4 +899,158 @@ describe("rangePlugin", () => {
       expect(onChange).not.toHaveBeenCalled();
     });
   });
+
+  // flatpickr#2712: a day picked for an end of a range with a time
+  describe("picking a day for an end with enableTime", () => {
+    let input: HTMLInputElement,
+      secondInput: HTMLInputElement,
+      fp: Instance,
+      onChange: jest.Mock;
+
+    const create = (options: Options = {}) => {
+      fp = flatpickr(input, {
+        plugins: [rangePlugin({ input: secondInput })],
+        enableTime: true,
+        time_24hr: true,
+        dateFormat: "Y-m-d H:i",
+        defaultDate: ["2017-10-20 09:15", "2017-10-25 17:45"],
+        onChange,
+        ...options,
+      });
+    };
+
+    beforeEach(() => {
+      input = document.createElement("input");
+      secondInput = document.createElement("input");
+      document.body.append(input, secondInput);
+      onChange = jest.fn();
+    });
+
+    afterEach(() => {
+      fp.destroy();
+      input.remove();
+      secondInput.remove();
+    });
+
+    const selected = () =>
+      fp.selectedDates.map((date) => fp.formatDate(date, "Y-m-d H:i"));
+
+    const time = () => `${fp.hourElement!.value}:${fp.minuteElement!.value}`;
+
+    const focus = (elem: HTMLInputElement) => {
+      elem.focus();
+      jest.runAllTimers();
+    };
+
+    const clickDay = (day: number) => {
+      (Array.from(fp.days.childNodes) as DayElement[])
+        .find((d) => d.dateObj.getMonth() === 9 && d.dateObj.getDate() === day)!
+        .click();
+      jest.runAllTimers();
+    };
+
+    const incrementHour = () => {
+      fp.hourElement!.parentNode!.childNodes[1].dispatchEvent(
+        new MouseEvent("click", { bubbles: true })
+      );
+      jest.runAllTimers();
+    };
+
+    it.each([
+      ["start", 22, ["2017-10-22 09:15", "2017-10-25 17:45"], "09:15"],
+      ["end", 27, ["2017-10-20 09:15", "2017-10-27 17:45"], "17:45"],
+    ])(
+      "keeps the time the %s shows on the day picked for it",
+      (end, day, expected, shownTime) => {
+        create();
+        focus(end === "start" ? input : secondInput);
+        expect(time()).toEqual(shownTime);
+
+        clickDay(day);
+
+        expect(selected()).toEqual(expected);
+        expect(time()).toEqual(shownTime);
+      }
+    );
+
+    it("keeps the time inputs on the start after picking its day", () => {
+      create();
+      focus(input);
+      clickDay(22);
+      incrementHour();
+
+      expect(selected()).toEqual(["2017-10-22 10:15", "2017-10-25 17:45"]);
+    });
+
+    it.each([
+      ["start", "past the end", 27, ["2017-10-27 09:15", "2017-10-27 09:15"]],
+      ["end", "before the start", 18, ["2017-10-18 17:45", "2017-10-18 17:45"]],
+    ])(
+      "takes the other end along to the time of the %s picked %s",
+      (end, _, day, expected) => {
+        create();
+        focus(end === "start" ? input : secondInput);
+        clickDay(day);
+
+        expect(selected()).toEqual(expected);
+      }
+    );
+
+    it.each([
+      ["start", 20],
+      ["end", 25],
+    ])("stays silent when picking the day the %s has", (end, day) => {
+      create();
+      focus(end === "start" ? input : secondInput);
+      clickDay(day);
+
+      expect(selected()).toEqual(["2017-10-20 09:15", "2017-10-25 17:45"]);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [
+        "start",
+        {
+          minDate: "2017-10-22 10:30",
+          defaultDate: ["2017-10-23 09:15", "2017-10-25 17:45"],
+        },
+        22,
+        ["2017-10-22 10:30", "2017-10-25 17:45"],
+      ],
+      [
+        "end",
+        { maxDate: "2017-10-27 16:00" },
+        27,
+        ["2017-10-20 09:15", "2017-10-27 16:00"],
+      ],
+    ])(
+      "holds the %s's time within the limit on the limit's day",
+      (end, options, day, expected) => {
+        create(options);
+        focus(end === "start" ? input : secondInput);
+        clickDay(day);
+
+        expect(selected()).toEqual(expected);
+      }
+    );
+
+    it("keeps the time of a date set for an end", () => {
+      create();
+      fp.setDate(new Date(2017, 9, 23, 8, 0), true);
+
+      expect(selected()).toEqual(["2017-10-23 08:00", "2017-10-25 17:45"]);
+      expect(time()).toEqual("08:00");
+    });
+
+    // a range without the plugin starts over, as from no dates
+    it("leaves a new range without rangePlugin at the default time", () => {
+      create({ plugins: [], mode: "range" });
+      fp.open();
+      clickDay(22);
+
+      expect(selected()).toEqual(["2017-10-22 12:00"]);
+      expect(time()).toEqual("12:00");
+    });
+  });
 });

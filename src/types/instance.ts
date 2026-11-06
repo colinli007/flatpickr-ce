@@ -150,6 +150,8 @@ export type Instance = Elements &
     _showValue: () => void;
     /** The text allowInput commits, typed since _showValue, if any */
     _typedValue: () => string | undefined;
+    /** Makes way for a day picked on a range that has both ends; rangePlugin keeps the time inputs for the end it edits */
+    _startNewRange: () => void;
     /** How far a time input steps: hourIncrement, minuteIncrement, or secondIncrement for the seconds, minuteIncrement when it isn't given */
     _getIncrement: (input: HTMLInputElement) => number;
 

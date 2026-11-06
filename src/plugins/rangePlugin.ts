@@ -155,6 +155,14 @@ function rangePlugin(config: Config = {}): Plugin {
         };
         fp._typedValue = typedValue;
 
+        // a day picked with both ends set edits the end of the input in focus
+        // (onValueUpdate) instead of starting a new range, which would put the
+        // time inputs back to the default time: it takes the time they show
+        // for that end
+        fp._startNewRange = () => {
+          fp.selectedDates = [];
+        };
+
         // flatpickr itself opens the calendar from fp._input, before this runs
         fp._bind(fp._input, "focus", () => {
           const anchor = firstInputAnchor();
@@ -224,6 +232,11 @@ function rangePlugin(config: Config = {}): Plugin {
           }
 
           fp.setDate(newDates, false);
+          // setDate puts the end on the time inputs: put back the end being
+          // edited, as focusing its input did
+          const editedEnd = fp.selectedDates[_secondInputFocused ? 1 : 0];
+          fp.latestSelectedDateObj = editedEnd;
+          fp._setHoursFromDate(editedEnd);
           _prevDates = [...newDates];
         } else {
           _prevDates = [...selDates];
