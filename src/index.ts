@@ -1807,7 +1807,7 @@ function FlatpickrInstance(
    * reads it from those
    */
   function typedValue() {
-    return self._input.value.trimEnd() === getDateStr()
+    return self._input.value.replace(/\s+$/, "") === getDateStr()
       ? undefined
       : self._input.value;
   }
@@ -2070,7 +2070,7 @@ function FlatpickrInstance(
       }
     }
 
-    const hoverableCells = Array.from(
+    const hoverableCells = Array.prototype.slice.call(
       self.rContainer!.querySelectorAll(
         `*:nth-child(-n+${self.config.showMonths}) > .${cellClass}`
       )

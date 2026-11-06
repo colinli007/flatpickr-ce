@@ -56,4 +56,31 @@ describe("momentPlugin", () => {
 
     fp.destroy();
   });
+
+  it("adds to the hours without Array.from and startsWith, as in IE (flatpickr#2709)", () => {
+    const added: [number, string][] = [];
+    const fp = flatpickr(document.createElement("input"), {
+      enableTime: true,
+      defaultDate: new Date(2099, 5, 5, 13, 7),
+      plugins: [momentPlugin({ moment: fakeMoment(added) })],
+    }) as Instance;
+    const arrowUp = fp.hourElement!.parentNode!.querySelector(
+      ".arrowUp"
+    ) as HTMLElement;
+
+    const from = Array.from;
+    const startsWith = String.prototype.startsWith;
+    delete (Array as Partial<ArrayConstructor>).from;
+    delete (String.prototype as Partial<String>).startsWith;
+    try {
+      arrowUp.click();
+    } finally {
+      Array.from = from;
+      String.prototype.startsWith = startsWith;
+    }
+
+    expect(added).toEqual([[1, "hour"]]);
+
+    fp.destroy();
+  });
 });

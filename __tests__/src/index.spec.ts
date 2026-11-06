@@ -1814,6 +1814,44 @@ describe("flatpickr", () => {
         expect(fp.selectedDates).toEqual([new Date(2025, 1, 5)]);
         expect(fp.input.value).toEqual("5 February 2025");
       });
+
+      describe("without String.prototype.trimEnd, as in IE (flatpickr#2709)", () => {
+        const trimEnd = String.prototype.trimEnd;
+
+        beforeEach(() => {
+          delete (String.prototype as Partial<String>).trimEnd;
+        });
+
+        afterEach(() => {
+          String.prototype.trimEnd = trimEnd;
+        });
+
+        it("commits a typed date on blur", () => {
+          createInstance({ allowInput: true });
+
+          fp.input.focus();
+          fp.input.value = "1999-12-31";
+          fp.input.blur();
+
+          expect(fp.selectedDates).toEqual([new Date(1999, 11, 31)]);
+        });
+
+        it("still reads the shown value with a trailing space as untouched", () => {
+          const onChange = jest.fn();
+          createInstance({
+            allowInput: true,
+            defaultDate: "2001-01-01",
+            onChange,
+          });
+
+          fp.input.focus();
+          fp.input.value = "2001-01-01 ";
+          pressEnter();
+
+          expect(onChange).not.toHaveBeenCalled();
+          expect(fp.input.value).toEqual("2001-01-01 ");
+        });
+      });
     });
 
     describe("documentClick", () => {
@@ -4591,6 +4629,22 @@ describe("flatpickr", () => {
       simulate("click", fp.days.childNodes[17], { which: 1 }, MouseEvent);
       expect(fp.selectedDates.length).toEqual(2);
       expect(fp.input.value).toEqual("2016-01-13 to 2016-01-17");
+    });
+
+    it("hovers a range without Array.from, as in IE (flatpickr#2709)", () => {
+      createInstance({ mode: "range", defaultDate: ["2016-1-17"] });
+      const day = (i: number) => fp.days.childNodes[i] as DayElement;
+
+      const from = Array.from;
+      delete (Array as Partial<ArrayConstructor>).from;
+      try {
+        simulate("mouseover", day(32));
+      } finally {
+        Array.from = from;
+      }
+
+      for (let i = 0; i < 42; i++)
+        expect(day(i).classList.contains("inRange")).toEqual(i > 21 && i < 32);
     });
 
     describe("a day past a disabled one, picked without a hover (flatpickr#2974)", () => {

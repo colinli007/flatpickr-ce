@@ -16,8 +16,8 @@ function momentPlugin(config: Config): Plugin {
       const date = moment(fp.selectedDates[0]);
 
       const input = getEventTarget(event) as HTMLInputElement;
-      const unit = Array.from(input.classList)
-        .filter((name) => name.startsWith("flatpickr-"))
+      const unit = (Array.prototype.slice.call(input.classList) as string[])
+        .filter((name) => name.indexOf("flatpickr-") === 0)
         .map((name) => name.substring(10))[0];
       const step = fp._getIncrement(input);
 
