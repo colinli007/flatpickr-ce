@@ -4683,6 +4683,131 @@ describe("flatpickr", () => {
       );
     });
 
+    describe("picking the selected day again (flatpickr#2700)", () => {
+      const dayElem = (date: string) =>
+        Array.from(
+          fp.daysContainer!.querySelectorAll<DayElement>(".flatpickr-day")
+        ).find(
+          (day) =>
+            !day.classList.contains("hidden") &&
+            fp.formatDate(day.dateObj, "Y-m-d") === date
+        )!;
+
+      const pick = (date: string) => clickOn(dayElem(date));
+      const enter = (date: string) =>
+        simulate("keydown", dayElem(date), { keyCode: 13 }); // "Enter"
+
+      const selected = (format = "Y-m-d") =>
+        fp.selectedDates.map((date) => fp.formatDate(date, format));
+
+      let onChange: jest.Mock;
+
+      function open(config: Options) {
+        onChange = jest.fn();
+        createInstance({ onChange, ...config });
+        fp.open();
+      }
+
+      it("stays silent and still closes the calendar", () => {
+        const onValueUpdate = jest.fn();
+        open({ defaultDate: "2025-07-10", onValueUpdate });
+
+        pick("2025-07-10");
+
+        expect(selected()).toEqual(["2025-07-10"]);
+        expect(onChange).not.toHaveBeenCalled();
+        expect(onValueUpdate).toHaveBeenCalledTimes(1);
+        expect(fp.isOpen).toBe(false);
+      });
+
+      it("stays silent with Enter", () => {
+        open({ defaultDate: "2025-07-10" });
+
+        enter("2025-07-10");
+
+        expect(onChange).not.toHaveBeenCalled();
+      });
+
+      it("dispatches neither change nor input on the input with altInput", () => {
+        open({ defaultDate: "2025-07-10", altInput: true });
+        const events: string[] = [];
+        const record = (e: Event) => events.push(e.type);
+        fp.input.addEventListener("change", record);
+        fp.input.addEventListener("input", record);
+
+        pick("2025-07-10");
+        expect(events).toEqual([]);
+
+        fp.open();
+        pick("2025-07-11");
+        expect(events).toEqual(["change", "input"]);
+
+        fp.input.removeEventListener("change", record);
+        fp.input.removeEventListener("input", record);
+      });
+
+      it("keeps the selected time with enableTime", () => {
+        open({ enableTime: true, defaultDate: "2025-07-10 10:30" });
+
+        pick("2025-07-10");
+
+        expect(selected("Y-m-d H:i")).toEqual(["2025-07-10 10:30"]);
+        expect(onChange).not.toHaveBeenCalled();
+      });
+
+      it("announces the time it drops without enableTime", () => {
+        open({ defaultDate: new Date(2025, 6, 10, 10, 30) });
+
+        pick("2025-07-10");
+
+        expect(selected("Y-m-d H:i")).toEqual(["2025-07-10 00:00"]);
+        expect(onChange).toHaveBeenCalledTimes(1);
+      });
+
+      it("announces the view moving to it, not the value", () => {
+        const onMonthChange = jest.fn();
+        open({ defaultDate: "2025-08-01", onMonthChange });
+        fp.changeMonth(-1);
+        onMonthChange.mockClear();
+
+        pick("2025-08-01");
+
+        expect(fp.currentMonth).toEqual(7);
+        expect(onMonthChange).toHaveBeenCalledTimes(1);
+        expect(onChange).not.toHaveBeenCalled();
+      });
+
+      it("announces unselecting it in multiple mode", () => {
+        open({ mode: "multiple", defaultDate: ["2025-07-10", "2025-07-12"] });
+
+        pick("2025-07-10");
+
+        expect(selected()).toEqual(["2025-07-12"]);
+        expect(onChange).toHaveBeenCalledTimes(1);
+      });
+
+      it("announces the same-day range it makes of a range's start", () => {
+        open({ mode: "range" });
+        fp.jumpToDate("2025-07-01");
+        pick("2025-07-10");
+        onChange.mockClear();
+
+        pick("2025-07-10");
+
+        expect(selected()).toEqual(["2025-07-10", "2025-07-10"]);
+        expect(onChange).toHaveBeenCalledTimes(1);
+      });
+
+      it("announces starting a range over from an end of it", () => {
+        open({ mode: "range", defaultDate: ["2025-07-10", "2025-07-12"] });
+
+        pick("2025-07-10");
+
+        expect(selected()).toEqual(["2025-07-10"]);
+        expect(onChange).toHaveBeenCalledTimes(1);
+      });
+    });
+
     it("adds disabled class to disabled prev/next month arrows", () => {
       const isArrowDisabled = (which: "prevMonthNav" | "nextMonthNav") =>
         fp[which].classList.contains("flatpickr-disabled");

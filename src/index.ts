@@ -2608,6 +2608,7 @@ function FlatpickrInstance(
     if (t === undefined) return;
 
     const target = t as DayElement;
+    const prevTimes = getSelectedTimes();
 
     const selectedDate = (self.latestSelectedDateObj = new Date(
       target.dateObj.getTime()
@@ -2690,7 +2691,11 @@ function FlatpickrInstance(
         focusAndClose();
       }
     }
-    triggerChange();
+
+    // announce only a change: a selected day picked again, or an end of a
+    // range picked again with rangePlugin keeping the other, leaves the
+    // dates as they were (#2700)
+    if (getSelectedTimes() !== prevTimes) triggerChange();
   }
 
   const CALLBACKS: { [k in keyof Options]: Function[] } = {

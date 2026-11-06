@@ -798,6 +798,23 @@ describe("rangePlugin", () => {
       expect(onChange).toHaveBeenCalledTimes(1);
     });
 
+    // flatpickr#2700: the plugin keeps the other end, so nothing changes
+    it.each([
+      ["start", 20],
+      ["end", 25],
+    ])(
+      "stays silent when picking the %s it has on the calendar",
+      (end, day) => {
+        create();
+        focus(end === "start" ? input : secondInput);
+        clickDay(day);
+
+        expect(fp.selectedDates).toEqual(range(20, 25));
+        expect(shown()).toEqual(["2017-10-20", "2017-10-25"]);
+        expect(onChange).not.toHaveBeenCalled();
+      }
+    );
+
     it("builds a range typed start first, then end", () => {
       create({ defaultDate: undefined });
       focus(input);
