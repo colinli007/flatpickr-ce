@@ -64,7 +64,6 @@ function FlatpickrInstance(
       ...defaultOptions,
       ...flatpickr.defaultConfig,
     } as ParsedOptions,
-    l10n: English,
   } as Instance;
 
   // The options the user gave, at creation and through set(), as opposed to
@@ -86,8 +85,6 @@ function FlatpickrInstance(
   // Listeners on the document and the window, bound only while the calendar
   // is open; kept apart from _handlers, which last until destroy()
   let openHandlers: Instance["_handlers"] = [];
-
-  self.parseDate = createDateParser({ config: self.config, l10n: self.l10n });
 
   self._handlers = [];
   self.pluginElements = [];
@@ -2298,6 +2295,11 @@ function FlatpickrInstance(
       self.config.enableTime = true;
     }
 
+    // The date options are parsed as they're assigned, below and from the
+    // plugins, with the names of the instance's locale, which setupLocale()
+    // would only set up afterwards (#2721)
+    setupL10n(userConfig.locale ?? self.config.locale);
+
     Object.assign(self.config, defaultFormats(), userConfig);
 
     for (let i = 0; i < boolOpts.length; i++)
@@ -2394,12 +2396,26 @@ function FlatpickrInstance(
         new Error(`flatpickr: invalid locale ${self.config.locale}`)
       );
 
+    setupL10n(self.config.locale);
+
+    if (
+      userConfig.time_24hr === undefined &&
+      flatpickr.defaultConfig.time_24hr === undefined
+    ) {
+      self.config.time_24hr = self.l10n.time_24hr;
+    }
+
+    self.formatDate = createDateFormatter(self);
+  }
+
+  // The instance's locale, and the parser that reads its names
+  function setupL10n(locale: LocaleKey | Partial<CustomLocale>) {
     self.l10n = mergeLocale(
       flatpickr.l10ns.default,
-      typeof self.config.locale === "object"
-        ? self.config.locale
-        : self.config.locale !== "default"
-        ? flatpickr.l10ns[self.config.locale as LocaleKey]
+      typeof locale === "object"
+        ? locale
+        : locale !== "default"
+        ? flatpickr.l10ns[locale as LocaleKey]
         : undefined
     );
 
@@ -2415,14 +2431,6 @@ function FlatpickrInstance(
       .join("|")})`;
     tokenRegex.K = `(${self.l10n.amPM[0]}|${self.l10n.amPM[1]})`;
 
-    if (
-      userConfig.time_24hr === undefined &&
-      flatpickr.defaultConfig.time_24hr === undefined
-    ) {
-      self.config.time_24hr = self.l10n.time_24hr;
-    }
-
-    self.formatDate = createDateFormatter(self);
     self.parseDate = createDateParser({ config: self.config, l10n: self.l10n });
   }
 

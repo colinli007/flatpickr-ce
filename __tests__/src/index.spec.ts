@@ -4,6 +4,7 @@ import { Arabic } from "l10n/ar";
 import { AlgerianArabic } from "l10n/ar-dz";
 import { SyrianArabic } from "l10n/ar-sy";
 import { Kurdish } from "l10n/ckb";
+import { German } from "l10n/de";
 import English from "l10n/default";
 import { Basque } from "l10n/eu";
 import { French } from "l10n/fr";
@@ -16,7 +17,7 @@ import { Turkmen } from "l10n/tk";
 import { Ukrainian } from "l10n/uk";
 import { Vietnamese } from "l10n/vn";
 import { Mandarin } from "l10n/zh";
-import { Instance, DayElement } from "types/instance";
+import { Instance, DayElement, FlatpickrFn } from "types/instance";
 import { CustomLocale } from "types/locale";
 import { Options, DateRangeLimit } from "types/options";
 import confirmDatePlugin from "plugins/confirmDate/confirmDate";
@@ -5155,6 +5156,110 @@ describe("flatpickr", () => {
           createInstance();
 
           expectPartialLocale();
+        } finally {
+          flatpickr.l10ns.default = defaultLocale;
+        }
+      });
+    });
+
+    describe("month and weekday names in date options (flatpickr#2721)", () => {
+      // The same dates in each locale's names, with every name token among
+      // the formats: January 1st, 2001 is a Monday
+      const optionsIn: Record<string, Options> = {
+        English: {
+          dateFormat: "D j M Y h:i K",
+          enableTime: true,
+          minDate: "Mon 1 Jan 2001 12:00 AM",
+          maxDate: "Thu 31 Dec 2020 12:00 AM",
+          disable: [
+            "Wed 6 Mar 2002 12:00 AM",
+            {
+              from: "Sun 10 Mar 2002 12:00 AM",
+              to: "Mon 11 Mar 2002 12:00 AM",
+            },
+          ],
+          defaultDate: "Tue 5 Mar 2002 12:00 AM",
+        },
+        German: {
+          locale: German,
+          dateFormat: "l, j. F Y",
+          minDate: "Montag, 1. Januar 2001",
+          maxDate: "Donnerstag, 31. Dezember 2020",
+          disable: [
+            "Mittwoch, 6. März 2002",
+            { from: "Sonntag, 10. März 2002", to: "Montag, 11. März 2002" },
+          ],
+          defaultDate: "Dienstag, 5. März 2002",
+        },
+        Russian: {
+          locale: Russian,
+          dateFormat: "D j M Y h:i K",
+          enableTime: true,
+          minDate: "Пн 1 Янв 2001 12:00 ДП",
+          maxDate: "Чт 31 Дек 2020 12:00 ДП",
+          disable: [
+            "Ср 6 Март 2002 12:00 ДП",
+            {
+              from: "Вс 10 Март 2002 12:00 ДП",
+              to: "Пн 11 Март 2002 12:00 ДП",
+            },
+          ],
+          defaultDate: "Вт 5 Март 2002 12:00 ДП",
+        },
+      };
+
+      const expectDates = (instance: Instance, options: Options) => {
+        expect(instance.config.minDate).toEqual(new Date(2001, 0, 1));
+        expect(instance.config.maxDate).toEqual(new Date(2020, 11, 31));
+        expect(instance.config.disable).toEqual([
+          new Date(2002, 2, 6),
+          { from: new Date(2002, 2, 10), to: new Date(2002, 2, 11) },
+        ]);
+        expect(instance.selectedDates).toEqual([new Date(2002, 2, 5)]);
+        expect(instance.input.value).toEqual(options.defaultDate);
+      };
+
+      it.each(Object.keys(optionsIn))(
+        "reads them in the first instance, in %s",
+        (locale) => {
+          jest.isolateModules(() => {
+            // no instance has set up a locale in this one yet
+            const fresh: FlatpickrFn = require("index").default;
+            const instance = fresh(
+              document.createElement("input"),
+              optionsIn[locale]
+            );
+
+            expectDates(instance, optionsIn[locale]);
+            instance.destroy();
+          });
+        }
+      );
+
+      it.each([
+        ["English", "German"],
+        ["German", "English"],
+        ["English", "Russian"],
+        ["Russian", "English"],
+      ])("reads them in %s, then in %s", (...locales) => {
+        const instances = locales.map((locale) =>
+          flatpickr(document.createElement("input"), optionsIn[locale])
+        );
+
+        instances.forEach((instance, i) => {
+          expectDates(instance, optionsIn[locales[i]]);
+          instance.destroy();
+        });
+      });
+
+      it("reads them in the names flatpickr.localize gives", () => {
+        const defaultLocale = flatpickr.l10ns.default;
+        try {
+          flatpickr.localize(German);
+          const { locale, ...options } = optionsIn.German;
+          createInstance(options);
+
+          expectDates(fp, options);
         } finally {
           flatpickr.l10ns.default = defaultLocale;
         }
