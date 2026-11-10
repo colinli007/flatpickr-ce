@@ -38,7 +38,8 @@ export const createDateFormatter = ({
 ): string => {
   const locale = overrideLocale || l10n;
 
-  if (config.formatDate !== undefined && !isMobile) {
+  // null, the default the docs list, leaves it unset like undefined (#2725)
+  if (config.formatDate && !isMobile) {
     return config.formatDate(dateObj, frmt, locale);
   }
 

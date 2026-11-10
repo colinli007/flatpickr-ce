@@ -182,6 +182,100 @@ describe("flatpickr", () => {
       fp.set("minDate", "2016-10-20");
       expect(fp.config.minDate).toBeDefined();
     });
+
+    describe("takes null, the default the docs list, as unset (flatpickr#2725)", () => {
+      const oct = (...days: number[]) =>
+        days.map((day) => new Date(2016, 9, day));
+      const enabledDays = () =>
+        fp.days.querySelectorAll(
+          ".flatpickr-day:not(.prevMonthDay):not(.nextMonthDay):not(.flatpickr-disabled)"
+        ).length;
+
+      it("appends the calendar to the body with appendTo: null", () => {
+        createInstance({ appendTo: null } as any);
+        expect(fp.calendarContainer.parentNode).toBe(document.body);
+      });
+
+      it("puts an inline calendar after the input with appendTo: null", () => {
+        createInstance({ appendTo: null, inline: true } as any);
+        expect(fp.calendarContainer.previousSibling).toBe(fp._input);
+      });
+
+      it("formats with the built-in formatter with formatDate: null", () => {
+        createInstance({
+          formatDate: null,
+          defaultDate: new Date(2016, 9, 20),
+        } as any);
+        expect(fp.input.value).toEqual("2016-10-20");
+      });
+
+      it("formats with the built-in formatter once formatDate is set to null", () => {
+        createInstance({ formatDate: () => "custom" });
+        fp.set("formatDate", null as any);
+        fp.setDate(new Date(2016, 9, 20));
+        expect(fp.input.value).toEqual("2016-10-20");
+      });
+
+      it("joins and splits multiple dates on ', ' with conjunction: null", () => {
+        createInstance({
+          mode: "multiple",
+          conjunction: null,
+          defaultDate: oct(20, 21),
+        } as any);
+        expect(fp.input.value).toEqual("2016-10-20, 2016-10-21");
+
+        fp.setDate("2016-10-22, 2016-10-23");
+        expect(fp.selectedDates).toEqual(oct(22, 23));
+      });
+
+      it("joins and splits on ', ' once conjunction is set to null", () => {
+        createInstance({ mode: "multiple", conjunction: " | " });
+        fp.set("conjunction", null as any);
+        fp.setDate("2016-10-20, 2016-10-21");
+        expect(fp.selectedDates).toEqual(oct(20, 21));
+        expect(fp.input.value).toEqual("2016-10-20, 2016-10-21");
+      });
+
+      it("keeps the conjunction the defaults give", () => {
+        flatpickr.setDefaults({ conjunction: " | " });
+        try {
+          createInstance({ mode: "multiple", defaultDate: oct(20, 21) });
+          expect(fp.input.value).toEqual("2016-10-20 | 2016-10-21");
+        } finally {
+          delete flatpickr.defaultConfig.conjunction;
+        }
+      });
+
+      it("takes a null conjunction from the defaults as ', ', keeps an empty one", () => {
+        flatpickr.setDefaults({ conjunction: null } as any);
+        try {
+          createInstance({ mode: "multiple", defaultDate: oct(20, 21) });
+          expect(fp.input.value).toEqual("2016-10-20, 2016-10-21");
+        } finally {
+          delete flatpickr.defaultConfig.conjunction;
+        }
+
+        createInstance({ mode: "multiple", conjunction: "" });
+        expect(fp.config.conjunction).toEqual("");
+      });
+
+      it("enables every date with enable: null or undefined", () => {
+        createInstance({ enable: null, defaultDate: oct(20) } as any);
+        expect(enabledDays()).toEqual(31);
+
+        createInstance({ enable: undefined, defaultDate: oct(20) });
+        expect(enabledDays()).toEqual(31);
+      });
+
+      it("enables every date once enable is set to null", () => {
+        createInstance({ enable: [oct(20)[0]], defaultDate: oct(20) });
+        expect(enabledDays()).toEqual(1);
+
+        fp.set("enable", null as any);
+        expect(enabledDays()).toEqual(31);
+        expect(fp.isEnabled(new Date(2016, 9, 21))).toBe(true);
+      });
+    });
   });
 
   describe("datetimestring parser", () => {

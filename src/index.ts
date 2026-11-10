@@ -761,9 +761,9 @@ function FlatpickrInstance(
 
     self.calendarContainer.appendChild(fragment);
 
+    // null, the default the docs list, leaves it unset like undefined (#2725)
     const customAppend =
-      self.config.appendTo !== undefined &&
-      self.config.appendTo.nodeType !== undefined;
+      !!self.config.appendTo && self.config.appendTo.nodeType !== undefined;
 
     if (self.config.inline || self.config.static) {
       self.calendarContainer.classList.add(
@@ -776,7 +776,7 @@ function FlatpickrInstance(
             self.calendarContainer,
             self._input.nextSibling
           );
-        else if (self.config.appendTo !== undefined)
+        else if (self.config.appendTo)
           self.config.appendTo.appendChild(self.calendarContainer);
       }
 
@@ -798,10 +798,7 @@ function FlatpickrInstance(
     }
 
     if (!self.config.static && !self.config.inline)
-      (self.config.appendTo !== undefined
-        ? self.config.appendTo
-        : doc.body
-      ).appendChild(self.calendarContainer);
+      (self.config.appendTo || doc.body).appendChild(self.calendarContainer);
   }
 
   function createDay(
@@ -2279,8 +2276,10 @@ function FlatpickrInstance(
 
     Object.defineProperty(self.config, "enable", {
       get: () => self.config._enable,
+      // null, like undefined, the default the docs list, leaves every date
+      // enabled, where [] would enable none (#2725)
       set: (dates) => {
-        self.config._enable = parseDateRules(dates);
+        self.config._enable = dates ? parseDateRules(dates) : undefined;
       },
     });
 
@@ -2317,6 +2316,17 @@ function FlatpickrInstance(
       get: () => self.config._maxTime,
       set: minMaxTimeSetter("max"),
     });
+
+    // null, the default the docs list, is the built-in ", " like undefined
+    // (#2725); the write below puts the one from setDefaults() through it too
+    let conjunction = self.config.conjunction;
+    Object.defineProperty(self.config, "conjunction", {
+      get: () => conjunction,
+      set: (value?: string | null) => {
+        conjunction = value ?? defaultOptions.conjunction;
+      },
+    });
+    self.config.conjunction = conjunction;
 
     if (userConfig.mode === "time") {
       self.config.noCalendar = true;
