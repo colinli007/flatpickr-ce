@@ -570,8 +570,12 @@ span.flatpickr-weekday
     box-shadow: (-2.5*$dayMargin) 0 0 $selectedDayBackground,
       (2.5*$dayMargin) 0 0 $selectedDayBackground
 
+  // With showMonths > 1, the neighbouring months' days stay in the grid,
+  // invisible, to hold the cells around the month: keep them there
+  // against a page's .hidden { display: none } utility.
   &.hidden
     visibility hidden
+    display inline-block
 
 .rangeMode .flatpickr-day
   margin-top 1px
