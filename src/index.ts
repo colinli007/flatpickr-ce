@@ -2147,8 +2147,19 @@ function FlatpickrInstance(
       }
 
       if (self.mobileInput !== undefined) {
+        // focus() is what opens the picker on iOS, where showPicker() does
+        // nothing for these inputs
         self.mobileInput.focus();
-        self.mobileInput.click();
+        // click() doesn't open it in Firefox for Android (#2726). showPicker()
+        // is missing before Chrome 99, Firefox 101 and Safari 16 (and from
+        // TypeScript 4.1's DOM types) and throws where it can't open it, as
+        // without a user gesture, in a cross-origin iframe or on a disabled
+        // input: click() then, as before
+        try {
+          (self.mobileInput as any).showPicker();
+        } catch {
+          self.mobileInput.click();
+        }
       }
 
       triggerEvent("onOpen");

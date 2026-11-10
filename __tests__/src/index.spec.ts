@@ -3931,6 +3931,79 @@ describe("flatpickr", () => {
           expect(mobileInput.validity.stepMismatch).toBe(false);
         });
       });
+
+      describe("open() #2726", () => {
+        // showPicker() on the native input, as jsdom's inputs have none, and
+        // a listener for the click() open() falls back to
+        function mockNativeInput(showPicker?: () => void) {
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+          if (showPicker) (mobileInput as any).showPicker = showPicker;
+          const click = jest.fn();
+          mobileInput.addEventListener("click", click);
+          return { mobileInput, click };
+        }
+
+        it("asks the native input for its picker", () => {
+          mockAgent = "Android";
+          const onOpen = jest.fn();
+          createInstance({ onOpen });
+          const showPicker = jest.fn();
+          const { mobileInput, click } = mockNativeInput(showPicker);
+
+          fp.open();
+
+          expect(document.activeElement).toBe(mobileInput);
+          expect(showPicker).toHaveBeenCalledTimes(1);
+          expect(click).not.toHaveBeenCalled();
+          expect(onOpen).toHaveBeenCalledTimes(1);
+        });
+
+        it("asks for it from a data-toggle element", () => {
+          const element = document.createElement("div");
+          element.innerHTML = "<input data-input><button data-toggle></button>";
+          document.body.appendChild(element);
+
+          mockAgent = "Android";
+          createInstance({ wrap: true }, element);
+          const showPicker = jest.fn();
+          const { mobileInput, click } = mockNativeInput(showPicker);
+
+          clickOn(element.querySelector("button") as HTMLButtonElement);
+
+          expect(document.activeElement).toBe(mobileInput);
+          expect(showPicker).toHaveBeenCalledTimes(1);
+          expect(click).not.toHaveBeenCalled();
+
+          fp.destroy();
+          element.remove();
+        });
+
+        it("clicks the native input where there is no showPicker()", () => {
+          mockAgent = "Android";
+          createInstance();
+          const { mobileInput, click } = mockNativeInput();
+
+          fp.open();
+
+          expect(document.activeElement).toBe(mobileInput);
+          expect(click).toHaveBeenCalledTimes(1);
+        });
+
+        it("clicks the native input when showPicker() refuses", () => {
+          mockAgent = "Android";
+          const onOpen = jest.fn();
+          createInstance({ onOpen });
+          // as without a user gesture; it throws in a cross-origin iframe and
+          // on a disabled input too
+          const { click } = mockNativeInput(() => {
+            throw new DOMException("No user gesture", "NotAllowedError");
+          });
+
+          expect(() => fp.open()).not.toThrow();
+          expect(click).toHaveBeenCalledTimes(1);
+          expect(onOpen).toHaveBeenCalledTimes(1);
+        });
+      });
     });
 
     it("selectDate() + onChange() through GUI", () => {
