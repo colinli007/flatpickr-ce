@@ -481,11 +481,23 @@ function FlatpickrInstance(
 
     if (!self.config.static) listen(win, "resize", debounce(onResize, 50));
 
-    listen(
-      doc,
-      win.ontouchstart !== undefined ? "touchstart" : "mousedown",
-      documentClick
-    );
+    // A mouse press closes the calendar as it lands. On a touch screen, a
+    // touch or pen press closes it on a tap, which ends in pointerup; one that
+    // scrolls or zooms the page ends in pointercancel instead. touchstart
+    // can't tell the two apart: it's left only where pointer events are missing.
+    // The mouse is heard on pointerdown, not mousedown, which a tap also sends
+    // after its pointerup.
+    if (win.ontouchstart === undefined) listen(doc, "mousedown", documentClick);
+    else if (win.PointerEvent === undefined)
+      listen(doc, "touchstart", documentClick);
+    else {
+      listen(doc, "pointerdown", (e: PointerEvent) => {
+        if (e.pointerType === "mouse") documentClick(e);
+      });
+      listen(doc, "pointerup", (e: PointerEvent) => {
+        if (e.pointerType !== "mouse") documentClick(e);
+      });
+    }
     listen(doc, "focus", documentClick, { capture: true });
   }
 

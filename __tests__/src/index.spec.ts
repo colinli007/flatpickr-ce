@@ -2218,7 +2218,52 @@ describe("flatpickr", () => {
         expect(bound()).toEqual([]);
       });
 
-      it("binds touchstart instead of mousedown on touch screens", () => {
+      describe("on touch screens with pointer events (flatpickr#2680)", () => {
+        const openOnTouchScreen = () => {
+          (window as any).ontouchstart = null;
+          (window as any).PointerEvent = MouseEvent;
+          createInstance();
+          fp.open();
+          delete (window as any).ontouchstart;
+          delete (window as any).PointerEvent;
+        };
+        const press = (type: string, pointerType: string) =>
+          simulate(type, document.body, { pointerType }, MouseEvent);
+
+        it("binds pointerdown and pointerup instead of mousedown", () => {
+          openOnTouchScreen();
+          expect(bound()).toEqual([
+            "document focus capture",
+            "document pointerdown",
+            "document pointerup",
+            "window resize",
+          ]);
+        });
+
+        it("closes on a mouse's pointerdown", () => {
+          openOnTouchScreen();
+          press("pointerup", "mouse");
+          expect(fp.isOpen).toBe(true);
+
+          press("pointerdown", "mouse");
+          expect(fp.isOpen).toBe(false);
+          expect(bound()).toEqual([]);
+        });
+
+        it("closes on a touch's or a pen's pointerup", () => {
+          ["touch", "pen"].forEach((pointerType) => {
+            openOnTouchScreen();
+            press("pointerdown", pointerType);
+            expect(fp.isOpen).toBe(true);
+
+            press("pointerup", pointerType);
+            expect(fp.isOpen).toBe(false);
+            expect(bound()).toEqual([]);
+          });
+        });
+      });
+
+      it("binds touchstart on touch screens without pointer events", () => {
         (window as any).ontouchstart = null;
         createInstance();
         fp.open();
@@ -2259,6 +2304,90 @@ describe("flatpickr", () => {
 
         expect(fp.isOpen).toBe(false);
         expect(bound()).toEqual([]);
+      });
+    });
+
+    describe("touches outside on touch screens (flatpickr#2680)", () => {
+      // jsdom has neither touch nor pointer events, and open() picks the
+      // listener, so fake them while opening
+      const openOnTouchScreen = () => {
+        (window as any).ontouchstart = null;
+        (window as any).PointerEvent = MouseEvent;
+        fp.open();
+        delete (window as any).ontouchstart;
+        delete (window as any).PointerEvent;
+      };
+
+      // dispatch on target the events a browser sends for a touch, in order;
+      // the compatibility mouse events aren't pointer events, so the
+      // pointerType they carry here is ignored
+      const touch = (target: Node, types: string[]) =>
+        types.forEach((type) =>
+          simulate(type, target, { pointerType: "touch" }, MouseEvent)
+        );
+
+      it("stays open while a touch outside scrolls the page, closes on a tap", () => {
+        const onClose = jest.fn();
+        createInstance({ mode: "range", onClose });
+        openOnTouchScreen();
+        clickOn(fp.days.childNodes[15]);
+
+        // the browser takes the touch over for scrolling and cancels it
+        touch(document.body, [
+          "pointerdown",
+          "touchstart",
+          "touchmove",
+          "pointercancel",
+          "touchmove",
+          "touchend",
+        ]);
+        expect(fp.isOpen).toBe(true);
+        expect(onClose).not.toHaveBeenCalled();
+        expect(fp.selectedDates.length).toBe(1);
+
+        touch(document.body, [
+          "pointerdown",
+          "touchstart",
+          "pointerup",
+          "touchend",
+          "mousedown",
+          "mouseup",
+          "click",
+        ]);
+        expect(fp.isOpen).toBe(false);
+        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(fp.selectedDates.length).toBe(0);
+      });
+
+      it("commits a typed date on a tap outside before the tapped button's click (#2941)", () => {
+        const button = document.createElement("button");
+        document.body.appendChild(button);
+        const order: string[] = [];
+        button.addEventListener("click", () =>
+          order.push(`click ${fp.input.value}`)
+        );
+        createInstance({
+          allowInput: true,
+          onChange: () => order.push("onChange"),
+          onClose: () => order.push("onClose"),
+        });
+        openOnTouchScreen();
+        fp.input.focus();
+        fp.input.value = "1999-12-31";
+
+        touch(button, [
+          "pointerdown",
+          "touchstart",
+          "pointerup",
+          "touchend",
+          "mousedown",
+        ]);
+        button.focus(); // what the compatibility mousedown does
+        touch(button, ["mouseup", "click"]);
+
+        expect(order).toEqual(["onClose", "onChange", "click 1999-12-31"]);
+
+        button.remove();
       });
     });
 
