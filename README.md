@@ -177,6 +177,8 @@ A few options are inserted into the calendar as HTML, not text: `prevArrow`, `ne
 
 Bug reports, triage and pull requests are all welcome. Fixes that are still open upstream can be reopened here.
 
+To report a bug, start from [this fiddle](https://jsfiddle.net/gh/get/library/pure/colinli007/flatpickr-ce/tree/main/.github/repro), which loads the latest flatpickr-ce from jsDelivr: reproduce the bug there, save it and link it in the issue.
+
 ```sh
 npm install
 npm test          # typecheck + unit tests
