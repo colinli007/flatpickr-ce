@@ -71,6 +71,8 @@ function weekSelectPlugin(): Plugin<PlusWeeks> {
     }
 
     return {
+      // the native date input can't pick a week
+      disableMobile: true,
       onValueUpdate: highlightWeek,
       onMonthChange: highlightWeek,
       onYearChange: highlightWeek,
