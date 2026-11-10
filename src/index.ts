@@ -160,8 +160,10 @@ function FlatpickrInstance(
 
       However, most browsers are not Safari and positioning is expensive when used
       in scale. https://github.com/chmln/flatpickr/issues/1096
+
+      The page lays an inline calendar out: open() never positions it (#2787)
     */
-    if (!self.isMobile && isSafari) {
+    if (!self.isMobile && !self.config.inline && isSafari) {
       positionCalendar();
     }
 

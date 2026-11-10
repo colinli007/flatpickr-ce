@@ -6508,6 +6508,42 @@ describe("flatpickr", () => {
         expect(fp.calendarContainer.classList.contains("arrowTop")).toBe(true);
       }
     });
+
+    describe("in Safari, before the calendar opens (flatpickr#2787)", () => {
+      beforeEach(() => {
+        mockAgent =
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15";
+      });
+
+      it("still positions a popup calendar", () => {
+        for (const config of [{}, { static: true }]) {
+          const position = jest.fn();
+          createInstance({ ...config, position });
+          expect(position).toHaveBeenCalledTimes(1);
+        }
+      });
+
+      it("leaves an inline calendar to the page", () => {
+        const container = document.createElement("div");
+        document.body.appendChild(container);
+
+        for (const config of [{}, { appendTo: container }]) {
+          const onPreCalendarPosition = jest.fn();
+          const fp = createInstance({
+            ...config,
+            inline: true,
+            onPreCalendarPosition,
+          });
+          expect(hasArrow(fp)).toBe(false);
+          expect(onPreCalendarPosition).not.toHaveBeenCalled();
+
+          const position = jest.fn();
+          createInstance({ ...config, inline: true, position });
+          expect(position).not.toHaveBeenCalled();
+        }
+        container.remove();
+      });
+    });
   });
 
   describe("server-side rendering", () => {
