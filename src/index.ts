@@ -1475,11 +1475,14 @@ function FlatpickrInstance(
     }
 
     for (let i = self.config.showMonths; i--; ) {
-      self.weekdayContainer.children[i].innerHTML = `
-      <span class='flatpickr-weekday'>
-        ${weekdays.join("</span><span class='flatpickr-weekday'>")}
-      </span>
-      `;
+      const container = self.weekdayContainer.children[i] as HTMLDivElement;
+      clearNode(container);
+
+      weekdays.forEach((weekday) =>
+        container.appendChild(
+          createElement<HTMLSpanElement>("span", "flatpickr-weekday", weekday)
+        )
+      );
     }
   }
 

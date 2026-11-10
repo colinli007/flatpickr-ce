@@ -5236,6 +5236,45 @@ describe("flatpickr", () => {
 
       expect(fp.currentMonth).toEqual(3);
     });
+
+    describe("weekday labels without surrounding whitespace (flatpickr#2749)", () => {
+      const weekdayRows = () =>
+        Array.from(fp.weekdayContainer.children, (container) =>
+          Array.from(container.childNodes, (node) =>
+            node instanceof HTMLSpanElement &&
+            node.className === "flatpickr-weekday"
+              ? node.textContent
+              : `${node.nodeName}:${JSON.stringify(node.textContent)}`
+          )
+        );
+
+      it("writes one span per weekday, holding only its name", () => {
+        createInstance();
+        expect(weekdayRows()).toEqual([English.weekdays.shorthand]);
+      });
+
+      it("with showMonths and firstDayOfWeek", () => {
+        createInstance({ showMonths: 2, locale: { firstDayOfWeek: 1 } });
+        const monday = [
+          ...English.weekdays.shorthand.slice(1),
+          English.weekdays.shorthand[0],
+        ];
+        expect(weekdayRows()).toEqual([monday, monday]);
+      });
+
+      it("after set('locale') and set('showMonths')", () => {
+        createInstance();
+        fp.set("locale", French);
+        const french = [
+          ...French.weekdays.shorthand.slice(1),
+          French.weekdays.shorthand[0],
+        ];
+        expect(weekdayRows()).toEqual([french]);
+
+        fp.set("showMonths", 3);
+        expect(weekdayRows()).toEqual([french, french, french]);
+      });
+    });
   });
 
   describe("Localization", () => {
