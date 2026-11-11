@@ -362,6 +362,7 @@ describe("monthSelect", () => {
 
     it("stays on the year of an end picked before the start", () => {
       const fp = createInstance({ mode: "range" });
+      fp.open();
       fp.changeYear(2025);
       getMonthCells(fp)[5].dispatchEvent(new MouseEvent("click"));
       fp.changeYear(2024);
@@ -372,6 +373,8 @@ describe("monthSelect", () => {
         new Date(2024, 2, 1),
         new Date(2025, 5, 1),
       ]);
+      // closing on the pick keeps the year too (flatpickr#2835)
+      expect(fp.isOpen).toBe(false);
       expect(fp.currentYear).toEqual(2024);
     });
   });
@@ -622,6 +625,20 @@ describe("monthSelect", () => {
       expect(fp.currentYearElement.value).toEqual("2025");
       expect(cellYears(fp)).toEqual(Array(12).fill(2025));
       expect(disabledMonths(fp)).toEqual([6, 7, 8, 9, 10, 11]);
+    });
+
+    it("goes back to the selected month's year on close (flatpickr#2835)", () => {
+      const fp = createInstance({ defaultDate: new Date(2024, 2, 1) });
+
+      fp.open();
+      fp.nextMonthNav.dispatchEvent(new MouseEvent("click"));
+      fp.nextMonthNav.dispatchEvent(new MouseEvent("click"));
+      expect(cellYears(fp)).toEqual(Array(12).fill(2026));
+      fp.close();
+
+      expect(fp.currentYearElement.value).toEqual("2024");
+      expect(cellYears(fp)).toEqual(Array(12).fill(2024));
+      expect(selectedMonths(fp)).toEqual(["March"]);
     });
 
     describe("selected month", () => {

@@ -311,6 +311,27 @@ describe("rangePlugin", () => {
       expect(document.activeElement).toBe(secondInput);
       expect(onOpen).toHaveBeenCalledTimes(1);
     });
+
+    it("opens on the end of either input after browsing away (flatpickr#2835)", () => {
+      const view = () => [fp.currentYear, fp.currentMonth];
+      fp.setDate(["2017-10-20", "2017-12-05"]);
+
+      focusAndClick(secondInput);
+      fp.changeMonth(3);
+      document.body.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true })
+      );
+      expect(view()).toEqual([2017, 11]);
+
+      focusAndClick(input);
+      expect(view()).toEqual([2017, 9]);
+      fp.changeMonth(-5);
+      fp.close();
+      expect(view()).toEqual([2017, 9]);
+
+      focusAndClick(secondInput);
+      expect(view()).toEqual([2017, 11]);
+    });
   });
 
   describe("anchoring", () => {
@@ -843,13 +864,19 @@ describe("rangePlugin", () => {
 
     it("keeps a same-day range and the view when clicking outside without typing", () => {
       const onMonthChange = jest.fn();
-      create({ defaultDate: ["2017-10-20", "2017-10-20"], onMonthChange });
+      // with the range still in view, closing leaves the view (flatpickr#2835)
+      // and only a commit would move it
+      create({
+        defaultDate: ["2017-10-20", "2017-10-20"],
+        showMonths: 2,
+        onMonthChange,
+      });
       focus(input);
-      fp.changeMonth(1);
+      fp.changeMonth(-1);
       clickOutside();
 
       expect(fp.selectedDates).toEqual(range(20, 20));
-      expect(fp.currentMonth).toEqual(10);
+      expect(fp.currentMonth).toEqual(8);
       expect(onMonthChange).toHaveBeenCalledTimes(1);
       expect(onChange).not.toHaveBeenCalled();
     });

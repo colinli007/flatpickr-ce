@@ -606,6 +606,16 @@ function FlatpickrInstance(
   }
 
   /**
+   * Whether the date's month is one of the months the calendar shows
+   */
+  function isMonthShown(date: Date) {
+    const firstMonth = self.currentYear * 12 + self.currentMonth;
+    const month = date.getFullYear() * 12 + date.getMonth();
+
+    return month >= firstMonth && month < firstMonth + self.config.showMonths;
+  }
+
+  /**
    * Set the calendar view to a particular date.
    * @param {Date} jumpDate the date to set the view to
    * @param {boolean} triggerChange if change events should be triggered
@@ -1552,6 +1562,21 @@ function FlatpickrInstance(
   }
 
   function close() {
+    // A calendar that closes showing none of its selected dates goes back to
+    // latestSelectedDateObj (#2835); with none selected there is nowhere to go
+    // back to, and one that isn't open, as an inline one, keeps its view. As
+    // browsing does, the move is announced once the days are rebuilt, and
+    // before onClose, which may move the view itself
+    if (
+      self.isOpen &&
+      self.selectedDates.length > 0 &&
+      !self.selectedDates.some(isMonthShown)
+    ) {
+      const { currentYear, currentMonth } = self;
+      jumpToDate();
+      triggerViewChange(currentYear, currentMonth);
+    }
+
     self.isOpen = false;
     unbindOpenEvents();
 
@@ -2671,14 +2696,8 @@ function FlatpickrInstance(
       target.dateObj.getTime()
     ));
 
-    const firstMonth = self.currentYear * 12 + self.currentMonth;
-    const selectedMonth =
-      selectedDate.getFullYear() * 12 + selectedDate.getMonth();
-
     const shouldChangeMonth =
-      (selectedMonth < firstMonth ||
-        selectedMonth > firstMonth + self.config.showMonths - 1) &&
-      self.config.mode !== "range";
+      !isMonthShown(selectedDate) && self.config.mode !== "range";
 
     self.selectedDateElem = target;
 

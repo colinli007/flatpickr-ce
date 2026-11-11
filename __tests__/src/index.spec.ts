@@ -3005,6 +3005,285 @@ describe("flatpickr", () => {
       });
     });
 
+    describe("reopening after browsing other months (flatpickr#2835)", () => {
+      const view = () => [fp.currentYear, fp.currentMonth];
+      const browse = (months: number) => {
+        for (let i = Math.abs(months); i--; )
+          clickOn(months > 0 ? fp.nextMonthNav : fp.prevMonthNav);
+      };
+      const pressEscape = () =>
+        simulate(
+          "keydown",
+          fp.calendarContainer,
+          { keyCode: 27 },
+          KeyboardEvent
+        );
+      const pick = (date: string) =>
+        clickOn(
+          Array.from(
+            fp.daysContainer!.querySelectorAll<DayElement>(".flatpickr-day")
+          ).find(
+            (day) =>
+              !day.classList.contains("hidden") &&
+              fp.formatDate(day.dateObj, "Y-m-d") === date
+          )!
+        );
+
+      it.each([{}, { static: true }])(
+        "shows the selected date again after closing without a pick (%p)",
+        (config) => {
+          createInstance({ ...config, defaultDate: "2025-03-10" });
+
+          fp.open();
+          browse(3);
+          pressOutside();
+          expect(view()).toEqual([2025, 2]);
+
+          fp.open();
+          browse(-14);
+          pressEscape();
+          expect(fp.isOpen).toBe(false);
+          expect(view()).toEqual([2025, 2]);
+        }
+      );
+
+      it("shows the date picked last in multiple mode", () => {
+        createInstance({ mode: "multiple", defaultDate: "2025-03-10" });
+
+        fp.open();
+        browse(2);
+        pick("2025-05-20");
+        browse(5);
+        pressOutside();
+
+        expect(view()).toEqual([2025, 4]);
+      });
+
+      it("shows the end picked of a range left with one end on Escape", () => {
+        createInstance({ mode: "range", now: "2025-03-10" });
+
+        fp.open();
+        browse(1);
+        pick("2025-04-20");
+        browse(4);
+        pressEscape();
+
+        expect(fp.selectedDates.length).toBe(1);
+        expect(view()).toEqual([2025, 3]);
+      });
+
+      it("keeps a range picked on a day of the next month in view", () => {
+        createInstance({ mode: "range", now: "2025-11-10" });
+
+        fp.open();
+        pick("2025-11-28");
+        pick("2025-12-03");
+
+        expect(fp.isOpen).toBe(false);
+        expect(view()).toEqual([2025, 10]);
+      });
+
+      describe("with nothing selected", () => {
+        it("keeps the view onReady moves to, and one browsed to (flatpickr#2685)", () => {
+          createInstance({
+            now: "2026-11-10",
+            onReady: (_, __, instance) => instance.jumpToDate("2024-11-01"),
+          });
+
+          fp.open();
+          pressOutside();
+          fp.open();
+          expect(view()).toEqual([2024, 10]);
+
+          browse(2);
+          pressOutside();
+          expect(view()).toEqual([2025, 0]);
+        });
+
+        it("keeps the view a later minDate moves to", () => {
+          createInstance({ now: "2026-11-10", minDate: "2027-03-10" });
+          fp.set("minDate", "2027-01-05");
+          expect(view()).toEqual([2027, 0]);
+
+          fp.open();
+          pressOutside();
+
+          expect(view()).toEqual([2027, 0]);
+        });
+      });
+
+      it("announces the view it goes back to once built, before onClose", () => {
+        const events: string[] = [];
+        createInstance({
+          defaultDate: "2025-03-10",
+          onDaysBuilt: () => events.push("days"),
+          onMonthChange: () => events.push("month"),
+          onYearChange: () => events.push("year"),
+          onClose: () => events.push("close"),
+        });
+
+        fp.open();
+        browse(10);
+        events.length = 0;
+        pressOutside();
+
+        expect(view()).toEqual([2025, 2]);
+        expect(events).toEqual(["days", "year", "month", "close"]);
+      });
+
+      it("keeps the days onMonthChange marks on the month it goes back to", () => {
+        createInstance({
+          defaultDate: "2025-03-10",
+          onMonthChange: (_, __, instance) =>
+            instance.days
+              .querySelector(".flatpickr-day:not(.prevMonthDay)")!
+              .classList.add("marked"),
+        });
+
+        fp.open();
+        browse(3);
+        pressOutside();
+        fp.open();
+
+        const marked = fp.days.querySelectorAll<DayElement>(".marked");
+        expect(
+          Array.from(marked, (day) => fp.formatDate(day.dateObj, "Y-m-d"))
+        ).toEqual(["2025-03-01"]);
+      });
+
+      it("returns the view before onClose, which can move it", () => {
+        const seen: number[][] = [];
+        createInstance({
+          defaultDate: "2025-03-10",
+          onClose: (_, __, instance) => {
+            seen.push([instance.currentYear, instance.currentMonth]);
+            instance.changeMonth(1);
+          },
+        });
+
+        fp.open();
+        browse(3);
+        pressOutside();
+
+        expect(seen).toEqual([[2025, 2]]);
+        expect(view()).toEqual([2025, 3]);
+      });
+
+      it("survives onClose destroying the instance", () => {
+        const consoleError = jest.spyOn(console, "error").mockImplementation();
+        createInstance({
+          defaultDate: "2025-03-10",
+          onClose: (_, __, instance) => instance.destroy(),
+        });
+
+        fp.open();
+        browse(3);
+        pressOutside();
+
+        expect(consoleError).not.toHaveBeenCalled();
+        consoleError.mockRestore();
+      });
+
+      it("keeps a view the page moves to before open() for that opening", () => {
+        createInstance({ defaultDate: "2025-03-10" });
+
+        fp.open();
+        browse(3);
+        pressOutside();
+        fp.jumpToDate("2030-01-01");
+        fp.close();
+        fp.open();
+        expect(view()).toEqual([2030, 0]);
+
+        pressOutside();
+        expect(view()).toEqual([2025, 2]);
+      });
+
+      it("leaves an inline calendar where it was browsed to", () => {
+        createInstance({ inline: true, defaultDate: "2025-03-10" });
+
+        browse(3);
+        fp.close();
+
+        expect(view()).toEqual([2025, 5]);
+      });
+
+      describe("with showMonths: 2", () => {
+        it("keeps the view while it shows the selected date", () => {
+          createInstance({ showMonths: 2, defaultDate: "2026-01-15" });
+
+          fp.open();
+          browse(-1);
+          pressOutside();
+
+          expect(view()).toEqual([2025, 11]);
+        });
+
+        it("starts the view on the selected date once it doesn't show it", () => {
+          createInstance({ showMonths: 2, defaultDate: "2026-01-15" });
+
+          fp.open();
+          browse(-2);
+          pressOutside();
+
+          expect(view()).toEqual([2026, 0]);
+        });
+
+        it("keeps a range picked across the two months in view", () => {
+          createInstance({
+            mode: "range",
+            showMonths: 2,
+            now: "2025-11-10",
+          });
+
+          fp.open();
+          pick("2025-11-28");
+          pick("2025-12-03");
+
+          expect(fp.isOpen).toBe(false);
+          expect(view()).toEqual([2025, 10]);
+        });
+      });
+
+      it("keeps the view where a value emptied with allowInput leaves it", () => {
+        const events: string[] = [];
+        createInstance({
+          allowInput: true,
+          defaultDate: "2016-01-20",
+          now: "2016-05-10",
+          onMonthChange: () => events.push("month"),
+          onYearChange: () => events.push("year"),
+        });
+
+        fp.open();
+        fp.input.value = "";
+        pressOutside();
+
+        expect(fp.selectedDates).toEqual([]);
+        expect(view()).toEqual([2016, 0]);
+        expect(events).toEqual([]);
+      });
+
+      it("shows a date typed with allowInput and committed by clicking outside", () => {
+        const events: string[] = [];
+        createInstance({
+          allowInput: true,
+          defaultDate: "2016-01-20",
+          onMonthChange: () => events.push("month"),
+          onYearChange: () => events.push("year"),
+        });
+
+        fp.open();
+        browse(4);
+        events.length = 0;
+        fp.input.value = "2016-03-05";
+        pressOutside();
+
+        expect(view()).toEqual([2016, 2]);
+        expect(events).toEqual(["month"]);
+      });
+    });
+
     it("triggers monthChange on jump", (done) => {
       const fp = createInstance({
         defaultDate: new Date(2019, 3, 17),
