@@ -276,6 +276,47 @@ describe("flatpickr", () => {
         expect(fp.isEnabled(new Date(2016, 9, 21))).toBe(true);
       });
     });
+
+    describe("wrap without a data-input element inside (flatpickr#2404)", () => {
+      it.each([{}, { altInputClass: "custom" }, { altInput: true }])(
+        "fails with an error that says so (%p)",
+        (config) => {
+          const consoleError = jest
+            .spyOn(console, "error")
+            .mockImplementation();
+          const errorHandler = jest.fn();
+          const element = document.createElement("div");
+          element.innerHTML = "<input><button data-toggle></button>";
+
+          const instances = flatpickr(element, {
+            ...config,
+            wrap: true,
+            errorHandler,
+          });
+
+          expect(instances).toEqual([]);
+          expect(element._flatpickr).toBeUndefined();
+          expect(errorHandler).not.toHaveBeenCalled();
+          expect(consoleError).toHaveBeenCalledTimes(1);
+          expect(consoleError).toHaveBeenCalledWith(
+            new Error(
+              'flatpickr: "wrap" needs an input with the data-input attribute inside the element'
+            )
+          );
+          consoleError.mockRestore();
+        }
+      );
+
+      it("gives the altInput the classes of the data-input element", () => {
+        const element = document.createElement("div");
+        element.innerHTML = '<input class="form-control" data-input>';
+
+        createInstance({ wrap: true, altInput: true }, element);
+
+        expect(fp.input).toBe(element.querySelector("input"));
+        expect(fp.altInput?.classList.contains("form-control")).toBe(true);
+      });
+    });
   });
 
   describe("datetimestring parser", () => {

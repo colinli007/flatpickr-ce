@@ -2445,9 +2445,19 @@ function FlatpickrInstance(
   }
 
   function getInputElem() {
-    return self.config.wrap
-      ? (element.querySelector("[data-input]") as HTMLInputElement)
-      : (element as HTMLInputElement);
+    if (!self.config.wrap) return element as HTMLInputElement;
+
+    // parseConfig() reads the input before setupInputs() does: without one,
+    // init can't go on, and flatpickr() logs this rather than a TypeError
+    const input = element.querySelector(
+      "[data-input]"
+    ) as HTMLInputElement | null;
+    if (!input)
+      throw new Error(
+        'flatpickr: "wrap" needs an input with the data-input attribute inside the element'
+      );
+
+    return input;
   }
 
   function setupLocale() {
@@ -2985,12 +2995,6 @@ function FlatpickrInstance(
 
   function setupInputs() {
     self.input = getInputElem();
-
-    /* istanbul ignore next */
-    if (!self.input) {
-      self.config.errorHandler(new Error("Invalid input element specified"));
-      return;
-    }
 
     // hack: store previous type to restore it after destroy()
     (self.input as any)._type = (self.input as any).type;
