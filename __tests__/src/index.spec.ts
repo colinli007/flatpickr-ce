@@ -3877,6 +3877,20 @@ describe("flatpickr", () => {
       });
     });
 
+    // maxlength isn't allowed on number inputs, and browsers ignore it there
+    it("gives the time inputs no maxlength (flatpickr#2372)", () => {
+      createInstance({ enableTime: true, enableSeconds: true });
+
+      for (const input of [
+        fp.hourElement!,
+        fp.minuteElement!,
+        fp.secondElement!,
+      ]) {
+        expect(input.type).toEqual("number");
+        expect(input.hasAttribute("maxlength")).toBe(false);
+      }
+    });
+
     describe("mobile calendar", () => {
       describe(".isMobile", () => {
         it("returns true", () => {

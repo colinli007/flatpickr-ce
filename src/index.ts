@@ -1359,11 +1359,9 @@ function FlatpickrInstance(
 
     self.hourElement.setAttribute("min", self.config.time_24hr ? "0" : "1");
     self.hourElement.setAttribute("max", self.config.time_24hr ? "23" : "12");
-    self.hourElement.setAttribute("maxlength", "2");
 
     self.minuteElement.setAttribute("min", "0");
     self.minuteElement.setAttribute("max", "59");
-    self.minuteElement.setAttribute("maxlength", "2");
 
     self.timeContainer.appendChild(hourInput);
     self.timeContainer.appendChild(separator);
@@ -1390,7 +1388,6 @@ function FlatpickrInstance(
 
       self.secondElement.setAttribute("min", "0");
       self.secondElement.setAttribute("max", "59");
-      self.secondElement.setAttribute("maxlength", "2");
 
       self.timeContainer.appendChild(
         createElement("span", "flatpickr-time-separator", ":")
