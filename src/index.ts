@@ -1197,8 +1197,6 @@ function FlatpickrInstance(
         const selectedMonth = parseInt(target.value, 10);
 
         self.changeMonth(selectedMonth - self.currentMonth);
-
-        triggerEvent("onMonthChange");
       });
 
       buildMonthSwitch();

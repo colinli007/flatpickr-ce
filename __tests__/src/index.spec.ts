@@ -5665,6 +5665,20 @@ describe("flatpickr", () => {
       expect(fp.currentMonth).toEqual(3);
     });
 
+    it("fires onMonthChange once when the dropdown changes month (flatpickr#2398)", () => {
+      const monthsShown: number[] = [];
+      createInstance({
+        defaultDate: new Date(2019, 1, 1),
+        onMonthChange: (_, __, instance) =>
+          monthsShown.push(instance.currentMonth),
+      });
+
+      fp.monthsDropdownContainer.value = "3";
+      simulate("change", fp.monthsDropdownContainer);
+
+      expect(monthsShown).toEqual([3]);
+    });
+
     describe("weekday labels without surrounding whitespace (flatpickr#2749)", () => {
       const weekdayRows = () =>
         Array.from(fp.weekdayContainer.children, (container) =>
