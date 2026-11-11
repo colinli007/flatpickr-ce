@@ -6102,6 +6102,125 @@ describe("flatpickr", () => {
       expect(consoleError).not.toHaveBeenCalled();
       consoleError.mockRestore();
     });
+
+    describe("after picking a day (#2791)", () => {
+      const selected = () =>
+        fp.selectedDates.map((d) => fp.formatDate(d, "Y-m-d"));
+
+      it.each([{}, { inline: true }])(
+        "stays on the day picked in multiple mode (%p)",
+        (config) => {
+          startOn(
+            { ...config, mode: "multiple", defaultDate: "2026-01-15" },
+            "2026-01-10"
+          );
+
+          press(13);
+          expect(focusedDate()).toBe("2026-01-10");
+
+          press(39);
+          press(13);
+          expect(focusedDate()).toBe("2026-01-11");
+
+          // unpicking it
+          press(13);
+          expect(focusedDate()).toBe("2026-01-11");
+          expect(selected()).toEqual(["2026-01-15", "2026-01-10"]);
+        }
+      );
+
+      it("stays on a day clicked in multiple mode", () => {
+        startOn({ mode: "multiple", defaultDate: "2026-01-15" }, "2026-01-10");
+        clickOn(document.activeElement!);
+
+        expect(focusedDate()).toBe("2026-01-10");
+      });
+
+      it("stays on the day picked in single mode without closeOnSelect", () => {
+        startOn(
+          { closeOnSelect: false, defaultDate: "2026-01-15" },
+          "2026-01-10"
+        );
+        press(13);
+
+        expect(focusedDate()).toBe("2026-01-10");
+        expect(fp.isOpen).toBe(true);
+      });
+
+      it("stays on the day picked in multiple mode with several months", () => {
+        startOn(
+          {
+            mode: "multiple",
+            showMonths: 2,
+            defaultDate: ["2026-01-15", "2026-02-20"],
+          },
+          "2026-01-10"
+        );
+        press(13);
+        expect(focusedDate()).toBe("2026-01-10");
+
+        // unpicking one
+        dayElem("2026-02-20").focus();
+        press(13);
+        expect(focusedDate()).toBe("2026-02-20");
+        expect(selected()).toEqual(["2026-01-15", "2026-01-10"]);
+      });
+
+      it("stays on a day of the next month picked in multiple mode", () => {
+        startOn(
+          { mode: "multiple", defaultDate: ["2026-01-15", "2026-02-20"] },
+          "2026-02-01"
+        );
+        press(13);
+
+        expect(fp.currentMonth).toBe(1);
+        expect(focusedDate()).toBe("2026-02-01");
+      });
+
+      it("still focuses the hour input with enableTime", () => {
+        startOn(
+          { mode: "multiple", enableTime: true, defaultDate: "2026-01-15" },
+          "2026-01-10"
+        );
+        press(13);
+
+        expect(document.activeElement).toBe(fp.hourElement);
+      });
+
+      it("stays on the day picked in range mode, before the other end", () => {
+        startOn(
+          {
+            mode: "range",
+            closeOnSelect: false,
+            defaultDate: ["2026-01-20", "2026-01-25"],
+          },
+          "2026-01-12"
+        );
+        press(13);
+        expect(focusedDate()).toBe("2026-01-12");
+
+        press(37);
+        press(37);
+        press(13);
+        expect(focusedDate()).toBe("2026-01-10");
+        expect(selected()).toEqual(["2026-01-10", "2026-01-12"]);
+      });
+
+      // April 2026 starts on a Wednesday: its grid opens with hidden copies
+      // of the last days of March
+      it.each(["single", "multiple", "range"] as const)(
+        "stays on a day at the end of a month followed by another (%s)",
+        (mode) => {
+          startOn(
+            { mode, showMonths: 2, closeOnSelect: false, now: "2026-03-10" },
+            "2026-03-30"
+          );
+          press(13);
+
+          expect(document.activeElement).toBe(dayElem("2026-03-30"));
+        }
+      );
+    });
   });
 
   describe("events + hooks", () => {

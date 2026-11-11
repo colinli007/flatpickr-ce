@@ -2718,22 +2718,10 @@ function FlatpickrInstance(
 
     updateValue();
 
-    // maintain focus
-    if (
-      !shouldChangeMonth &&
-      self.config.mode !== "range" &&
-      self.config.showMonths === 1
-    )
-      focusOnDayElem(target);
-    else if (
-      self.selectedDateElem !== undefined &&
-      self.hourElement === undefined
-    ) {
-      self.selectedDateElem && self.selectedDateElem.focus();
-    }
-
-    if (self.hourElement !== undefined)
-      self.hourElement !== undefined && self.hourElement.focus();
+    // maintain focus: buildDays() has replaced the day picked, so its new
+    // cell is looked up by date (#2791)
+    if (self.hourElement !== undefined) self.hourElement.focus();
+    else focusOnDay(getVisibleDay(selectedDate), 0);
 
     if (self.config.closeOnSelect) {
       const single = self.config.mode === "single" && !self.config.enableTime;
