@@ -42,6 +42,44 @@ npm install flatpickr@npm:flatpickr-ce
 
 ## What's changed since flatpickr 4.6.13
 
+### 4.11.0
+
+- Closing the calendar after browsing to other months without picking a day no longer leaves it there: it reopens on the selected date ([#2835](https://github.com/flatpickr/flatpickr/issues/2835))
+- The focus stays on the day just picked, so keyboard users keep their place in multiple mode, with `closeOnSelect: false` and with several months shown ([#2791](https://github.com/flatpickr/flatpickr/issues/2791))
+- Picking a day that leaves the selection as it was no longer fires `onChange`, nor change and input on the input ([#2700](https://github.com/flatpickr/flatpickr/issues/2700))
+- On touch screens, scrolling or zooming the page no longer closes the calendar; a tap outside closes it when the finger lifts ([#2680](https://github.com/flatpickr/flatpickr/issues/2680))
+- `minDate`, `maxDate`, `enable` and `disable` strings with month or weekday names or AM/PM are read in the instance's locale ([#2721](https://github.com/flatpickr/flatpickr/issues/2721))
+- A custom locale whose `weekdays` or `months` gives only `shorthand` or only `longhand` no longer throws; the other list is the default locale's ([#2654](https://github.com/flatpickr/flatpickr/issues/2654), [#2693](https://github.com/flatpickr/flatpickr/issues/2693))
+- With rangePlugin and `enableTime`, a day picked anew for an end keeps that end's time, and the time inputs stay on it ([#2712](https://github.com/flatpickr/flatpickr/issues/2712))
+- With `enableTime` and no date selected, `set("minDate")` and `set("maxDate")` put the default time on the time inputs ([#1869](https://github.com/flatpickr/flatpickr/issues/1869))
+- `null` for `appendTo`, `formatDate` and `conjunction`, and `null` or `undefined` for `enable`, are taken as unset, as the docs list them ([#2725](https://github.com/flatpickr/flatpickr/issues/2725))
+- The calendar is positioned by its full height, padding and border included ([#2628](https://github.com/flatpickr/flatpickr/issues/2628))
+- With `showMonths` above 1, the days stay under their weekdays on a page whose `.hidden` rule sets `display: none`, as Tailwind's does ([#2822](https://github.com/flatpickr/flatpickr/issues/2822))
+- In the default styles and the airbnb theme, the month dropdown's options are drawn on the calendar's background, so they stay readable when the browser's popup is dark ([#2629](https://github.com/flatpickr/flatpickr/issues/2629))
+- The weekday labels carry no surrounding whitespace, so a page that preserves white-space shows the header aligned ([#2749](https://github.com/flatpickr/flatpickr/issues/2749))
+- In Safari, an inline calendar no longer gets an arrow or a popup's positioning at init ([#2787](https://github.com/flatpickr/flatpickr/issues/2787), [#1377](https://github.com/flatpickr/flatpickr/issues/1377))
+- weekSelect shows its calendar on mobile devices instead of failing to initialize ([#2824](https://github.com/flatpickr/flatpickr/issues/2824))
+- The native mobile input's value is put on its step, so a date with seconds no longer keeps its form from submitting ([#2393](https://github.com/flatpickr/flatpickr/issues/2393)); it takes the original input's tabindex instead of 1 ([#2672](https://github.com/flatpickr/flatpickr/issues/2672)); `open()` opens its picker with `showPicker()` where the browser has it, as Firefox for Android needs ([#2726](https://github.com/flatpickr/flatpickr/issues/2726))
+- With `enableSeconds`, the seconds input has an aria-label, the locale's new `secondAriaLabel` ([#2821](https://github.com/flatpickr/flatpickr/pull/2821))
+- In IE, committing typed input, hovering a range and stepping a time input with momentPlugin no longer throw ([#2709](https://github.com/flatpickr/flatpickr/issues/2709))
+- Locales: new Turkmen (`tk`), Basque (`eu`), Afrikaans (`af`) and Levantine Arabic (`ar_sy`); Greek is also registered as `el`, and Algerian Arabic as `ar_dz` instead of over `ar`; Mandarin writes AM and PM as 上午 and 下午, and Ukrainian ranges are separated with an em dash ([#2664](https://github.com/flatpickr/flatpickr/pull/2664), [#2706](https://github.com/flatpickr/flatpickr/pull/2706), [#2765](https://github.com/flatpickr/flatpickr/pull/2765), [#2774](https://github.com/flatpickr/flatpickr/pull/2774), [#2796](https://github.com/flatpickr/flatpickr/issues/2796), [#2830](https://github.com/flatpickr/flatpickr/pull/2830), [#2771](https://github.com/flatpickr/flatpickr/pull/2771), [#2826](https://github.com/flatpickr/flatpickr/pull/2826))
+- The bug report template and the Contributing section link a JSFiddle that runs flatpickr-ce ([#2759](https://github.com/flatpickr/flatpickr/issues/2759))
+
+Behavior changes to check when upgrading:
+
+- Mandarin's AM/PM is 上午/下午, and in a value saved with AM or PM under a format with `K`, the AM or PM is skipped and the hour read as `h` gives it. Replace them in stored values, or keep them with `locale: { ...Mandarin, amPM: ["AM", "PM"] }`.
+- Ukrainian ranges saved with " to " read as a same-day range of their first date, or a start alone with `enableTime`. Replace the separator in stored values, or keep it with `locale: { ...Ukrainian, rangeSeparator: " to " }`.
+- With ar-dz.js loaded, `locale: "ar"` no longer gives Algerian Arabic; use `"ar_dz"`.
+- Picking a day that leaves the selected dates and times as they were fires no `onChange`, change or input event, so plugins and handlers that act in `onChange` don't run for it; `onValueUpdate` still fires.
+- On windows with touch and pointer events, a tap outside closes the calendar on `pointerup`, and a mouse there closes it on `pointerdown`. A page that keeps the calendar open by stopping `touchstart` or `mousedown` has to stop `pointerup` or `pointerdown` instead, or list the element in `ignoredFocusElements`.
+- Closing after browsing away, with no selected date in view, moves the view back: the days are rebuilt, then `onYearChange` (when the year changes) and `onMonthChange` fire, before `onClose`.
+- Without time inputs, the day picked takes the focus; in single mode with `closeOnSelect`, it holds it for a moment before the input does.
+- With `enableTime` and no date selected, `set("minDate")` puts the default time on the time inputs instead of minDate's own time, so a picker whose `minDate` follows another picker's date no longer copies its time.
+- With the native mobile input and `enableTime` but not `enableSeconds`, its value has no seconds. It gets `tabindex="0"` instead of `"1"`. Where `showPicker()` exists, `open()` no longer dispatches a click on it, and uses up the page's user activation.
+- Weekday names in a custom locale are written as text, no longer parsed as HTML.
+- An explicit `conjunction: undefined` joins dates with ", " instead of ",".
+- TypeScript: the `Locale` type has a required `secondAriaLabel`; `CustomLocale` takes it as optional.
+
 ### 4.10.0
 
 - The native mobile input follows `set("minDate")` and `set("maxDate")`, and its `min` and `max` are a date and time with `enableTime` and a time with `noCalendar`, on a time its picker can offer ([#2860](https://github.com/flatpickr/flatpickr/issues/2860))
