@@ -184,7 +184,15 @@ function FlatpickrInstance(
   function setCalendarWidth() {
     const config = self.config;
 
-    if (config.weekNumbers === false && config.showMonths === 1) {
+    // the stylesheet's width fits one month without a week column; drop the
+    // widths written below, which set("showMonths", 1) would otherwise keep
+    // from more months (#2392). The week column is built once, and
+    // set("weekNumbers", false) doesn't remove it, so look at the DOM
+    if (self.weekWrapper === undefined && config.showMonths === 1) {
+      if (self.daysContainer !== undefined) {
+        self.daysContainer.style.removeProperty("width");
+        self.calendarContainer.style.removeProperty("width");
+      }
       return;
     } else if (config.noCalendar !== true) {
       win.requestAnimationFrame(function () {

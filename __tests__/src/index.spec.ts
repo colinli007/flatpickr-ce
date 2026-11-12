@@ -5717,6 +5717,59 @@ describe("flatpickr", () => {
         expect(weekdayRows()).toEqual([french, french, french]);
       });
     });
+
+    describe("width after set('showMonths') (flatpickr#2392)", () => {
+      const widths = () => [
+        fp.calendarContainer.style.width,
+        (fp.daysContainer as HTMLDivElement).style.width,
+      ];
+
+      it("goes back to the stylesheet's width for one month", () => {
+        createInstance({ showMonths: 2 });
+        jest.runAllTimers();
+        expect(widths()).not.toContain("");
+
+        fp.set("showMonths", 1);
+        jest.runAllTimers();
+        expect(widths()).toEqual(["", ""]);
+
+        fp.set("showMonths", 2);
+        jest.runAllTimers();
+        expect(widths()).not.toContain("");
+      });
+
+      it("still sizes one month with week numbers", () => {
+        createInstance({ showMonths: 2, weekNumbers: true });
+        jest.runAllTimers();
+
+        fp.set("showMonths", 1);
+        Object.defineProperty(fp.days, "offsetWidth", { value: 307 });
+        Object.defineProperty(fp.weekWrapper, "offsetWidth", { value: 39 });
+        jest.runAllTimers();
+        expect(widths()).toEqual(["347px", "308px"]);
+      });
+
+      it("keeps the week column's room once weekNumbers is set off", () => {
+        createInstance({ weekNumbers: true });
+        const size = () => {
+          Object.defineProperty(fp.days, "offsetWidth", {
+            value: 307,
+            configurable: true,
+          });
+          Object.defineProperty(fp.weekWrapper, "offsetWidth", {
+            value: 39,
+            configurable: true,
+          });
+        };
+        size();
+        jest.runAllTimers();
+
+        fp.set({ weekNumbers: false, showMonths: 1 });
+        size();
+        jest.runAllTimers();
+        expect(widths()).toEqual(["347px", "308px"]);
+      });
+    });
   });
 
   describe("Localization", () => {
