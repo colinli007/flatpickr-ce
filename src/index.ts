@@ -1167,7 +1167,6 @@ function FlatpickrInstance(
         self.config.shorthandCurrentMonth,
         self.l10n
       );
-      month.tabIndex = -1;
 
       if (self.currentMonth === i) {
         month.selected = true;

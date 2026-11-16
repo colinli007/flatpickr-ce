@@ -5679,6 +5679,24 @@ describe("flatpickr", () => {
       expect(monthsShown).toEqual([3]);
     });
 
+    it("leaves the dropdown's month options without a tabindex (flatpickr#2438)", () => {
+      createInstance({
+        defaultDate: new Date(2019, 5, 11),
+        minDate: new Date(2019, 4, 11),
+      });
+
+      const tabindexes = () =>
+        Array.from(fp.monthsDropdownContainer.options, (option) =>
+          option.getAttribute("tabindex")
+        );
+
+      expect(tabindexes()).toEqual(Array(8).fill(null));
+
+      fp.changeYear(2020);
+      expect(tabindexes()).toEqual(Array(12).fill(null));
+      expect(fp.monthsDropdownContainer.tabIndex).toEqual(-1);
+    });
+
     describe("weekday labels without surrounding whitespace (flatpickr#2749)", () => {
       const weekdayRows = () =>
         Array.from(fp.weekdayContainer.children, (container) =>
