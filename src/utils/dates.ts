@@ -190,7 +190,10 @@ export const duration = {
 /**
  * The default time for a date on the given day. minDate and maxDate hold it
  * only on their own day, and only when set with a time: a date-only limit
- * leaves its whole day open, as for the time inputs (setHoursFromInputs)
+ * leaves its whole day open, as for the time inputs (setHoursFromInputs).
+ * minTime and maxTime hold it on every day, as they do the time inputs: an
+ * overnight window, minTime after maxTime, moves it to minTime only from the
+ * hours between the two
  */
 export function getDefaultHours(config: ParsedOptions, date: Date) {
   let hours = config.defaultHour;
@@ -202,31 +205,51 @@ export function getDefaultHours(config: ParsedOptions, date: Date) {
     compareDates(date, limit) === 0 &&
     (limit.getHours() > 0 || limit.getMinutes() > 0 || limit.getSeconds() > 0);
 
-  if (holdsTime(config.minDate)) {
-    const minHour = config.minDate.getHours();
-    const minMinutes = config.minDate.getMinutes();
-    const minSeconds = config.minDate.getSeconds();
-
-    if (hours < minHour) {
-      hours = minHour;
+  const holdAbove = (limit: Date) => {
+    hours = Math.max(hours, limit.getHours());
+    if (hours === limit.getHours()) {
+      minutes = Math.max(minutes, limit.getMinutes());
+      if (minutes === limit.getMinutes())
+        seconds = Math.max(seconds, limit.getSeconds());
     }
+  };
 
-    if (hours === minHour && minutes < minMinutes) {
-      minutes = minMinutes;
+  const holdBelow = (limit: Date) => {
+    hours = Math.min(hours, limit.getHours());
+    if (hours === limit.getHours()) {
+      minutes = Math.min(minutes, limit.getMinutes());
+      if (minutes === limit.getMinutes())
+        seconds = Math.min(seconds, limit.getSeconds());
     }
+  };
 
-    if (hours === minHour && minutes === minMinutes && seconds < minSeconds)
-      seconds = config.minDate.getSeconds();
-  }
+  const secondsOf = (time: Date) =>
+    calculateSecondsSinceMidnight(
+      time.getHours(),
+      time.getMinutes(),
+      time.getSeconds()
+    );
 
-  if (holdsTime(config.maxDate)) {
-    const maxHr = config.maxDate.getHours();
-    const maxMinutes = config.maxDate.getMinutes();
-    hours = Math.min(hours, maxHr);
+  if (holdsTime(config.minDate)) holdAbove(config.minDate);
+  if (holdsTime(config.maxDate)) holdBelow(config.maxDate);
 
-    if (hours === maxHr) minutes = Math.min(maxMinutes, minutes);
-    if (hours === maxHr && minutes === maxMinutes)
-      seconds = Math.min(seconds, config.maxDate.getSeconds());
+  const { minTime, maxTime } = config;
+
+  if (
+    minTime !== undefined &&
+    maxTime !== undefined &&
+    secondsOf(minTime) > secondsOf(maxTime)
+  ) {
+    const time = calculateSecondsSinceMidnight(hours, minutes, seconds);
+
+    if (time > secondsOf(maxTime) && time < secondsOf(minTime)) {
+      hours = minTime.getHours();
+      minutes = minTime.getMinutes();
+      seconds = minTime.getSeconds();
+    }
+  } else {
+    if (maxTime !== undefined) holdBelow(maxTime);
+    if (minTime !== undefined) holdAbove(minTime);
   }
 
   return { hours, minutes, seconds };

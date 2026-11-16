@@ -5042,6 +5042,154 @@ describe("flatpickr", () => {
       });
     });
 
+    describe("default time within minTime and maxTime #2547", () => {
+      beforeEach(() => {
+        jest.setSystemTime(new Date(2023, 5, 1, 9));
+      });
+
+      afterEach(() => {
+        jest.setSystemTime(jest.getRealSystemTime());
+      });
+
+      const expectTime = (hours: string, minutes: string) => {
+        expect(fp.hourElement!.value).toEqual(hours);
+        expect(fp.minuteElement!.value).toEqual(minutes);
+      };
+
+      const pickDay = (ymd: string) =>
+        clickOn(
+          Array.from(
+            fp.days.querySelectorAll<DayElement>(".flatpickr-day")
+          ).find((day) => fp.formatDate(day.dateObj, "Y-m-d") === ymd)!
+        );
+
+      it("holds the default time within minTime, which a day picked gets", () => {
+        createInstance({
+          enableTime: true,
+          minTime: "13:00",
+          now: "2023-06-01",
+        });
+        expectTime("01", "00");
+        expect(fp.amPM!.textContent).toEqual("PM");
+
+        pickDay("2023-06-07");
+        expect(fp.selectedDates[0]).toEqual(new Date(2023, 5, 7, 13, 0));
+      });
+
+      it("holds the default time within maxTime, with AM/PM following it", () => {
+        createInstance({
+          enableTime: true,
+          maxTime: "10:00",
+          now: "2023-06-01",
+        });
+        expectTime("10", "00");
+        expect(fp.amPM!.textContent).toEqual("AM");
+
+        pickDay("2023-06-07");
+        expect(fp.selectedDates[0]).toEqual(new Date(2023, 5, 7, 10, 0));
+      });
+
+      it("keeps a default time already within minTime and maxTime", () => {
+        createInstance({
+          enableTime: true,
+          time_24hr: true,
+          minTime: "09:00",
+          maxTime: "17:00",
+        });
+        expectTime("12", "00");
+      });
+
+      it("holds it out of an overnight window's closed hours only", () => {
+        createInstance({
+          enableTime: true,
+          time_24hr: true,
+          minTime: "22:00",
+          maxTime: "06:00",
+        });
+        expectTime("22", "00");
+
+        createInstance({
+          enableTime: true,
+          time_24hr: true,
+          minTime: "22:00",
+          maxTime: "06:00",
+          defaultHour: 3,
+        });
+        expectTime("03", "00");
+      });
+
+      it("holds it within a later minDate time on the same day", () => {
+        createInstance({
+          enableTime: true,
+          time_24hr: true,
+          minTime: "13:00",
+          minDate: "2023-06-01 15:00",
+        });
+        expectTime("15", "00");
+      });
+
+      it("holds it with noCalendar", () => {
+        createInstance({
+          enableTime: true,
+          noCalendar: true,
+          dateFormat: "H:i",
+          time_24hr: true,
+          minTime: "13:30",
+        });
+        expectTime("13", "30");
+
+        incrementTime("minuteElement", 1);
+        expect(fp.input.value).toEqual("13:35");
+      });
+
+      describe("set('minTime') and set('maxTime') with nothing selected", () => {
+        it("put the default time, held within the new limit, on the inputs", () => {
+          createInstance({ enableTime: true, now: "2023-06-01" });
+
+          fp.set("minTime", "13:00");
+          expectTime("01", "00");
+          expect(fp.amPM!.textContent).toEqual("PM");
+
+          fp.set("minTime", null);
+          expectTime("12", "00");
+
+          fp.set("maxTime", "10:00");
+          expectTime("10", "00");
+          expect(fp.amPM!.textContent).toEqual("AM");
+
+          fp.config.maxTime = new Date(2023, 5, 1, 11);
+          expectTime("11", "00");
+
+          pickDay("2023-06-07");
+          expect(fp.selectedDates[0]).toEqual(new Date(2023, 5, 7, 11, 0));
+        });
+
+        it("put it there after clear()", () => {
+          createInstance({
+            enableTime: true,
+            time_24hr: true,
+            defaultDate: "2023-06-02 08:45",
+          });
+
+          fp.clear();
+          fp.set("minTime", "14:00");
+          expectTime("14", "00");
+        });
+
+        it("leave the time of a selected date", () => {
+          createInstance({
+            enableTime: true,
+            time_24hr: true,
+            defaultDate: "2023-06-07 08:45",
+          });
+
+          fp.set("minTime", "14:00");
+          fp.set("maxTime", "18:00");
+          expectTime("08", "45");
+        });
+      });
+    });
+
     it("time picker: default hours/mins", () => {
       createInstance({
         noCalendar: true,

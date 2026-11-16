@@ -1409,7 +1409,7 @@ function FlatpickrInstance(
           int(
             (self.latestSelectedDateObj
               ? self.hourElement.value
-              : self.config.defaultHour) > 11
+              : defaults.hours) > 11
           )
         ]
       );
@@ -2335,6 +2335,9 @@ function FlatpickrInstance(
         val,
         "H:i:S"
       );
+      // with none selected, the time inputs show the default time, which the
+      // new limit may hold, as for minDate and maxDate (#2547)
+      if (self.selectedDates && !self.selectedDates.length) setDefaultHours();
     };
 
     Object.defineProperty(self.config, "minTime", {
