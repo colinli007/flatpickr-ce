@@ -1764,20 +1764,23 @@ function FlatpickrInstance(
   function isEnabled(date: DateOption, timeless = true): boolean {
     const dateToCheck = self.parseDate(date, undefined, timeless); // timeless
 
+    // a time is compared only with a minDate or maxDate that has one: a
+    // date-only limit leaves its whole day open, as the calendar and the time
+    // inputs do (#2460)
     if (
       (self.config.minDate &&
         dateToCheck &&
         compareDates(
           dateToCheck,
           self.config.minDate,
-          timeless !== undefined ? timeless : !self.minDateHasTime
+          timeless || !self.minDateHasTime
         ) < 0) ||
       (self.config.maxDate &&
         dateToCheck &&
         compareDates(
           dateToCheck,
           self.config.maxDate,
-          timeless !== undefined ? timeless : !self.maxDateHasTime
+          timeless || !self.maxDateHasTime
         ) > 0)
     )
       return false;
@@ -3069,7 +3072,8 @@ function FlatpickrInstance(
   // picker offers only the times on the input's step: min is raised to the
   // next one, as flatpickr drops a value before minDate, and max is cut to the
   // one before. A date input holds no time, and raising min there could move
-  // it a day on
+  // it a day on. A maxDate without a time leaves its whole day open, as
+  // flatpickr does (#2460): max is cut from the day's last moment
   function setMobileLimit(type: "min" | "max") {
     const mobileInput = self.mobileInput as HTMLInputElement;
     const limit = self.config[`${type}Date` as "minDate" | "maxDate"];
@@ -3077,7 +3081,9 @@ function FlatpickrInstance(
 
     const round =
       type === "min" && mobileInput.type !== "date" ? Math.ceil : Math.floor;
-    mobileInput[type] = formatMobileDate(limit, round);
+    const date = new Date(limit.getTime());
+    if (type === "max" && !self.maxDateHasTime) date.setHours(23, 59, 59, 999);
+    mobileInput[type] = formatMobileDate(date, round);
   }
 
   // A date in the native input's format, put on its step: on a whole minute

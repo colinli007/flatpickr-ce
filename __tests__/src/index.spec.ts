@@ -2940,6 +2940,81 @@ describe("flatpickr", () => {
       });
     });
 
+    describe("a date-only minDate or maxDate keeps its whole day (flatpickr#2460)", () => {
+      const day = "2025-03-10";
+      const value = "2025-03-10 16:00";
+      const at = new Date(2025, 2, 10, 16, 0);
+
+      it("keeps a time on maxDate's day from defaultDate and setDate", () => {
+        createInstance({ enableTime: true, maxDate: day, defaultDate: value });
+        expect(fp.selectedDates).toEqual([at]);
+        expect(fp.input.value).toEqual(value);
+
+        fp.clear();
+        fp.setDate(value);
+        expect(fp.selectedDates).toEqual([at]);
+
+        fp.setDate("2025-03-11 00:30");
+        expect(fp.selectedDates).toEqual([]);
+      });
+
+      it("keeps a date with a time without enableTime", () => {
+        createInstance({ maxDate: day });
+        fp.setDate(at);
+
+        expect(fp.selectedDates).toEqual([at]);
+        expect(fp.input.value).toEqual(day);
+      });
+
+      it("keeps a value typed with allowInput", () => {
+        createInstance({ enableTime: true, allowInput: true, maxDate: day });
+        fp.input.focus();
+        fp.input.value = value;
+        simulate("keydown", fp._input, { keyCode: 13 });
+
+        expect(fp.selectedDates).toEqual([at]);
+      });
+
+      it("keeps a range ending on maxDate's day", () => {
+        createInstance({
+          mode: "range",
+          enableTime: true,
+          maxDate: day,
+          defaultDate: `2025-03-08 09:00 to ${value}`,
+        });
+
+        expect(fp.selectedDates).toEqual([new Date(2025, 2, 8, 9, 0), at]);
+      });
+
+      it("reads it so in isEnabled(date, false)", () => {
+        createInstance({ enableTime: true, minDate: day, maxDate: day });
+
+        expect(fp.isEnabled(value, false)).toBe(true);
+        expect(fp.isEnabled("2025-03-10 00:00", false)).toBe(true);
+        expect(fp.isEnabled("2025-03-09 23:59", false)).toBe(false);
+        expect(fp.isEnabled("2025-03-11 00:00", false)).toBe(false);
+      });
+
+      it("still holds a value to the time of a minDate or maxDate with one", () => {
+        createInstance({
+          enableTime: true,
+          maxDate: "2025-03-10 12:00",
+          defaultDate: value,
+        });
+        expect(fp.selectedDates).toEqual([]);
+
+        createInstance({
+          enableTime: true,
+          minDate: "2025-03-10 18:00",
+          defaultDate: value,
+        });
+        expect(fp.selectedDates).toEqual([]);
+
+        fp.setDate("2025-03-10 18:30");
+        expect(fp.selectedDates).toEqual([new Date(2025, 2, 10, 18, 30)]);
+      });
+    });
+
     describe("clear()", () => {
       it("resets currentMonth and currentYear", () => {
         createInstance({
@@ -4140,7 +4215,7 @@ describe("flatpickr", () => {
 
           fp.set("enableTime", true);
           expect(mobileInput.min).toBe("2016-10-10T00:00:00");
-          expect(mobileInput.max).toBe("2016-10-20T00:00:00");
+          expect(mobileInput.max).toBe("2016-10-20T23:59:00");
 
           fp.set("enableTime", false);
           expect(mobileInput.min).toBe("2016-10-10");
@@ -4179,6 +4254,33 @@ describe("flatpickr", () => {
           mockAgent = "Android";
           createInstance({ minDate: new Date(2016, 9, 10, 23, 59, 30) });
           expect(fp.mobileInput!.min).toBe("2016-10-10");
+        });
+
+        it("leave a date-only maxDate's whole day open (flatpickr#2460)", () => {
+          mockAgent = "Android";
+          createInstance({
+            enableTime: true,
+            maxDate: "2016-10-20",
+            defaultDate: "2016-10-20 16:00",
+          });
+          const mobileInput = fp.mobileInput as HTMLInputElement;
+          expect(mobileInput.value).toBe("2016-10-20T16:00");
+          expect(mobileInput.validity.rangeOverflow).toBe(false);
+          expect(mobileInput.max).toBe("2016-10-20T23:59:00");
+
+          fp.set("enableSeconds", true);
+          expect(mobileInput.max).toBe("2016-10-20T23:59:59");
+
+          createInstance({
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            maxDate: "today",
+            defaultDate: "16:00",
+          });
+          expect(fp.selectedDates).toHaveLength(1);
+          expect(fp.mobileInput!.validity.rangeOverflow).toBe(false);
+          expect(fp.mobileInput!.max).toBe("23:59:00");
         });
       });
 
