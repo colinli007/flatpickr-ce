@@ -6975,8 +6975,8 @@ describe("flatpickr", () => {
       }));
     }
 
-    function position(config: Options = {}) {
-      const fp = createInstance(config);
+    function position(config: Options = {}, el?: HTMLElement) {
+      const fp = createInstance(config, el);
       stubRect(fp._positionElement, 100, 50, 100);
       stub(fp._positionElement, "offsetHeight", 30);
       stub(fp.calendarContainer, "offsetWidth", 300);
@@ -7234,13 +7234,141 @@ describe("flatpickr", () => {
       expect(fp.calendarContainer.style.top).toEqual("218px");
     });
 
+    // the stylesheet places a static calendar against its wrapper, which is
+    // what positionCalendar measures for it
+    function stubWrapper(fp: Instance, top: number) {
+      const wrapper = fp.calendarContainer.parentElement as HTMLElement;
+      stubRect(wrapper, top, 50, 100);
+      // jsdom doesn't compute the initial value of overflow
+      wrapper.style.overflowY = "visible";
+    }
+
     it("leaves static and inline calendars pointing at the input", () => {
       for (const config of [{ static: true }, { inline: true }]) {
         const fp = position(config);
+        if (config.static) stubWrapper(fp, 100);
         stubHeights(fp, 400, 300);
         fp._positionCalendar();
         expect(fp.calendarContainer.classList.contains("arrowTop")).toBe(true);
       }
+    });
+
+    it("leaves a static calendar to the stylesheet, which places it by the arrow (flatpickr#2497)", () => {
+      for (const [placement, alignment] of [
+        ["above center", "arrowCenter"],
+        ["auto right", "arrowRight"],
+      ] as const) {
+        const fp = position({ static: true, position: placement });
+        // 120px below the wrapper and 250px above
+        stubWrapper(fp, 250);
+        stubHeights(fp, 400, 200);
+        fp._positionCalendar();
+
+        const { classList, style } = fp.calendarContainer;
+        expect(classList.contains("arrowBottom")).toBe(true);
+        expect(classList.contains(alignment)).toBe(true);
+        expect(style.top + style.left).toEqual("");
+      }
+    });
+
+    it("places a static calendar by its wrapper, whatever a popup is placed by", () => {
+      const fp = position({
+        static: true,
+        positionElement: document.createElement("div"),
+      });
+      stubHeights(fp, 400, 200);
+      // the calendar fits below the wrapper, though not below the
+      // positionElement, 250px down
+      stubWrapper(fp, 100);
+      stubRect(fp._positionElement, 250, 50, 100);
+      fp._positionCalendar();
+      expect(fp.calendarContainer.classList.contains("arrowTop")).toBe(true);
+
+      // as rangePlugin passes its second input
+      fp._positionCalendar(fp._positionElement);
+      expect(fp.calendarContainer.classList.contains("arrowTop")).toBe(true);
+    });
+
+    it("measures a calendar both static and inline, laid out by the page, by the input", () => {
+      const fp = position({ static: true, inline: true });
+      stubHeights(fp, 400, 200);
+      // the wrapper holds the calendar too
+      stubWrapper(fp, 250);
+      fp._positionCalendar();
+      expect(fp.calendarContainer.classList.contains("arrowTop")).toBe(true);
+    });
+
+    it("keeps a static calendar below where a scroll container would cut it off above", () => {
+      const container = document.createElement("div");
+      container.style.overflowY = "auto";
+      document.body.appendChild(container);
+      const fp = position(
+        { static: true },
+        container.appendChild(document.createElement("input"))
+      );
+      stubHeights(fp, 400, 200);
+      // 120px below the input in the viewport and 250px above, of which the
+      // container shows 150px
+      stubRect(fp._positionElement, 250, 50, 100);
+      stubWrapper(fp, 250);
+      stubRect(container, 100, 0);
+      fp._positionCalendar();
+      expect(fp.calendarContainer.classList.contains("arrowTop")).toBe(true);
+
+      // one that shows 210px of it
+      stubRect(container, 40, 0);
+      fp._positionCalendar();
+      expect(fp.calendarContainer.classList.contains("arrowBottom")).toBe(true);
+
+      // told to go above, it goes there all the same
+      stubRect(container, 100, 0);
+      fp.set("position", "above");
+      fp._positionCalendar();
+      expect(fp.calendarContainer.classList.contains("arrowBottom")).toBe(true);
+      container.remove();
+    });
+
+    it("keeps a static calendar below where a scroll container outside its shadow root would cut it off above", () => {
+      const container = document.createElement("div");
+      container.style.overflowY = "auto";
+      document.body.appendChild(container);
+      const host = container.appendChild(document.createElement("div"));
+      const fp = position(
+        { static: true },
+        host
+          .attachShadow({ mode: "open" })
+          .appendChild(document.createElement("input"))
+      );
+      stubHeights(fp, 400, 200);
+      // 120px below the wrapper in the viewport and 250px above, of which the
+      // container shows 150px
+      stubWrapper(fp, 250);
+      stubRect(container, 100, 0);
+      fp._positionCalendar();
+      expect(fp.calendarContainer.classList.contains("arrowTop")).toBe(true);
+      container.remove();
+    });
+
+    it("keeps a static calendar below where a scroll container in the shadow tree it is slotted into would cut it off above", () => {
+      const host = document.createElement("div");
+      document.body.appendChild(host);
+      const container = host
+        .attachShadow({ mode: "open" })
+        .appendChild(document.createElement("div"));
+      container.style.overflowY = "auto";
+      container.appendChild(document.createElement("slot"));
+      const fp = position(
+        { static: true },
+        host.appendChild(document.createElement("input"))
+      );
+      stubHeights(fp, 400, 200);
+      // 120px below the wrapper in the viewport and 250px above, of which the
+      // container shows 150px
+      stubWrapper(fp, 250);
+      stubRect(container, 100, 0);
+      fp._positionCalendar();
+      expect(fp.calendarContainer.classList.contains("arrowTop")).toBe(true);
+      host.remove();
     });
 
     describe("in Safari, before the calendar opens (flatpickr#2787)", () => {

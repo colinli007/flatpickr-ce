@@ -2519,7 +2519,14 @@ function FlatpickrInstance(
     if (self.calendarContainer === undefined) return;
 
     triggerEvent("onPreCalendarPosition");
-    const positionElement = customPositionElement || self._positionElement;
+    // a static calendar goes next to its wrapper, whichever element a popup
+    // would be placed by; the page lays it out when it is also inline
+    const wrapper =
+      self.config.static && !self.config.inline
+        ? (self.calendarContainer.parentNode as HTMLElement)
+        : undefined;
+    const positionElement =
+      wrapper || customPositionElement || self._positionElement;
 
     const calendarHeight = self.calendarContainer.offsetHeight,
       calendarWidth = self.calendarContainer.offsetWidth,
@@ -2544,7 +2551,14 @@ function FlatpickrInstance(
       showOnTop = keepInViewport
         ? inputBounds.top > distanceFromBottom
         : configPosVertical === "above" ||
-          (isAutoVertical && !fitsBelow && fitsAbove);
+          (isAutoVertical &&
+            !fitsBelow &&
+            fitsAbove &&
+            // a scroll container can't be scrolled to what it cuts off above
+            // a static calendar, unlike what sticks out below, which it grows
+            // to hold
+            (wrapper === undefined ||
+              inputBounds.top - getClipTop(wrapper) > calendarHeight));
 
     const anchoredTop =
       win.pageYOffset +
@@ -2598,6 +2612,8 @@ function FlatpickrInstance(
 
     toggleClass(self.calendarContainer, "rightMost", rightMost);
 
+    // the stylesheet places a static calendar against its wrapper, by the
+    // arrow classes set above
     if (self.config.static) return;
 
     toggleClass(self.calendarContainer, "centerMost", centerMost);
@@ -2619,6 +2635,30 @@ function FlatpickrInstance(
     self.calendarContainer.style.top = `${top - origin.top}px`;
     self.calendarContainer.style.left = `${left - origin.left}px`;
     self.calendarContainer.style.right = "auto";
+  }
+
+  // The top of what can be seen of a static calendar: the viewport's, or the
+  // lowest inner top edge of the elements around it that clip their overflow
+  function getClipTop(wrapper: HTMLElement) {
+    let clipTop = 0;
+    for (
+      let ancestor: Element | null = wrapper;
+      ancestor !== null;
+      // shadow DOM lays an element out in the slot it is assigned to, and a
+      // shadow root's children in its host
+      ancestor =
+        ancestor.assignedSlot ||
+        ancestor.parentElement ||
+        (ancestor.parentNode as ShadowRoot | null)?.host ||
+        null
+    ) {
+      if (win.getComputedStyle(ancestor).overflowY !== "visible")
+        clipTop = Math.max(
+          clipTop,
+          ancestor.getBoundingClientRect().top + ancestor.clientTop
+        );
+    }
+    return clipTop;
   }
 
   function getContainingBlockOrigin() {

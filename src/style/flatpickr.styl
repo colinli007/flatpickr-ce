@@ -61,6 +61,22 @@
     position absolute
     top calc(100% + 2px)
 
+    // positionCalendar picks the side and the alignment and draws the arrow
+    // there; a static calendar goes there too, against its wrapper
+    &.arrowBottom
+      top auto
+      bottom calc(100% + 2px)
+
+    &.arrowRight
+      right 0
+
+    // translate composes with the transform fpFadeInDown animates; a
+    // browser without it keeps the calendar at the wrapper's left edge
+    @supports (translate: 0)
+      &.arrowCenter
+        left 50%
+        translate -50%
+
     &.open
       z-index 999
       display block
