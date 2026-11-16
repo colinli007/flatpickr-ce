@@ -4690,6 +4690,129 @@ describe("flatpickr", () => {
       });
     });
 
+    describe("a time input holding no number (flatpickr#2498)", () => {
+      // what the browser can't read as a number, such as "7:13" in Firefox,
+      // leaves a number input with an empty value
+      const typeText = (input: HTMLInputElement, text: string) => {
+        input.value = text;
+        simulate("input", input);
+      };
+
+      it("keeps the selected hour", () => {
+        const onChange = jest.fn();
+        createInstance({
+          enableTime: true,
+          dateFormat: "Y-m-d h:i K",
+          defaultDate: "2017-01-01 09:30",
+          onChange,
+        });
+
+        typeText(fp.hourElement!, "");
+        simulate("blur", fp.hourElement!);
+        jest.runAllTimers();
+
+        expect(fp.hourElement!.value).toEqual("09");
+        expect(fp.amPM!.textContent).toEqual("AM");
+        expect(fp.selectedDates[0]).toEqual(new Date(2017, 0, 1, 9, 30));
+        expect(fp.input.value).toEqual("2017-01-01 9:30 AM");
+        expect(onChange).not.toHaveBeenCalled();
+      });
+
+      it("keeps the selected minutes and seconds", () => {
+        createInstance({
+          enableTime: true,
+          enableSeconds: true,
+          time_24hr: true,
+          defaultDate: "2017-01-01 21:45:15",
+        });
+
+        typeText(fp.minuteElement!, "a");
+        simulate("blur", fp.minuteElement!);
+        typeText(fp.secondElement!, "");
+        simulate("blur", fp.secondElement!);
+
+        expect(fp.minuteElement!.value).toEqual("45");
+        expect(fp.secondElement!.value).toEqual("15");
+        expect(fp.selectedDates[0]).toEqual(new Date(2017, 0, 1, 21, 45, 15));
+      });
+
+      it("keeps the default time with no date selected", () => {
+        createInstance({
+          enableTime: true,
+          time_24hr: true,
+          defaultHour: 15,
+          defaultMinute: 20,
+        });
+
+        typeText(fp.hourElement!, "");
+        simulate("blur", fp.hourElement!);
+
+        expect(fp.hourElement!.value).toEqual("15");
+        expect(fp.selectedDates[0].getHours()).toEqual(15);
+        expect(fp.selectedDates[0].getMinutes()).toEqual(20);
+      });
+
+      it("keeps the hour on Enter", () => {
+        createInstance({
+          enableTime: true,
+          defaultDate: "2017-01-01 09:30",
+        });
+        fp.open();
+
+        typeText(fp.hourElement!, "");
+        simulate("keydown", fp.hourElement!, { keyCode: 13 }, KeyboardEvent);
+
+        expect(fp.hourElement!.value).toEqual("09");
+        expect(fp.selectedDates[0]).toEqual(new Date(2017, 0, 1, 9, 30));
+      });
+
+      it("lets AM/PM switch the hour it keeps", () => {
+        createInstance({
+          enableTime: true,
+          defaultDate: "2017-01-01 09:30",
+        });
+
+        typeText(fp.hourElement!, "");
+        simulate("click", fp.amPM!, { which: 1 }, MouseEvent);
+
+        expect(fp.hourElement!.value).toEqual("09");
+        expect(fp.amPM!.textContent).toEqual("PM");
+        expect(fp.selectedDates[0]).toEqual(new Date(2017, 0, 1, 21, 30));
+      });
+
+      it("keeps the time when an emptied input is left", () => {
+        const onChange = jest.fn();
+        createInstance({
+          enableTime: true,
+          time_24hr: true,
+          defaultDate: "2017-01-01 21:30",
+          onChange,
+        });
+
+        fp.minuteElement!.value = "";
+        simulate("blur", fp.minuteElement!);
+        jest.runAllTimers();
+
+        expect(fp.minuteElement!.value).toEqual("30");
+        expect(fp.input.value).toEqual("2017-01-01 21:30");
+        expect(onChange).not.toHaveBeenCalled();
+      });
+
+      it("still reads 0 as 0", () => {
+        createInstance({
+          enableTime: true,
+          time_24hr: true,
+          defaultDate: "2017-01-01 21:30",
+        });
+
+        typeText(fp.hourElement!, "0");
+        simulate("blur", fp.hourElement!);
+
+        expect(fp.hourElement!.value).toEqual("00");
+        expect(fp.selectedDates[0]).toEqual(new Date(2017, 0, 1, 0, 30));
+      });
+    });
+
     it("time input respects minDate", () => {
       createInstance({
         enableTime: true,

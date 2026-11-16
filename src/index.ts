@@ -277,17 +277,39 @@ function FlatpickrInstance(
   }
 
   /**
+   * The number in a time input, or `shown`, the selected time's, instead of
+   * 0 when it holds none (#2498): emptied, or holding text the browser can't
+   * read as a number, such as "7:13" in Firefox or "7e" in any, which leaves
+   * an empty value. updateTime() selects the default time before reading,
+   * when nothing is selected
+   */
+  function readTimeInput(value: string, shown: number | undefined) {
+    const number = parseInt(value, 10);
+    return isNaN(number) && shown !== undefined ? shown : number || 0;
+  }
+
+  /**
    * Syncs the selected date object time with user's time input
    */
   function setHoursFromInputs() {
     if (self.hourElement === undefined || self.minuteElement === undefined)
       return;
 
-    let hours = (parseInt(self.hourElement.value.slice(-2), 10) || 0) % 24,
-      minutes = (parseInt(self.minuteElement.value, 10) || 0) % 60,
+    const shown = self.latestSelectedDateObj;
+    let hours =
+        readTimeInput(
+          self.hourElement.value.slice(-2),
+          shown && shown.getHours()
+        ) % 24,
+      minutes =
+        readTimeInput(self.minuteElement.value, shown && shown.getMinutes()) %
+        60,
       seconds =
         self.secondElement !== undefined
-          ? (parseInt(self.secondElement.value, 10) || 0) % 60
+          ? readTimeInput(
+              self.secondElement.value,
+              shown && shown.getSeconds()
+            ) % 60
           : 0;
 
     if (self.amPM !== undefined) {
