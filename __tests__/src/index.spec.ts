@@ -7263,6 +7263,92 @@ describe("flatpickr", () => {
         expect(hookLog(() => undefined)).toEqual(hookLog());
       });
     });
+
+    describe("hooks given through set() (flatpickr#2578)", () => {
+      it("calls a hook given in an object", () => {
+        createInstance();
+        const onChange = jest.fn();
+        const onOpen = jest.fn();
+        fp.set({ onChange, onOpen });
+
+        fp.setDate("2024-06-15", true);
+        fp.open();
+
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(onChange.mock.calls[0][2]).toBe(fp);
+        expect(onOpen).toHaveBeenCalledTimes(1);
+        expect(fp.config.onChange).toEqual([onChange]);
+      });
+
+      it("stores the hook alike in either form", () => {
+        const onChange = jest.fn();
+
+        createInstance();
+        fp.set("onChange", onChange);
+        const byName = fp.config.onChange;
+
+        createInstance();
+        fp.set({ onChange });
+
+        expect(fp.config.onChange).toEqual(byName);
+        expect(fp.config.onChange).toEqual([onChange]);
+      });
+
+      it("replaces the hook given before", () => {
+        const before = jest.fn();
+        createInstance({ onChange: before });
+        const onChange = jest.fn();
+        fp.set({ onChange });
+
+        fp.setDate("2024-06-15", true);
+
+        expect(before).not.toHaveBeenCalled();
+        expect(onChange).toHaveBeenCalledTimes(1);
+      });
+
+      it("calls every hook of an array", () => {
+        createInstance();
+        const first = jest.fn();
+        const second = jest.fn();
+        fp.set({ onChange: [first, second] });
+
+        fp.setDate("2024-06-15", true);
+
+        expect(first).toHaveBeenCalledTimes(1);
+        expect(second).toHaveBeenCalledTimes(1);
+      });
+
+      it("applies the other options given with a hook", () => {
+        createInstance();
+        const onChange = jest.fn();
+        fp.set({ onChange, enableTime: true });
+
+        expect(fp.timeContainer).toBeDefined();
+        fp.open();
+        clickOn(fp.days.querySelector(".flatpickr-day:not(.prevMonthDay)")!);
+
+        expect(onChange).toHaveBeenCalledTimes(1);
+        incrementTime("hourElement", 1);
+        expect(fp.selectedDates[0].getHours()).toEqual(13);
+      });
+
+      it("takes only the options' own keys, as Object.assign did", () => {
+        createInstance();
+        const onChange = jest.fn();
+        (Object.prototype as any).extend = function () {};
+        try {
+          fp.set("minDate", "2024-06-10");
+          fp.set({ maxDate: "2024-06-20", onChange });
+
+          expect(fp.config.minDate).toEqual(new Date(2024, 5, 10));
+          expect(fp.config.maxDate).toEqual(new Date(2024, 5, 20));
+          expect(fp.config.onChange).toEqual([onChange]);
+          expect(fp.config.hasOwnProperty("extend")).toBe(false);
+        } finally {
+          delete (Object.prototype as any).extend;
+        }
+      });
+    });
   });
 
   describe("positioning", () => {

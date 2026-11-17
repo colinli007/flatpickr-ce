@@ -2866,22 +2866,28 @@ function FlatpickrInstance(
     option: K | { [k in K]?: Options[k] },
     value?: any
   ) {
-    if (option !== null && typeof option === "object") {
-      Object.assign(self.config, option);
-      Object.assign(userConfig, option);
-      for (const key in option) {
-        if (CALLBACKS[key] !== undefined)
-          (CALLBACKS[key] as Function[]).forEach((x) => x());
-      }
-    } else {
-      self.config[option] = value;
-      userConfig[option] = value;
+    const options: { [key: string]: any } =
+      option !== null && typeof option === "object"
+        ? option
+        : { [option]: value };
+    // own keys only, as Object.assign took them
+    const keys = Object.keys(options) as K[];
 
-      if (CALLBACKS[option] !== undefined)
-        (CALLBACKS[option] as Function[]).forEach((x) => x());
-      else if (HOOKS.indexOf(option as HookKey) > -1)
-        (self.config as any)[option] = arrayify(value);
-    }
+    keys.forEach((key) => {
+      userConfig[key] = options[key];
+      // triggerEvent() runs a hook from a list, whichever form it's given in
+      // (#2578)
+      self.config[key] =
+        HOOKS.indexOf(key as HookKey) > -1
+          ? arrayify(options[key])
+          : options[key];
+    });
+
+    // once every option is in: a callback may read another one given with it
+    keys.forEach((key) => {
+      const callbacks = CALLBACKS[key];
+      if (callbacks !== undefined) callbacks.forEach((x) => x());
+    });
 
     self.redraw();
     updateValue(true);
