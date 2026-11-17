@@ -42,6 +42,37 @@ npm install flatpickr@npm:flatpickr-ce
 
 ## What's changed since flatpickr 4.6.13
 
+### 4.12.0
+
+- With a `maxDate` given without a time, such as `"today"`, a `defaultDate`, a `setDate()` or a typed value at any time on that day is kept instead of dropped, and the native mobile input's `max` is that day's last minute ([#2460](https://github.com/flatpickr/flatpickr/issues/2460))
+- With `static: true`, the calendar opens above the input for `position: "above"`, and with the automatic position when it doesn't fit below; `"right"` and `"center"` align it with the input's wrapper ([#2497](https://github.com/flatpickr/flatpickr/issues/2497), [#1847](https://github.com/flatpickr/flatpickr/issues/1847))
+- With `enableTime`, `minTime` or `maxTime` and nothing selected, the time inputs show the default time held within them, the time a picked day gets, and AM/PM follows the hour shown ([#2547](https://github.com/flatpickr/flatpickr/issues/2547))
+- A time input left holding no number, such as "7:13" typed in Firefox or one emptied with Delete, keeps the selected time instead of turning it to 12 AM or 00 ([#2498](https://github.com/flatpickr/flatpickr/issues/2498))
+- A calendar with more than one month or with week numbers, created inside a hidden modal, tab or panel, is sized once it is shown instead of being squeezed to a few pixels ([#2579](https://github.com/flatpickr/flatpickr/issues/2579)); `set("showMonths", 1)` shrinks a calendar back to one month ([#2392](https://github.com/flatpickr/flatpickr/issues/2392))
+- A hook given to `set()` in an object, such as `set({ onChange: fn })`, is called ([#2578](https://github.com/flatpickr/flatpickr/issues/2578))
+- Picking a month in the month dropdown fires `onMonthChange` once instead of twice ([#2398](https://github.com/flatpickr/flatpickr/issues/2398)), and its options no longer carry a tabindex, which kept the dropdown from changing the month in Firefox 51 ([#2438](https://github.com/flatpickr/flatpickr/issues/2438))
+- With rangePlugin and `inline: true`, a day picked on a range that has both ends starts a new range ([#2572](https://github.com/flatpickr/flatpickr/issues/2572)); with nothing selected, focusing the first input keeps the month the calendar shows instead of going to today's ([#2573](https://github.com/flatpickr/flatpickr/issues/2573))
+- With `altInput`, the input shown takes the original input's `autocomplete` attribute, so `autocomplete="off"` works ([#2577](https://github.com/flatpickr/flatpickr/issues/2577))
+- The wheel over a time input or the year no longer throws "CustomEvent is not a constructor" with `dist/plugins/scrollPlugin.js` ([#2510](https://github.com/flatpickr/flatpickr/pull/2510))
+- With `wrap` and no `data-input` element inside, the error says so instead of being a TypeError ([#2404](https://github.com/flatpickr/flatpickr/pull/2404))
+- The time inputs no longer carry `maxlength`, which number inputs don't allow, so pages with them pass HTML validation ([#2372](https://github.com/flatpickr/flatpickr/issues/2372))
+
+Behavior changes to check when upgrading:
+
+- A `maxDate` without a time, or with a midnight time such as `"2025-03-10 00:00"`, leaves its whole day open: `setDate()`, `defaultDate`, typed and preloaded values at any time that day are kept, `isEnabled(date, false)` returns true for them, and the native mobile input's `max` is `"2025-03-10T23:59:00"` (`23:59:59` with `enableSeconds`) instead of `"2025-03-10T00:00:00"`.
+- A static calendar can open above the input. Pages that moved it there themselves, with rules on `.arrowBottom` such as a transform or a negative `margin-top`, should drop them; a page rule setting `top` on `.flatpickr-calendar.static` no longer applies while it is above. `positionElement` and the element passed to `open()` no longer affect a static calendar. flatpickr.css and the themes have the new `.static` rules; a stylesheet of your own built from an older one doesn't.
+- With `enableTime` and nothing selected, the time inputs show the default time held within `minTime` and `maxTime`, also after `set("minTime")` or `set("maxTime")`. With a 12-hour clock, AM/PM follows the hour shown, so with a `maxDate` whose time is in the morning, a day other than `maxDate`'s gets that morning time instead of the same hour in the afternoon.
+- A time input emptied and left keeps the selected time instead of setting it to 0; type 0 for 0. Left that way, it fires no `onChange`.
+- With rangePlugin and `inline: true`, a day picked on a range that has both ends empties the second input until the next day completes the range, `onClose` fires only then, and with `enableTime` the new range starts at the default time. Calendars that aren't inline are unchanged.
+- With rangePlugin and nothing selected, focusing the first input no longer moves the view, so `changeMonth()` and `jumpToDate()` called before opening hold, and a `minDate` or `maxDate` assigned to `fp.config` without `set()` no longer brings the view within it.
+- `set({ onChange: fn })` replaces the hooks given before, including one a plugin added, as `set("onChange", fn)` does; a `null` hook in an object is kept as `[null]`.
+- A month picked in the dropdown that `changeMonth()` refuses fires no `onMonthChange`.
+- A calendar with more than one month or with week numbers that can't be measured has no inline width until it is laid out. An inline one gets its width in a ResizeObserver callback; a ResizeObserver of the page's own on an element whose size follows the calendar may then report "ResizeObserver loop completed with undelivered notifications" as an error event, which error trackers and Cypress see. Browsers without ResizeObserver (IE, Safari before 13.1) keep such a calendar at one month's width until `set("showMonths", ...)` is called once it is shown.
+- `set("showMonths", 1)` removes the inline width of `.flatpickr-calendar` and `.flatpickr-days`, one the page wrote included.
+- With `altInput`, an `autocomplete` that asks for autofill, such as `"bday"`, is on the input shown too.
+- With `wrap` and no `data-input` element, `errorHandler` no longer gets "Invalid input element specified"; the error is logged with `console.error`.
+- In IE9, typing in the time inputs is no longer cut at two digits; the value is still folded into two when the input is left.
+
 ### 4.11.0
 
 - Closing the calendar after browsing to other months without picking a day no longer leaves it there: it reopens on the selected date ([#2835](https://github.com/flatpickr/flatpickr/issues/2835))
