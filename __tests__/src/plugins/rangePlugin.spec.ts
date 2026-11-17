@@ -332,6 +332,51 @@ describe("rangePlugin", () => {
       focusAndClick(secondInput);
       expect(view()).toEqual([2017, 11]);
     });
+
+    describe("with nothing selected (flatpickr#2573)", () => {
+      const view = () => [fp.currentYear, fp.currentMonth];
+
+      it("opens on the month the view was moved to", () => {
+        fp.jumpToDate("2017-10-01");
+        fp.changeMonth(2);
+
+        focusAndClick(input);
+        expect(view()).toEqual([2017, 11]);
+
+        fp.close();
+        focusAndClick(secondInput);
+        expect(view()).toEqual([2017, 11]);
+      });
+
+      it("keeps the month browsed to when moving back to the first input", () => {
+        fp.jumpToDate("2017-10-01");
+        focusAndClick(input);
+        fp.changeMonth(3);
+
+        focusAndClick(secondInput);
+        focusAndClick(input);
+        expect(view()).toEqual([2018, 0]);
+      });
+
+      it("keeps the month browsed to when Escape closes the calendar", () => {
+        fp.jumpToDate("2017-10-01");
+        focusAndClick(input);
+        fp.changeMonth(1);
+
+        const day = fp.days.childNodes[15] as HTMLElement;
+        day.focus();
+        day.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "Escape",
+            keyCode: 27,
+            bubbles: true,
+          })
+        );
+
+        expect(fp.isOpen).toBe(false);
+        expect(view()).toEqual([2017, 10]);
+      });
+    });
   });
 
   describe("anchoring", () => {

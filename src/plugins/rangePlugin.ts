@@ -178,10 +178,15 @@ function rangePlugin(config: Config = {}): Plugin {
             fp._positionCalendar(anchor);
           fp._positionElement = anchor;
 
-          fp.latestSelectedDateObj = fp.selectedDates[0];
-          fp._setHoursFromDate(fp.selectedDates[0]);
+          // with no start there is nothing to jump to: the view stays where it
+          // was moved, as close() leaves it with nothing selected (#2573)
+          if (fp.selectedDates[0]) {
+            fp.latestSelectedDateObj = fp.selectedDates[0];
+            fp._setHoursFromDate(fp.selectedDates[0]);
+            fp.jumpToDate(fp.selectedDates[0]);
+          }
+
           _secondInputFocused = false;
-          fp.jumpToDate(fp.selectedDates[0]);
         });
 
         fp.setDate(fp.selectedDates, false);
