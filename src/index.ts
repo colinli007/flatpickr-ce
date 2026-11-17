@@ -2744,7 +2744,7 @@ function FlatpickrInstance(
    * Makes way for a day picked on a range that has both ends: a new range,
    * from no dates and at the default time, which the day takes from the time
    * inputs. rangePlugin makes the pick an edit of one end, which keeps the
-   * time the time inputs show for it
+   * time the time inputs show for it, unless the calendar is inline
    */
   function startNewRange() {
     self.clear(false, false);

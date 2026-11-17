@@ -158,9 +158,16 @@ function rangePlugin(config: Config = {}): Plugin {
         // a day picked with both ends set edits the end of the input in focus
         // (onValueUpdate) instead of starting a new range, which would put the
         // time inputs back to the default time: it takes the time they show
-        // for that end
+        // for that end. An inline calendar isn't opened from either input:
+        // there the day starts a new range, as without the plugin
+        const startNewRange = fp._startNewRange;
         fp._startNewRange = () => {
-          fp.selectedDates = [];
+          if (fp.config.inline) {
+            _prevDates = [];
+            startNewRange();
+          } else {
+            fp.selectedDates = [];
+          }
         };
 
         // flatpickr itself opens the calendar from fp._input, before this runs
