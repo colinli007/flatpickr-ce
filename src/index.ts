@@ -3084,6 +3084,12 @@ function FlatpickrInstance(
       self.altInput.disabled = self.input.disabled;
       self.altInput.required = self.input.required;
       self.altInput.tabIndex = self.input.tabIndex;
+      // The attribute as written: the autocomplete property reads "" for a
+      // value browsers don't know, such as the "nope" pages write where
+      // Chrome ignores "off" (#2577)
+      const autocomplete = self.input.getAttribute("autocomplete");
+      if (autocomplete !== null)
+        self.altInput.setAttribute("autocomplete", autocomplete);
       self.altInput.type = "text";
       self.input.setAttribute("type", "hidden");
 

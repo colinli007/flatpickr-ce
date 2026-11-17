@@ -3549,6 +3549,45 @@ describe("flatpickr", () => {
       });
     });
 
+    describe("autocomplete with altInput (flatpickr#2577)", () => {
+      it.each(["off", "nope"])(
+        'gives the altInput the input\'s autocomplete="%s"',
+        (autocomplete) => {
+          const input = document.createElement("input");
+          input.setAttribute("autocomplete", autocomplete);
+
+          createInstance({ allowInput: true, altInput: true }, input);
+
+          expect(fp.altInput!.getAttribute("autocomplete")).toBe(autocomplete);
+        }
+      );
+
+      it("gives it the autocomplete of the data-input element with wrap", () => {
+        const element = document.createElement("div");
+        element.innerHTML = '<input autocomplete="off" data-input>';
+
+        createInstance({ wrap: true, altInput: true }, element);
+
+        expect(fp.altInput!.getAttribute("autocomplete")).toBe("off");
+      });
+
+      it("leaves autocomplete off the altInput when the input has none", () => {
+        createInstance({ allowInput: true, altInput: true });
+
+        expect(fp.altInput!.hasAttribute("autocomplete")).toBe(false);
+      });
+
+      it("leaves the input's own autocomplete without altInput", () => {
+        const input = document.createElement("input");
+        input.setAttribute("autocomplete", "off");
+
+        createInstance({ allowInput: true }, input);
+
+        expect(fp._input).toBe(input);
+        expect(input.getAttribute("autocomplete")).toBe("off");
+      });
+    });
+
     it("range mode - no month jump", () => {
       createInstance({
         mode: "range",

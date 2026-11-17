@@ -40,6 +40,23 @@ describe("rangePlugin", () => {
     ]);
   });
 
+  it("gives the second input it creates the input's autocomplete with altInput (flatpickr#2577)", () => {
+    const input = document.createElement("input");
+    input.setAttribute("autocomplete", "off");
+    document.body.appendChild(input);
+    const fp = flatpickr(input, {
+      plugins: [rangePlugin()],
+      allowInput: true,
+      altInput: true,
+    });
+
+    const secondInput = fp.altInput!.nextSibling as HTMLInputElement;
+    expect(secondInput.getAttribute("autocomplete")).toBe("off");
+
+    fp.destroy();
+    input.remove();
+  });
+
   // flatpickr#3108: the two inputs preload as one range, kept or dropped whole
   describe("preloading both inputs with minDate and maxDate", () => {
     const preload = (first: string, second: string) => {
