@@ -86,6 +86,13 @@ function FlatpickrInstance(
   // is open; kept apart from _handlers, which last until destroy()
   let openHandlers: Instance["_handlers"] = [];
 
+  // Watches the calendar until it is laid out, while an element around it is
+  // hidden and its day grid has no width to measure (#2579). ResizeObserver
+  // is missing from TypeScript 4.1's DOM types
+  let layoutObserver:
+    | { observe(target: Element): void; disconnect(): void }
+    | undefined;
+
   self._handlers = [];
   self.pluginElements = [];
   self.loadedPlugins = [];
@@ -193,30 +200,61 @@ function FlatpickrInstance(
         self.daysContainer.style.removeProperty("width");
         self.calendarContainer.style.removeProperty("width");
       }
+      // nor measure it once it is laid out (#2579)
+      unobserveLayout();
       return;
     } else if (config.noCalendar !== true) {
-      win.requestAnimationFrame(function () {
-        if (self.calendarContainer !== undefined) {
-          self.calendarContainer.style.visibility = "hidden";
-          self.calendarContainer.style.display = "block";
-        }
-        if (self.daysContainer !== undefined) {
-          const daysWidth = (self.days.offsetWidth + 1) * config.showMonths;
-
-          self.daysContainer.style.width = daysWidth + "px";
-
-          self.calendarContainer.style.width =
-            daysWidth +
-            (self.weekWrapper !== undefined
-              ? self.weekWrapper.offsetWidth
-              : 0) +
-            "px";
-
-          self.calendarContainer.style.removeProperty("visibility");
-          self.calendarContainer.style.removeProperty("display");
-        }
-      });
+      win.requestAnimationFrame(measureCalendarWidth);
     }
+  }
+
+  function measureCalendarWidth() {
+    if (self.calendarContainer !== undefined) {
+      self.calendarContainer.style.visibility = "hidden";
+      self.calendarContainer.style.display = "block";
+    }
+    if (self.daysContainer !== undefined) {
+      const gridWidth = self.days.offsetWidth;
+
+      // displaying the calendar doesn't lay it out while an element around
+      // it is hidden, e.g. a modal not shown yet: wait until it is
+      if (gridWidth === 0) {
+        observeLayout();
+      } else {
+        const daysWidth = (gridWidth + 1) * self.config.showMonths;
+
+        self.daysContainer.style.width = daysWidth + "px";
+
+        self.calendarContainer.style.width =
+          daysWidth +
+          (self.weekWrapper !== undefined ? self.weekWrapper.offsetWidth : 0) +
+          "px";
+
+        unobserveLayout();
+      }
+
+      self.calendarContainer.style.removeProperty("visibility");
+      self.calendarContainer.style.removeProperty("display");
+    }
+  }
+
+  // The page lays an inline calendar out when it shows it, which only an
+  // observer tells of, called back after layout and before paint. open()
+  // measures a popup as it opens; the observer is left for one opened while
+  // an element around it is still hidden
+  function observeLayout() {
+    const Observer = (win as any).ResizeObserver;
+    if (layoutObserver !== undefined || Observer === undefined) return;
+
+    layoutObserver = new Observer(measureCalendarWidth);
+    layoutObserver!.observe(self.calendarContainer);
+  }
+
+  function unobserveLayout() {
+    if (layoutObserver === undefined) return;
+
+    layoutObserver.disconnect();
+    layoutObserver = undefined;
   }
 
   /**
@@ -1625,6 +1663,7 @@ function FlatpickrInstance(
 
     self._handlers = [];
     unbindOpenEvents();
+    unobserveLayout();
 
     if (self.mobileInput) {
       if (self.mobileInput.parentNode)
@@ -2230,6 +2269,9 @@ function FlatpickrInstance(
       bindOpenEvents();
       self.calendarContainer.classList.add("open");
       self._input.classList.add("active");
+      // a popup created where it couldn't be laid out can be now: measure it
+      // before it is placed by its width (#2579)
+      if (layoutObserver !== undefined) measureCalendarWidth();
       triggerEvent("onOpen");
       positionCalendar(positionElement);
     }

@@ -6155,7 +6155,12 @@ describe("flatpickr", () => {
       ];
 
       it("goes back to the stylesheet's width for one month", () => {
+        // jsdom's offsetWidth is 0, as in a hidden modal, where no width is
+        // written (#2579)
+        const layOut = () =>
+          Object.defineProperty(fp.days, "offsetWidth", { value: 307 });
         createInstance({ showMonths: 2 });
+        layOut();
         jest.runAllTimers();
         expect(widths()).not.toContain("");
 
@@ -6164,6 +6169,7 @@ describe("flatpickr", () => {
         expect(widths()).toEqual(["", ""]);
 
         fp.set("showMonths", 2);
+        layOut();
         jest.runAllTimers();
         expect(widths()).not.toContain("");
       });
@@ -6198,6 +6204,142 @@ describe("flatpickr", () => {
         size();
         jest.runAllTimers();
         expect(widths()).toEqual(["347px", "308px"]);
+      });
+    });
+
+    describe("width of a calendar created hidden (flatpickr#2579)", () => {
+      // jsdom lays nothing out: every offsetWidth is 0, as in a modal that
+      // isn't shown yet
+      const widths = () => [
+        fp.calendarContainer.style.width,
+        (fp.daysContainer as HTMLDivElement).style.width,
+      ];
+
+      let observers: FakeResizeObserver[];
+      class FakeResizeObserver {
+        targets: Element[] = [];
+        constructor(readonly callback: () => void) {
+          observers.push(this);
+        }
+        observe(target: Element) {
+          this.targets.push(target);
+        }
+        disconnect() {
+          this.targets = [];
+        }
+      }
+      const watched = () =>
+        observers.reduce<Element[]>((all, o) => all.concat(o.targets), []);
+
+      // whatever watches the calendar is called back, as after layout
+      const callBack = () =>
+        observers.forEach((o) => {
+          if (o.targets.length > 0) o.callback();
+        });
+
+      // the modal is shown: the grid gets its width, and whatever watches the
+      // calendar is called back
+      const layOut = () => {
+        Object.defineProperty(fp.days, "offsetWidth", {
+          value: 307,
+          configurable: true,
+        });
+        if (fp.weekWrapper !== undefined)
+          Object.defineProperty(fp.weekWrapper, "offsetWidth", { value: 39 });
+        callBack();
+      };
+
+      beforeEach(() => {
+        observers = [];
+        (window as any).ResizeObserver = FakeResizeObserver;
+      });
+      afterEach(() => {
+        delete (window as any).ResizeObserver;
+      });
+
+      it("sizes a static calendar's months once it is laid out", () => {
+        createInstance({ static: true, showMonths: 3 });
+        jest.runAllTimers();
+        expect(widths()).toEqual(["", ""]);
+        expect(watched()).toEqual([fp.calendarContainer]);
+
+        layOut();
+        expect(widths()).toEqual(["924px", "924px"]);
+        expect(watched()).toEqual([]);
+      });
+
+      it("sizes an inline calendar's week column once it is laid out", () => {
+        createInstance({ inline: true, weekNumbers: true });
+        jest.runAllTimers();
+
+        layOut();
+        expect(widths()).toEqual(["347px", "308px"]);
+      });
+
+      it("sizes a popup opened before it could be laid out", () => {
+        const onPreCalendarPosition = jest.fn();
+        createInstance({ showMonths: 2, onPreCalendarPosition });
+        jest.runAllTimers();
+        fp.open();
+        expect(widths()).toEqual(["", ""]);
+        expect(watched()).toEqual([fp.calendarContainer]);
+
+        layOut();
+        expect(widths()).toEqual(["616px", "616px"]);
+        expect(watched()).toEqual([]);
+        // placed as it opened, as a one-month calendar is
+        expect(onPreCalendarPosition).toHaveBeenCalledTimes(1);
+      });
+
+      it("measures a popup as it opens, before placing it", () => {
+        const anchor = document.createElement("button");
+        const seen: [string, string, HTMLElement?][] = [];
+        createInstance({
+          showMonths: 2,
+          onOpen: () => seen.push(["onOpen", widths()[0]]),
+          position: (_, positionElement) =>
+            seen.push(["position", widths()[0], positionElement]),
+        });
+        jest.runAllTimers();
+        expect(watched()).toEqual([fp.calendarContainer]);
+
+        // the modal is shown; opening the calendar lays it out
+        Object.defineProperty(fp.days, "offsetWidth", { value: 307 });
+        fp.open(undefined, anchor);
+        // nothing watches it any more, so nothing places it again
+        callBack();
+        expect(seen).toEqual([
+          ["onOpen", "616px"],
+          ["position", "616px", anchor],
+        ]);
+        expect(watched()).toEqual([]);
+      });
+
+      it("keeps the stylesheet's width when set to one month meanwhile", () => {
+        createInstance({ inline: true, showMonths: 2 });
+        jest.runAllTimers();
+
+        fp.set("showMonths", 1);
+        expect(watched()).toEqual([]);
+        layOut();
+        expect(widths()).toEqual(["", ""]);
+      });
+
+      it("stops watching when destroyed", () => {
+        createInstance({ inline: true, showMonths: 2 });
+        jest.runAllTimers();
+        expect(watched()).toEqual([fp.calendarContainer]);
+
+        fp.destroy();
+        expect(watched()).toEqual([]);
+      });
+
+      it("doesn't watch a calendar it could measure", () => {
+        createInstance({ showMonths: 2 });
+        Object.defineProperty(fp.days, "offsetWidth", { value: 307 });
+        jest.runAllTimers();
+        expect(widths()).toEqual(["616px", "616px"]);
+        expect(observers).toEqual([]);
       });
     });
   });
