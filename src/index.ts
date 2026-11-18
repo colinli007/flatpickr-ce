@@ -177,10 +177,16 @@ function FlatpickrInstance(
     triggerEvent("onReady");
   }
 
+  // the element in focus where the calendar is: its shadow root's when it is
+  // in one. A browser without getRootNode (IE) has no shadow roots
   function getClosestActiveElement() {
+    const root =
+      typeof self.calendarContainer?.getRootNode === "function"
+        ? self.calendarContainer.getRootNode()
+        : doc;
     return (
-      ((self.calendarContainer?.getRootNode() as unknown) as DocumentOrShadowRoot)
-        .activeElement || doc.activeElement
+      ((root as unknown) as DocumentOrShadowRoot).activeElement ||
+      doc.activeElement
     );
   }
 

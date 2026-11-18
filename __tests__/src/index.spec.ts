@@ -6963,6 +6963,66 @@ describe("flatpickr", () => {
     });
   });
 
+  describe("reading the focus in the calendar's tree", () => {
+    const dayElem = (day: number) =>
+      (Array.from(fp.days.childNodes) as DayElement[]).find(
+        (d) => d.dateObj.getMonth() === 0 && d.dateObj.getDate() === day
+      )!;
+
+    describe("in a browser without getRootNode (IE)", () => {
+      const getRootNode = Node.prototype.getRootNode;
+
+      beforeEach(() => {
+        delete (Node.prototype as Partial<Node>).getRootNode;
+      });
+
+      afterEach(() => {
+        Node.prototype.getRootNode = getRootNode;
+      });
+
+      it("fires onChange and closes when a day is picked", () => {
+        const onChange = jest.fn();
+        createInstance({ defaultDate: "2026-01-15", onChange });
+        fp.open();
+
+        clickOn(dayElem(20));
+        jest.runAllTimers();
+
+        expect(fp.input.value).toBe("2026-01-20");
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(fp.isOpen).toBe(false);
+      });
+
+      it("moves the focus between days with the arrow keys", () => {
+        createInstance({ defaultDate: "2026-01-15" });
+        fp.open();
+        dayElem(15).focus();
+
+        simulate("keydown", dayElem(15), { keyCode: 39 }); // "ArrowRight"
+
+        expect(document.activeElement).toBe(dayElem(16));
+      });
+    });
+
+    it("moves the focus on from the day focused in a shadow root with the arrow keys", () => {
+      const host = document.createElement("div");
+      const root = host.attachShadow({ mode: "open" });
+      const input = document.createElement("input");
+      root.appendChild(input);
+      document.body.appendChild(host);
+      createInstance({ defaultDate: "2026-01-15", static: true }, input);
+      fp.open();
+      dayElem(10).focus();
+
+      simulate("keydown", dayElem(10), { keyCode: 39 }); // "ArrowRight"
+
+      expect(root.activeElement).toBe(dayElem(11));
+
+      destroyInstance();
+      host.remove();
+    });
+  });
+
   describe("keyboard navigation", () => {
     const dayElem = (date: string) =>
       Array.from(
