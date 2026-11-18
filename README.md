@@ -42,6 +42,18 @@ npm install flatpickr@npm:flatpickr-ce
 
 ## What's changed since flatpickr 4.6.13
 
+### 4.12.1
+
+- With `enableTime` and an `altFormat` or `dateFormat` without the time, such as `"M j, Y"`, changing the time with the time inputs fires `onChange`; so do changing the end's time with rangePlugin and pressing "a" or "p" on the AM/PM toggle ([#2487](https://github.com/flatpickr/flatpickr/issues/2487))
+- In IE, picking a day on a calendar without time inputs fires `onChange` and closes the calendar again instead of throwing, which it did since 4.11.0, and the arrow keys move between days again
+
+Behavior changes to check when upgrading:
+
+- Changing the time where the input doesn't show it, with an `altFormat` or `dateFormat` without the time or for rangePlugin's end, fires `onChange` and the input's `change` and `input` events, debounced by 300ms as elsewhere. minMaxTimePlugin now clamps the time there, and confirmDatePlugin shows its button.
+- Pressing "a" or "p" on the AM/PM toggle fires `onChange`; with nothing selected it first selects the default time, as a click does.
+- Leaving the time inputs no longer fires `onChange` when the selected dates are unchanged: when it only drops seconds that a format shows but no seconds input sets, when it overwrites text typed with `allowInput` that wasn't committed, or after a day was deselected in `multiple` mode.
+- With rangePlugin, the focus goes back to the second input after a day is picked only when it is on that day. With `enableTime` it stays on the hour input, so a day picked from the second input before the start leaves the time inputs on that day. Setting the end's time no longer takes the focus from the time inputs, and a calendar closed by clicking outside, after setting the end's time or typing the end with `allowInput`, stays closed.
+
 ### 4.12.0
 
 - With a `maxDate` given without a time, such as `"today"`, a `defaultDate`, a `setDate()` or a typed value at any time on that day is kept instead of dropped, and the native mobile input's `max` is that day's last minute ([#2460](https://github.com/flatpickr/flatpickr/issues/2460))
