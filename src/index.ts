@@ -272,6 +272,8 @@ function FlatpickrInstance(
   function updateTime(
     e?: MouseEvent | IncrementEvent | KeyboardEvent | FocusEvent
   ) {
+    const prevTime = getInputsTime();
+
     if (self.selectedDates.length === 0) {
       const defaultDate = defaultTimeDate();
       const defaults = getDefaultHours(self.config, defaultDate);
@@ -289,14 +291,30 @@ function FlatpickrInstance(
       timeWrapper(e);
     }
 
-    const prevValue = self._input.value;
-
     setHoursFromInputs();
     updateValue();
 
-    if (self._input.value !== prevValue) {
+    if (getInputsTime() !== prevTime) {
       self._debouncedChange();
     }
+  }
+
+  /**
+   * The selected dates to the precision of the time inputs: the minute, or the
+   * second with a seconds input. Compared rather than the input's text, which
+   * may not show the time (an altFormat without it, or rangePlugin's first
+   * input for the end) (#2487), nor the timestamps, as setHours() drops the
+   * seconds the inputs don't show
+   */
+  function getInputsTime() {
+    return self.selectedDates
+      .map((date) =>
+        new Date(date.getTime()).setSeconds(
+          self.secondElement !== undefined ? date.getSeconds() : 0,
+          0
+        )
+      )
+      .join();
   }
 
   function ampm2military(hour: number, amPM: string) {
@@ -2118,16 +2136,14 @@ function FlatpickrInstance(
         case self.l10n.amPM[0].charAt(0):
         case self.l10n.amPM[0].charAt(0).toLowerCase():
           self.amPM.textContent = self.l10n.amPM[0];
-          setHoursFromInputs();
-          updateValue();
+          updateTime();
 
           break;
 
         case self.l10n.amPM[1].charAt(0):
         case self.l10n.amPM[1].charAt(0).toLowerCase():
           self.amPM.textContent = self.l10n.amPM[1];
-          setHoursFromInputs();
-          updateValue();
+          updateTime();
 
           break;
       }

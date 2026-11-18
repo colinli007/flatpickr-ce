@@ -21,6 +21,14 @@ function rangePlugin(config: Config = {}): Plugin {
     // the anchor flatpickr itself uses for fp._input
     const firstInputAnchor = () => fp.config.positionElement || fp._input;
 
+    // the element in focus where the calendar is: its shadow root's when it is
+    // in one. A browser without getRootNode (IE) has no shadow roots
+    const activeElement = (elem: HTMLElement) =>
+      (((typeof elem.getRootNode === "function"
+        ? elem.getRootNode()
+        : elem.ownerDocument) as unknown) as DocumentOrShadowRoot)
+        .activeElement;
+
     // the selected dates as the inputs show them: the start in fp._input and
     // the end in the second input
     const shownValue = () => {
@@ -208,7 +216,13 @@ function rangePlugin(config: Config = {}): Plugin {
           }, 10);
         }
 
-        if (_secondInputFocused) {
+        // the focus a day picked for the end took goes back to its input; a
+        // time being set, or a calendar closed since, keeps it (#2487)
+        if (
+          _secondInputFocused &&
+          fp.daysContainer !== undefined &&
+          fp.daysContainer.contains(activeElement(fp.daysContainer))
+        ) {
           setTimeout(() => {
             secondInput.focus();
           }, 0);

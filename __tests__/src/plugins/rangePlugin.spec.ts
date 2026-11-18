@@ -329,6 +329,36 @@ describe("rangePlugin", () => {
       expect(onOpen).toHaveBeenCalledTimes(1);
     });
 
+    it.each(["static", "appendTo"])(
+      "refocuses the second input after picking the start date with the calendar in a shadow root (%s)",
+      (placement) => {
+        const host = document.createElement("div");
+        const root = host.attachShadow({ mode: "open" });
+        const shadowInput = document.createElement("input");
+        const shadowSecondInput = document.createElement("input");
+        const container = document.createElement("div");
+        root.append(shadowInput, shadowSecondInput, container);
+        document.body.appendChild(host);
+        const shadowFp = flatpickr(shadowInput, {
+          plugins: [rangePlugin({ input: shadowSecondInput })],
+          ...(placement === "static"
+            ? { static: true }
+            : { appendTo: container }),
+        });
+
+        shadowFp.jumpToDate("2017-10-01");
+        focusAndClick(shadowSecondInput);
+        (shadowFp.days.childNodes[20] as HTMLElement).click();
+        jest.runAllTimers();
+
+        expect(shadowFp.selectedDates.length).toBe(1);
+        expect(root.activeElement).toBe(shadowSecondInput);
+
+        shadowFp.destroy();
+        host.remove();
+      }
+    );
+
     it("opens on the end of either input after browsing away (flatpickr#2835)", () => {
       const view = () => [fp.currentYear, fp.currentMonth];
       fp.setDate(["2017-10-20", "2017-12-05"]);
@@ -760,6 +790,20 @@ describe("rangePlugin", () => {
       expect(onChange).toHaveBeenCalledTimes(1);
     });
 
+    it("stays closed after a typed end is committed by clicking outside (flatpickr#2487)", () => {
+      create();
+      focus(secondInput);
+      secondInput.value = "2017-10-28";
+      document.body.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true })
+      );
+      secondInput.blur();
+      jest.runAllTimers();
+
+      expect(fp.selectedDates).toEqual(range(20, 28));
+      expect(fp.isOpen).toBe(false);
+    });
+
     it("commits both ends typed before either is committed", () => {
       create();
       focus(secondInput);
@@ -1061,6 +1105,65 @@ describe("rangePlugin", () => {
         expect(time()).toEqual(shownTime);
       }
     );
+
+    it("fires onChange for the end's time, which the first input doesn't show (flatpickr#2487)", () => {
+      create();
+      focus(secondInput);
+      incrementHour();
+
+      expect(selected()).toEqual(["2017-10-20 09:15", "2017-10-25 18:45"]);
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves the focus in the time inputs while the end's time is set (flatpickr#2487)", () => {
+      create();
+      focus(secondInput);
+      fp.hourElement!.focus();
+      fp.hourElement!.value = "18";
+      fp.minuteElement!.focus();
+      jest.runAllTimers();
+
+      expect(selected()).toEqual(["2017-10-20 09:15", "2017-10-25 18:45"]);
+      expect(document.activeElement).toBe(fp.minuteElement);
+    });
+
+    it("stays closed after the end's time is typed and the page clicked (flatpickr#2487)", () => {
+      create();
+      focus(secondInput);
+      fp.hourElement!.focus();
+      fp.hourElement!.value = "18";
+      document.body.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true })
+      );
+      fp.hourElement!.blur();
+      jest.runAllTimers();
+
+      expect(selected()).toEqual(["2017-10-20 09:15", "2017-10-25 18:45"]);
+      expect(fp.isOpen).toBe(false);
+    });
+
+    it("fires onChange for the end's day in a browser without getRootNode", () => {
+      const getRootNode = Node.prototype.getRootNode;
+      delete (Node.prototype as Partial<Node>).getRootNode;
+      try {
+        create();
+        focus(secondInput);
+        clickDay(27);
+      } finally {
+        Node.prototype.getRootNode = getRootNode;
+      }
+
+      expect(selected()).toEqual(["2017-10-20 09:15", "2017-10-27 17:45"]);
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves the focus on the hour input after picking the end's day", () => {
+      create();
+      focus(secondInput);
+      clickDay(27);
+
+      expect(document.activeElement).toBe(fp.hourElement);
+    });
 
     it("keeps the time inputs on the start after picking its day", () => {
       create();

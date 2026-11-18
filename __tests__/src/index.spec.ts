@@ -4852,6 +4852,154 @@ describe("flatpickr", () => {
       });
     });
 
+    describe("a time changed where the input doesn't show it (flatpickr#2487)", () => {
+      it("fires onChange with an altFormat without the time", () => {
+        const onChange = jest.fn();
+        createInstance({
+          enableTime: true,
+          altInput: true,
+          dateFormat: "Y-m-d H:i",
+          altFormat: "M j, Y",
+          defaultDate: "2021-07-07 15:30",
+          onChange,
+        });
+
+        incrementTime("hourElement", 1);
+        jest.runAllTimers();
+
+        expect(fp.input.value).toEqual("2021-07-07 16:30");
+        expect(onChange).toHaveBeenCalledTimes(1);
+      });
+
+      it("fires onChange for a time typed and left", () => {
+        const onChange = jest.fn();
+        createInstance({
+          enableTime: true,
+          time_24hr: true,
+          altInput: true,
+          altFormat: "M j, Y",
+          defaultDate: "2021-07-07 15:30",
+          onChange,
+        });
+
+        fp.minuteElement!.value = "45";
+        simulate("blur", fp.minuteElement!);
+        jest.runAllTimers();
+
+        expect(fp.selectedDates[0]).toEqual(new Date(2021, 6, 7, 15, 45));
+        expect(onChange).toHaveBeenCalledTimes(1);
+      });
+
+      it("fires onChange with a dateFormat without the time", () => {
+        const onChange = jest.fn();
+        createInstance({
+          enableTime: true,
+          dateFormat: "Y-m-d",
+          defaultDate: new Date(2021, 6, 7, 15, 30),
+          onChange,
+        });
+
+        incrementTime("minuteElement", 1);
+        jest.runAllTimers();
+
+        expect(fp.selectedDates[0]).toEqual(new Date(2021, 6, 7, 15, 35));
+        expect(onChange).toHaveBeenCalledTimes(1);
+      });
+
+      it("fires onChange when the time selects the default date", () => {
+        const onChange = jest.fn();
+        createInstance({
+          enableTime: true,
+          altInput: true,
+          altFormat: "M j, Y",
+          onChange,
+        });
+
+        incrementTime("hourElement", 1);
+        jest.runAllTimers();
+
+        expect(fp.selectedDates.length).toEqual(1);
+        expect(onChange).toHaveBeenCalledTimes(1);
+      });
+
+      it("stays silent when a time input is left unchanged", () => {
+        const onChange = jest.fn();
+        createInstance({
+          enableTime: true,
+          altInput: true,
+          altFormat: "M j, Y",
+          // the seconds and milliseconds the time inputs don't show
+          defaultDate: new Date(2021, 6, 7, 15, 30, 12, 345),
+          onChange,
+        });
+
+        simulate("blur", fp.hourElement!);
+        jest.runAllTimers();
+
+        expect(onChange).not.toHaveBeenCalled();
+      });
+
+      it("stays silent when the seconds the inputs don't show are dropped", () => {
+        const onChange = jest.fn();
+        createInstance({
+          enableTime: true,
+          dateFormat: "Y-m-d H:i:S",
+          defaultDate: "2021-07-07 15:30:12",
+          onChange,
+        });
+
+        simulate("blur", fp.hourElement!);
+        jest.runAllTimers();
+
+        expect(fp.input.value).toEqual("2021-07-07 15:30:00");
+        expect(onChange).not.toHaveBeenCalled();
+      });
+
+      it("stays silent for a time set on a day deselected in multiple mode", () => {
+        const onChange = jest.fn();
+        createInstance({
+          mode: "multiple",
+          enableTime: true,
+          altInput: true,
+          altFormat: "M j, Y",
+          defaultDate: ["2021-07-07 15:30", "2021-07-09 15:30"],
+          onChange,
+        });
+
+        clickOn(
+          (Array.from(fp.days.childNodes) as DayElement[]).find(
+            (day) => day.dateObj.getDate() === 9 && day.dateObj.getMonth() === 6
+          )!
+        );
+        jest.runAllTimers();
+        onChange.mockClear();
+
+        incrementTime("hourElement", 1);
+        jest.runAllTimers();
+
+        expect(fp.selectedDates).toEqual([new Date(2021, 6, 7, 15, 30)]);
+        expect(onChange).not.toHaveBeenCalled();
+      });
+
+      it("fires onChange for AM/PM set with its key", () => {
+        const onChange = jest.fn();
+        createInstance({
+          enableTime: true,
+          altInput: true,
+          altFormat: "M j, Y",
+          defaultDate: "2021-07-07 09:30",
+          onChange,
+        });
+        fp.open();
+
+        simulate("keydown", fp.amPM!, { key: "p" }, KeyboardEvent);
+        jest.runAllTimers();
+
+        expect(fp.selectedDates[0]).toEqual(new Date(2021, 6, 7, 21, 30));
+        expect(onChange).toHaveBeenCalledTimes(1);
+      });
+    });
+
     it("time input respects minDate", () => {
       createInstance({
         enableTime: true,
