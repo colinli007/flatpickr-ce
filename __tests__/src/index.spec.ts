@@ -321,6 +321,73 @@ describe("flatpickr", () => {
         expect(fp.altInput?.classList.contains("form-control")).toBe(true);
       });
     });
+
+    // Prototype.js 1.7.0 replaces map and filter with Enumerable's collect
+    // and findAll, which call back with (value, index) and no array
+    describe("with map and filter calling back without the array (flatpickr#2096)", () => {
+      const { map, filter } = Array.prototype;
+
+      beforeEach(() => {
+        type Callback = (value: unknown, index: number) => unknown;
+
+        Array.prototype.map = function (this: unknown[], callback: Callback) {
+          return map.call(this, (value, index) => callback(value, index));
+        } as typeof map;
+        Array.prototype.filter = function (
+          this: unknown[],
+          callback: Callback
+        ) {
+          return filter.call(this, (value, index) => callback(value, index));
+        } as typeof filter;
+      });
+
+      afterEach(() => {
+        Array.prototype.map = map;
+        Array.prototype.filter = filter;
+      });
+
+      it("formats the input and the day cells on init", () => {
+        createInstance({ defaultDate: "2016-10-20" });
+
+        expect(fp.input.value).toEqual("2016-10-20");
+        expect(fp.selectedDateElem!.getAttribute("aria-label")).toEqual(
+          "October 20, 2016"
+        );
+      });
+
+      it("writes an escaped token as the letter", () => {
+        createInstance({
+          dateFormat: "\\Y Y",
+          defaultDate: new Date(2016, 9, 20),
+        });
+
+        expect(fp.input.value).toEqual("Y 2016");
+      });
+
+      it("joins a range set on init", () => {
+        createInstance({
+          mode: "range",
+          defaultDate: ["2016-10-20", "2016-10-22"],
+        });
+
+        expect(fp.input.value).toEqual("2016-10-20 to 2016-10-22");
+      });
+
+      it("writes a range picked on one day once", () => {
+        createInstance({ mode: "range" });
+        fp.jumpToDate("2016-10-20");
+        // the days are built again after a pick
+        const day = () =>
+          fp.days.querySelector('[aria-label="October 20, 2016"]')!;
+
+        clickOn(day());
+        expect(fp.input.value).toEqual("2016-10-20");
+
+        clickOn(day());
+        expect(fp.selectedDates).toHaveLength(2);
+        expect(fp.input.value).toEqual("2016-10-20");
+      });
+    });
   });
 
   describe("datetimestring parser", () => {

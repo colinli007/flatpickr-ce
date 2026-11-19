@@ -3368,13 +3368,18 @@ function FlatpickrInstance(
       specificFormat ||
       (self.config.altInput ? self.config.altFormat : self.config.dateFormat);
 
-    return self.selectedDates
-      .map((dObj) => self.formatDate(dObj, format))
+    // the filter doesn't take the array: Prototype.js 1.7.0's filter doesn't
+    // pass it (#2096)
+    const strs = self.selectedDates.map((dObj) =>
+      self.formatDate(dObj, format)
+    );
+
+    return strs
       .filter(
-        (d, i, arr) =>
+        (d, i) =>
           self.config.mode !== "range" ||
           self.config.enableTime ||
-          arr.indexOf(d) === i
+          strs.indexOf(d) === i
       )
       .join(
         self.config.mode !== "range"

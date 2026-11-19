@@ -47,10 +47,12 @@ export const createDateFormatter = ({
     return config.formatDate(dateObj, frmt, locale);
   }
 
+  // the callback doesn't take the array: Prototype.js 1.7.0's map doesn't
+  // pass it (#2096)
   return frmt
     .split("")
-    .map((c, i, arr) =>
-      formats[c as token] && arr[i - 1] !== "\\"
+    .map((c, i) =>
+      formats[c as token] && frmt[i - 1] !== "\\"
         ? formats[c as token](dateObj, locale, config)
         : c !== "\\"
         ? c
