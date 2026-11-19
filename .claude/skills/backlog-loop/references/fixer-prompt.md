@@ -29,6 +29,7 @@
 - 不 commit、不 push、不 stash、不 reset、不切分支；不改 GitHub 上的任何东西（issue、PR、评论）。
 - 不起检查者，也不起其它子 agent——检查由编排者另起，你看不到它，它也看不到你的推理过程。
 - 只改这个任务需要的文件。
+- 用了浏览器就收尾：chrome-devtools MCP 的 `close_page` 关不掉最后一页，浏览器进程会一直留着，回复前用 `kill -TERM` 结束你这次拉起的那个 Chrome 主进程（`ps -axo pid,lstart,command | grep chrome-mcp-profile`，排除 `npm exec` 和带 `--type=` 的子进程）；Playwright 浏览器、`npm start` 和临时静态服务同样退出前停掉。
 - 结果是 `NO_CHANGE` 或 `NEEDS_DECISION` 时，用 `git restore` / 删除新建文件撤掉你自己的改动，确认 `git status --porcelain` 为空再回复。
 
 ## 产出（`FIXED` 时写到任务目录）

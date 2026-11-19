@@ -49,6 +49,8 @@ description: >
 
 先核对工作区：`git status --porcelain` 列出的文件必须和执行者报的「改动文件」一致。对不上就按「搁置」处理，原因写「工作区有简报之外的改动」。
 
+再查浏览器残留（执行者和检查者每个结束后都查）：`ps -axo pid,lstart,command | grep chrome-mcp-profile`，排除 `npm exec` 和带 `--type=` 的子进程后还有 Chrome 主进程，就 `kill -TERM` 它；Playwright 浏览器、本地服务同样查。agent 说「页面已关」不算数：MCP 的最后一页关不掉，浏览器进程会一直留着。不要用 MCP 的 `list_pages` 去查，浏览器没起时它会把浏览器拉起来。
+
 | 状态 | 做法 |
 | --- | --- |
 | `FIXED` | 进第 4 步 |
@@ -66,7 +68,7 @@ python3 .claude/skills/issue-fix-check/scripts/classify.py <任务目录>/fix.di
 
 - `SKIP`：不起检查者，直接第 5 步。
 - `CONFIRM`：主会话逐条确认 `confirm_items`，确认不了就按 `CHECK`。
-- `CHECK`：用 issue-fix-check 的 `references/checker-prompt.md` 起检查者，在提示词末尾加一段：「完整报告写入 `<任务目录>/review.md`。回复里只给『结论』小节和『必须修的问题』每条的标题。」完整报告留在文件里，主会话校对时按需读，不整份进上下文。
+- `CHECK`：用 issue-fix-check 的 `references/checker-prompt.md` 起检查者，在提示词末尾加一段：「完整报告写入 `<任务目录>/review.md`。回复里只给『结论』小节和『必须修的问题』每条的标题。用了浏览器的，回复前 `kill -TERM` 你拉起的 Chrome 主进程（MCP 的最后一页关不掉），Playwright 浏览器和本地服务也停掉。」完整报告留在文件里，主会话校对时按需读，不整份进上下文。
 
 校对按 issue-fix-check 第 5 步：抽查两三处 `文件:行号`，分量最重的事实能写 jest 用例的就跑一下。
 
