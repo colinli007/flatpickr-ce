@@ -173,6 +173,7 @@ export type key =
   | "pa"
   | "pl"
   | "pt"
+  | "rm"
   | "ro"
   | "ru"
   | "si"

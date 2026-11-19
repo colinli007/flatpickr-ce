@@ -13,6 +13,7 @@ import { Greek } from "l10n/gr";
 import { Japanese } from "l10n/ja";
 import { Norwegian } from "l10n/no";
 import { Occitan } from "l10n/oc";
+import { Romansh } from "l10n/rm";
 import { Russian } from "l10n/ru";
 import { Turkmen } from "l10n/tk";
 import { Ukrainian } from "l10n/uk";
@@ -6840,6 +6841,39 @@ describe("flatpickr", () => {
         fp.formatDate(new Date(2025, 4, day), "J")
       );
       expect(ordinals).toEqual(["1èr", "2", "3", "4", "21", "31"]);
+    });
+
+    it("By language code rm for Romansh (flatpickr#2169)", () => {
+      expect(flatpickr.l10ns.rm).toBe(Romansh);
+
+      createInstance({
+        locale: "rm",
+        enableTime: true,
+        enableSeconds: true,
+        weekNumbers: true,
+      });
+      // Rumantsch Grischun, as CLDR's rm: Monday is Glindesdi
+      expect(fp.formatDate(new Date(2025, 0, 6), "l D")).toEqual(
+        "Glindesdi Gli"
+      );
+      expect(fp.formatDate(new Date(2025, 5, 1), "F M")).toEqual(
+        "Zercladur Zercl"
+      );
+      expect(fp.l10n.firstDayOfWeek).toBe(1);
+      expect(fp.weekWrapper!.children[0].textContent).toEqual("Emna");
+      expect(fp.config.time_24hr).toBe(true);
+      expect(fp.amPM).toBeUndefined();
+
+      // CLDR's rm names for the year, month, hour, minute and second fields
+      expect(
+        [
+          fp.currentYearElement,
+          fp.monthsDropdownContainer,
+          fp.hourElement,
+          fp.minuteElement,
+          fp.secondElement,
+        ].map((element) => element!.getAttribute("aria-label"))
+      ).toEqual(["Onn", "Mais", "Ura", "Minuta", "Secunda"]);
     });
 
     it("By locale key ar_dz for Algerian Arabic (flatpickr#2830)", () => {
