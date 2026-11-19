@@ -26,6 +26,11 @@ export interface State {
   defaults: MinMaxTime;
 }
 
+// The formats the plugin writes for itself, the default table key and the
+// minTime and maxTime it gives to set(), are in flatpickr's own tokens,
+// whatever formatDate the page gives (#2170)
+const formatOwnDate = createDateFormatter({ builtIn: true });
+
 function minMaxTimePlugin(config: Config = {}): Plugin {
   const state: State = {
     formatDate: createDateFormatter({}),
@@ -38,7 +43,11 @@ function minMaxTimePlugin(config: Config = {}): Plugin {
 
   function findDateTimeLimit(date: Date): MinMaxTime | undefined {
     if (config.table !== undefined) {
-      return config.table[state.formatDate(date, state.tableDateFormat)];
+      // a tableDateFormat is the page's format; the default key is the plugin's
+      const formatKey = config.tableDateFormat
+        ? state.formatDate
+        : formatOwnDate;
+      return config.table[formatKey(date, state.tableDateFormat)];
     }
 
     return config.getTimeLimits && config.getTimeLimits(date);
@@ -50,9 +59,9 @@ function minMaxTimePlugin(config: Config = {}): Plugin {
         state.formatDate = this.formatDate;
         state.defaults = {
           minTime:
-            this.config.minTime && state.formatDate(this.config.minTime, "H:i"),
+            this.config.minTime && formatOwnDate(this.config.minTime, "H:i"),
           maxTime:
-            this.config.maxTime && state.formatDate(this.config.maxTime, "H:i"),
+            this.config.maxTime && formatOwnDate(this.config.maxTime, "H:i"),
         };
         fp.loadedPlugins.push("minMaxTime");
       },

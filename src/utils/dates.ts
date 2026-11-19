@@ -28,13 +28,16 @@ const writeOrder: { [t in token]?: number } = {
 export interface FormatterArgs {
   config?: ParsedOptions;
   l10n?: Locale;
-  isMobile?: boolean;
+  // flatpickr's tokens only, leaving a formatDate or parseDate option out: for
+  // the formats flatpickr reads and writes for itself, which a page's
+  // functions, given for its own formats, don't know (#2170)
+  builtIn?: boolean;
 }
 
 export const createDateFormatter = ({
   config = defaults,
   l10n = english,
-  isMobile = false,
+  builtIn = false,
 }: FormatterArgs) => (
   dateObj: Date,
   frmt: string,
@@ -43,7 +46,7 @@ export const createDateFormatter = ({
   const locale = overrideLocale || l10n;
 
   // null, the default the docs list, leaves it unset like undefined (#2725)
-  if (config.formatDate && !isMobile) {
+  if (config.formatDate && !builtIn) {
     return config.formatDate(dateObj, frmt, locale);
   }
 
@@ -61,7 +64,11 @@ export const createDateFormatter = ({
     .join("");
 };
 
-export const createDateParser = ({ config = defaults, l10n = english }) => (
+export const createDateParser = ({
+  config = defaults,
+  l10n = english,
+  builtIn = false,
+}: FormatterArgs) => (
   date: Date | string | number,
   givenFormat?: string,
   timeless?: boolean,
@@ -90,7 +97,7 @@ export const createDateParser = ({ config = defaults, l10n = english }) => (
     if (datestr === "today") {
       parsedDate = new Date();
       timeless = true;
-    } else if (config && config.parseDate) {
+    } else if (config && config.parseDate && !builtIn) {
       parsedDate = config.parseDate(date, format);
     } else if (
       /Z$/.test(datestr) ||

@@ -70,6 +70,14 @@ function FlatpickrInstance(
   // defaults
   const userConfig = {} as Options;
 
+  // The formats flatpickr reads and writes for itself, the native mobile
+  // input's value and minTime/maxTime, are in its own tokens: a formatDate or
+  // parseDate option is for the page's formats (#2170). They hold no names,
+  // so they take no locale
+  const ownFormat = { config: self.config, builtIn: true };
+  const formatOwnDate = createDateFormatter(ownFormat);
+  const parseOwnDate = createDateParser(ownFormat);
+
   // The calendar's own fields get ids, unique on the page and kept across
   // rebuilds: Chrome flags a field with neither an id nor a name, and a name
   // would get them submitted with a form holding a static or inline calendar
@@ -2417,7 +2425,7 @@ function FlatpickrInstance(
     });
 
     const minMaxTimeSetter = (type: string) => (val: any) => {
-      self.config[type === "min" ? "_minTime" : "_maxTime"] = self.parseDate(
+      self.config[type === "min" ? "_minTime" : "_maxTime"] = parseOwnDate(
         val,
         "H:i:S"
       );
@@ -3114,12 +3122,6 @@ function FlatpickrInstance(
     if (self.selectedDates.length > 0)
       self.latestSelectedDateObj = self.selectedDates[0];
 
-    if (self.config.minTime !== undefined)
-      self.config.minTime = self.parseDate(self.config.minTime, "H:i");
-
-    if (self.config.maxTime !== undefined)
-      self.config.maxTime = self.parseDate(self.config.maxTime, "H:i");
-
     self.minDateHasTime =
       !!self.config.minDate &&
       (self.config.minDate.getHours() > 0 ||
@@ -3237,7 +3239,7 @@ function FlatpickrInstance(
     const onStep = new Date(date.getTime());
     const seconds = onStep.getSeconds() + onStep.getMilliseconds() / 1000;
     onStep.setSeconds(round(seconds / unit) * unit, 0);
-    return self.formatDate(onStep, self.mobileFormatStr as string);
+    return formatOwnDate(onStep, self.mobileFormatStr as string);
   }
 
   function setupMobile() {
@@ -3269,11 +3271,12 @@ function FlatpickrInstance(
     } catch {}
 
     bind(self.mobileInput, "change", (e: KeyboardEvent) => {
-      self.setDate(
+      const date = parseOwnDate(
         (getEventTarget(e) as HTMLInputElement).value,
-        false,
         self.mobileFormatStr
       );
+      // an emptied input gives no date: [] clears the selection
+      self.setDate(date || [], false);
       triggerEvent("onChange");
       triggerEvent("onClose");
     });
@@ -3397,7 +3400,7 @@ function FlatpickrInstance(
         self.latestSelectedDateObj !== undefined
           ? formatMobileDate(self.latestSelectedDateObj)
           : "";
-      const currentDate = self.parseDate(
+      const currentDate = parseOwnDate(
         self.mobileInput.value,
         self.mobileFormatStr
       );
@@ -3406,7 +3409,7 @@ function FlatpickrInstance(
       // equivalent value back resets the field the user is typing in (#3144)
       if (
         currentDate === undefined ||
-        self.formatDate(currentDate, self.mobileFormatStr) !== mobileValue
+        formatOwnDate(currentDate, self.mobileFormatStr) !== mobileValue
       )
         self.mobileInput.value = mobileValue;
     }

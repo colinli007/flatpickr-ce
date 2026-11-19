@@ -945,6 +945,154 @@ describe("flatpickr", () => {
         expect(fp.input.value).not.toEqual(RESULT);
       });
     });
+
+    describe("flatpickr's own formats with a page's formatDate and parseDate (flatpickr#2170)", () => {
+      // A page's date functions, as with moment or date-fns: their tokens
+      // aren't flatpickr's, which they don't read
+      const pageTokens = /YYYY|MM|DD|HH|mm/g;
+      const pageFormatDate = (date: Date, format: string) => {
+        const fields: Record<string, number> = {
+          YYYY: date.getFullYear(),
+          MM: date.getMonth() + 1,
+          DD: date.getDate(),
+          HH: date.getHours(),
+          mm: date.getMinutes(),
+        };
+        return format.replace(pageTokens, (t) =>
+          `000${fields[t]}`.slice(-t.length)
+        );
+      };
+      const pageParseDate = (str: string, format: string) => {
+        const tokens = format.match(pageTokens) || [];
+        const numbers = str.match(/\d+/g) || [];
+        if (!tokens.length || tokens.length !== numbers.length)
+          return new Date(NaN);
+        const field = (t: string, unset: number) =>
+          tokens.indexOf(t) < 0 ? unset : Number(numbers[tokens.indexOf(t)]);
+        return new Date(
+          field("YYYY", 2000),
+          field("MM", 1) - 1,
+          field("DD", 1),
+          field("HH", 0),
+          field("mm", 0)
+        );
+      };
+      const pageConfig = () => ({
+        formatDate: jest.fn(pageFormatDate),
+        parseDate: jest.fn(pageParseDate),
+        errorHandler: jest.fn(),
+      });
+      const flatpickrFormats = ["Y-m-d", "Y-m-d\\TH:i:S", "H:i:S", "H:i"];
+      const formatsGiven = (fn: jest.Mock) =>
+        fn.mock.calls.map(([, format]) => format);
+
+      it("selects a day picked in the native mobile input, clears an emptied one", () => {
+        mockAgent = "Android";
+        const config = pageConfig();
+        const onChange = jest.fn();
+        createInstance({ ...config, dateFormat: "DD.MM.YYYY", onChange });
+        const mobileInput = fp.mobileInput as HTMLInputElement;
+
+        mobileInput.value = "2020-05-12";
+        simulate("change", mobileInput);
+
+        expect(fp.selectedDates).toEqual([new Date(2020, 4, 12)]);
+        expect(fp.input.value).toBe("12.05.2020");
+        expect(mobileInput.value).toBe("2020-05-12");
+        expect(onChange).toHaveBeenCalledTimes(1);
+
+        mobileInput.value = "";
+        simulate("change", mobileInput);
+
+        expect(fp.selectedDates).toEqual([]);
+        expect(fp.input.value).toBe("");
+        expect(onChange).toHaveBeenCalledTimes(2);
+
+        expect(config.errorHandler).not.toHaveBeenCalled();
+        expect(formatsGiven(config.parseDate)).toEqual([]);
+      });
+
+      it("selects a time picked in the native mobile time input", () => {
+        mockAgent = "Android";
+        const config = pageConfig();
+        createInstance({
+          ...config,
+          enableTime: true,
+          noCalendar: true,
+          dateFormat: "HH:mm",
+        });
+        const mobileInput = fp.mobileInput as HTMLInputElement;
+
+        mobileInput.value = "14:30";
+        simulate("change", mobileInput);
+
+        expect(fp.selectedDates).toHaveLength(1);
+        expect(fp.selectedDates[0].getHours()).toBe(14);
+        expect(fp.selectedDates[0].getMinutes()).toBe(30);
+        expect(fp.input.value).toBe("14:30");
+        expect(config.errorHandler).not.toHaveBeenCalled();
+      });
+
+      it("writes the input and altInput with the page's formatDate on mobile, the native input with flatpickr's tokens", () => {
+        mockAgent = "Android";
+        const config = pageConfig();
+        createInstance({
+          ...config,
+          enableTime: true,
+          dateFormat: "DD.MM.YYYY HH:mm",
+          altInput: true,
+          altFormat: "DD/MM/YYYY",
+          minDate: new Date(2020, 4, 1, 9, 30),
+        });
+        const mobileInput = fp.mobileInput as HTMLInputElement;
+
+        fp.setDate(new Date(2020, 4, 12, 14, 30));
+        fp.setDate(new Date(2020, 4, 13, 15, 45));
+
+        expect(fp.input.value).toBe("13.05.2020 15:45");
+        expect(fp.altInput!.value).toBe("13/05/2020");
+        expect(mobileInput.value).toBe("2020-05-13T15:45");
+        expect(mobileInput.min).toBe("2020-05-01T09:30:00");
+        expect(config.errorHandler).not.toHaveBeenCalled();
+        for (const format of flatpickrFormats) {
+          expect(formatsGiven(config.formatDate)).not.toContain(format);
+          expect(formatsGiven(config.parseDate)).not.toContain(format);
+        }
+      });
+
+      it("reads minTime and maxTime, given and set(), with flatpickr's tokens", () => {
+        const config = pageConfig();
+        const shownTime = () =>
+          `${fp.hourElement!.value}:${fp.minuteElement!.value}`;
+
+        createInstance({
+          ...config,
+          enableTime: true,
+          time_24hr: true,
+          dateFormat: "DD.MM.YYYY HH:mm",
+          minTime: "13:00",
+        });
+        expect(fp.config.minTime!.getHours()).toBe(13);
+        // the default time, 12:00, held within it
+        expect(shownTime()).toBe("13:00");
+
+        createInstance({
+          ...config,
+          enableTime: true,
+          time_24hr: true,
+          dateFormat: "DD.MM.YYYY HH:mm",
+          defaultMinute: 45,
+        });
+        fp.set("maxTime", "10:30");
+        expect(fp.config.maxTime!.getHours()).toBe(10);
+        expect(fp.config.maxTime!.getMinutes()).toBe(30);
+        expect(shownTime()).toBe("10:30");
+
+        expect(config.errorHandler).not.toHaveBeenCalled();
+        for (const format of flatpickrFormats)
+          expect(formatsGiven(config.parseDate)).not.toContain(format);
+      });
+    });
   });
 
   describe("API", () => {
