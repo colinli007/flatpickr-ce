@@ -3478,8 +3478,9 @@ function FlatpickrInstance(
 
         if (isMinuteElem) incrementNumInput(undefined, -1, self.hourElement);
       } else if (newValue > max) {
-        newValue =
-          input === self.hourElement ? newValue - max - int(!self.amPM) : min;
+        newValue = isHourElem
+          ? newValue - max - int(!self.amPM)
+          : newValue - max - 1;
 
         if (isMinuteElem) incrementNumInput(undefined, 1, self.hourElement);
       }

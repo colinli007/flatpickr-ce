@@ -4780,6 +4780,72 @@ describe("flatpickr", () => {
       });
     });
 
+    describe("stepping a minute or second past 59 (flatpickr#2166)", () => {
+      it("carries the rest of a minuteIncrement that doesn't divide 60", () => {
+        createInstance({
+          enableTime: true,
+          noCalendar: true,
+          time_24hr: true,
+          dateFormat: "H:i",
+          minuteIncrement: 50,
+          defaultDate: "07:00",
+        });
+
+        incrementTime("minuteElement", 1);
+        expect(fp.input.value).toEqual("07:50");
+        incrementTime("minuteElement", 1);
+        expect(fp.input.value).toEqual("08:40");
+
+        fp.open();
+        simulate("keydown", fp.minuteElement!, { keyCode: 38, which: 38 });
+        expect(fp.input.value).toEqual("09:30");
+
+        incrementTime("minuteElement", -1);
+        incrementTime("minuteElement", -1);
+        expect(fp.input.value).toEqual("07:50");
+      });
+
+      it("carries the rest of a minute off the step", () => {
+        createInstance({
+          enableTime: true,
+          minuteIncrement: 15,
+          defaultDate: "2017-1-1 11:58",
+        });
+
+        incrementTime("minuteElement", 1);
+        expect(fp.selectedDates[0]).toEqual(new Date(2017, 0, 1, 12, 13));
+        expect(fp.amPM!.textContent).toEqual("PM");
+      });
+
+      it("still gives 00 with a step that divides 60", () => {
+        createInstance({
+          enableTime: true,
+          time_24hr: true,
+          defaultDate: "2017-1-1 23:55",
+        });
+
+        incrementTime("minuteElement", 1);
+        expect(fp.hourElement!.value).toEqual("00");
+        expect(fp.minuteElement!.value).toEqual("00");
+      });
+
+      it("wraps the seconds by the rest, without carrying to the minutes", () => {
+        createInstance({
+          enableTime: true,
+          enableSeconds: true,
+          secondIncrement: 15,
+          defaultDate: "2017-1-1 10:00:58",
+        });
+
+        incrementTime("secondElement", 1);
+        expect(fp.minuteElement!.value).toEqual("00");
+        expect(fp.secondElement!.value).toEqual("13");
+
+        incrementTime("secondElement", -1);
+        expect(fp.secondElement!.value).toEqual("58");
+      });
+    });
+
     describe("a time input holding no number (flatpickr#2498)", () => {
       // what the browser can't read as a number, such as "7:13" in Firefox,
       // leaves a number input with an empty value
