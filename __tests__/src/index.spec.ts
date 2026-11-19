@@ -11,6 +11,7 @@ import { French } from "l10n/fr";
 import { Irish } from "l10n/ga";
 import { Greek } from "l10n/gr";
 import { Japanese } from "l10n/ja";
+import { Malaysian } from "l10n/ms";
 import { Norwegian } from "l10n/no";
 import { Occitan } from "l10n/oc";
 import { Romansh } from "l10n/rm";
@@ -6984,6 +6985,23 @@ describe("flatpickr", () => {
         expect(formatted.split(" ")[0]).toEqual(weekdays[(day - 1) % 7]);
         expect(fp.parseDate(formatted, "D j F Y")).toEqual(date);
       }
+    });
+
+    it("abbreviates Sunday as Ahd in Malaysian (flatpickr#2079)", () => {
+      createInstance({ locale: Malaysian });
+
+      // CLDR's ms abbreviations, Monday first
+      expect(
+        Array.from(
+          fp.weekdayContainer.querySelectorAll(".flatpickr-weekday"),
+          (weekday) => (weekday.textContent || "").trim()
+        )
+      ).toEqual(["Isn", "Sel", "Rab", "Kha", "Jum", "Sab", "Ahd"]);
+
+      // Sunday, 2 February 2025
+      const sunday = new Date(2025, 1, 2);
+      expect(fp.formatDate(sunday, "D l")).toEqual("Ahd Ahad");
+      expect(fp.parseDate("Ahd 2 Feb 2025", "D j M Y")).toEqual(sunday);
     });
 
     it("By overriding default locale", () => {
