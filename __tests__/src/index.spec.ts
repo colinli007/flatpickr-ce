@@ -3,6 +3,7 @@ import { Afrikaans } from "l10n/af";
 import { Arabic } from "l10n/ar";
 import { AlgerianArabic } from "l10n/ar-dz";
 import { SyrianArabic } from "l10n/ar-sy";
+import { Bulgarian } from "l10n/bg";
 import { Kurdish } from "l10n/ckb";
 import { German } from "l10n/de";
 import English from "l10n/default";
@@ -7002,6 +7003,32 @@ describe("flatpickr", () => {
       const sunday = new Date(2025, 1, 2);
       expect(fp.formatDate(sunday, "D l")).toEqual("Ahd Ahad");
       expect(fp.parseDate("Ahd 2 Feb 2025", "D j M Y")).toEqual(sunday);
+    });
+
+    it("writes Bulgarian month and weekday names in lower case (flatpickr#2100)", () => {
+      createInstance({ locale: Bulgarian, defaultDate: new Date(2020, 0, 5) });
+
+      // CLDR's bg names and abbreviations, Monday first
+      expect(fp.monthsDropdownContainer.options[0].textContent).toEqual(
+        "януари"
+      );
+      expect(
+        Array.from(
+          fp.weekdayContainer.querySelectorAll(".flatpickr-weekday"),
+          (weekday) => (weekday.textContent || "").trim()
+        )
+      ).toEqual(["пн", "вт", "ср", "чт", "пт", "сб", "нд"]);
+
+      // Sunday, 5 January 2020
+      const sunday = new Date(2020, 0, 5);
+      expect(fp.formatDate(sunday, "l, j F Y")).toEqual(
+        "неделя, 5 януари 2020"
+      );
+      expect(fp.formatDate(sunday, "D j M")).toEqual("нд 5 яну");
+
+      // values written capitalized by earlier versions still parse
+      expect(fp.parseDate("5 Януари 2020", "j F Y")).toEqual(sunday);
+      expect(fp.parseDate("5 януари 2020", "j F Y")).toEqual(sunday);
     });
 
     it("By overriding default locale", () => {
