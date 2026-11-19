@@ -12,6 +12,7 @@ import { Irish } from "l10n/ga";
 import { Greek } from "l10n/gr";
 import { Japanese } from "l10n/ja";
 import { Norwegian } from "l10n/no";
+import { Occitan } from "l10n/oc";
 import { Russian } from "l10n/ru";
 import { Turkmen } from "l10n/tk";
 import { Ukrainian } from "l10n/uk";
@@ -6819,6 +6820,26 @@ describe("flatpickr", () => {
         "21ste",
         "31ste",
       ]);
+    });
+
+    it("By language code oc for Occitan (flatpickr#2071)", () => {
+      expect(flatpickr.l10ns.oc).toBe(Occitan);
+
+      createInstance({ locale: "oc", enableTime: true });
+      // CLDR's oc names, in lower case, and its abbreviations
+      expect(fp.l10n.months.longhand[0]).toEqual("genièr");
+      expect(fp.formatDate(new Date(2025, 3, 1), "F")).toEqual("abril");
+      expect(fp.formatDate(new Date(2025, 0, 1), "M")).toEqual("gen.");
+      expect(fp.formatDate(new Date(2025, 0, 5), "l D")).toEqual("dimenge dg");
+      expect(fp.l10n.firstDayOfWeek).toBe(1);
+      expect(fp.config.time_24hr).toBe(true);
+      expect(fp.amPM).toBeUndefined();
+
+      // Only the 1st is written as an ordinal: "lo 1èr de mai"
+      const ordinals = [1, 2, 3, 4, 21, 31].map((day) =>
+        fp.formatDate(new Date(2025, 4, day), "J")
+      );
+      expect(ordinals).toEqual(["1èr", "2", "3", "4", "21", "31"]);
     });
 
     it("By locale key ar_dz for Algerian Arabic (flatpickr#2830)", () => {
