@@ -35,7 +35,7 @@ import {
   parseSeconds,
 } from "./utils/dates";
 
-import { tokenRegex, monthToStr } from "./utils/formatting";
+import { monthToStr } from "./utils/formatting";
 
 import "./utils/polyfills";
 
@@ -2593,18 +2593,6 @@ function FlatpickrInstance(
         ? flatpickr.l10ns[locale as LocaleKey]
         : undefined
     );
-
-    tokenRegex.D = `(${self.l10n.weekdays.shorthand.join("|")})`;
-    tokenRegex.l = `(${self.l10n.weekdays.longhand.join("|")})`;
-    tokenRegex.M = `(${self.l10n.months.shorthand
-      .slice()
-      .sort((a, b) => b.length - a.length)
-      .join("|")})`;
-    tokenRegex.F = `(${self.l10n.months.longhand
-      .slice()
-      .sort((a, b) => b.length - a.length)
-      .join("|")})`;
-    tokenRegex.K = `(${self.l10n.amPM[0]}|${self.l10n.amPM[1]})`;
 
     self.parseDate = createDateParser({ config: self.config, l10n: self.l10n });
   }

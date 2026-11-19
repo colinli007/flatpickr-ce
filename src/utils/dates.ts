@@ -115,7 +115,7 @@ export const createDateParser = ({
         const escaped = format[i - 1] === "\\" || isBackSlash;
 
         if (tokenRegex[token] && !escaped) {
-          regexStr += tokenRegex[token];
+          regexStr += tokenRegex[token](locale);
           const match = new RegExp(regexStr, "i").exec(date);
           if (match && (matched = true)) {
             const val = match[++matchIndex];

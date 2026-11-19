@@ -551,6 +551,103 @@ describe("flatpickr", () => {
           );
         });
       });
+
+      describe("names and AM/PM in the parser's locale (flatpickr#2188)", () => {
+        const expectEnglish = (parseDate: Instance["parseDate"]) => {
+          expect(parseDate("Jan 1 1970 12:00 AM", "M j Y h:i K")).toEqual(
+            new Date(1970, 0, 1, 0, 0)
+          );
+          expect(parseDate("Jan 1 1970 01:00 PM", "M j Y h:i K")).toEqual(
+            new Date(1970, 0, 1, 13, 0)
+          );
+          expect(parseDate("1/1/1970 01:00 PM", "m/d/Y h:i K")).toEqual(
+            new Date(1970, 0, 1, 13, 0)
+          );
+          expect(parseDate("Thu, 5 March 2020", "D, j F Y")).toEqual(
+            new Date(2020, 2, 5)
+          );
+          expect(parseDate("Thursday Mar 5 2020", "l M j Y")).toEqual(
+            new Date(2020, 2, 5)
+          );
+        };
+
+        const expectGerman = (parseDate: Instance["parseDate"]) => {
+          expect(parseDate("Do, 5. März 2020", "D, j. F Y")).toEqual(
+            new Date(2020, 2, 5)
+          );
+          expect(parseDate("Donnerstag 5. Mär 2020", "l j. M Y")).toEqual(
+            new Date(2020, 2, 5)
+          );
+        };
+
+        it("reads them in flatpickr.parseDate before any instance", () => {
+          jest.isolateModules(() => {
+            // no instance has set up a locale in this one yet
+            const fresh: FlatpickrFn = require("index").default;
+
+            expectEnglish(fresh.parseDate);
+          });
+        });
+
+        it("reads each instance's own, whatever was set up after it", () => {
+          const english = flatpickr(document.createElement("input"), {
+            allowInput: true,
+            dateFormat: "M j Y",
+          }) as Instance;
+          const german = flatpickr(document.createElement("input"), {
+            locale: German,
+          }) as Instance;
+          const mandarin = flatpickr(document.createElement("input"), {
+            locale: Mandarin,
+          }) as Instance;
+
+          expectEnglish(english.parseDate);
+          expectEnglish(flatpickr.parseDate);
+
+          english.setDate("Mar 5 2020", false, "M j Y");
+          expect(english.selectedDates).toEqual([new Date(2020, 2, 5)]);
+
+          english.clear();
+          simulate("focus", english._input);
+          english._input.value = "Apr 6 2020";
+          simulate(
+            "blur",
+            english._input,
+            { target: english._input },
+            FocusEvent
+          );
+          expect(english.selectedDates).toEqual([new Date(2020, 3, 6)]);
+
+          const later = flatpickr(
+            document.createElement("input"),
+            {}
+          ) as Instance;
+
+          expectGerman(german.parseDate);
+          expect(
+            mandarin.parseDate("2025-01-01 3:30 下午", "Y-m-d h:i K")
+          ).toEqual(new Date(2025, 0, 1, 15, 30));
+
+          [english, german, mandarin, later].forEach((instance) =>
+            instance.destroy()
+          );
+        });
+
+        it("reads a locale passed to it as is, without AM/PM", () => {
+          // a JS page can pass a locale file's export, not merged with the
+          // default, as parseDate's fourth argument
+          const parseDate = flatpickr.parseDate as (
+            ...args: [string, string, boolean, CustomLocale]
+          ) => Date | undefined;
+
+          expect(parseDate("2020-03-05", "Y-m-d", false, German)).toEqual(
+            new Date(2020, 2, 5)
+          );
+          expect(parseDate("5. März 2020", "j. F Y", false, German)).toEqual(
+            new Date(2020, 2, 5)
+          );
+        });
+      });
     });
 
     describe("time string parser", () => {

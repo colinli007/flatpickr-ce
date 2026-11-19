@@ -159,31 +159,46 @@ export const revFormat: RevFormat = {
   },
 };
 
-export type TokenRegex = { [k in token]: string };
+export type TokenRegex = Record<token, (locale: Locale) => string>;
+
+const oneOrTwoDigits = () => "(\\d\\d|\\d)";
+const anything = () => "(.+)";
+
+// Month names are tried longest first, so that "10" isn't matched as "1" in a
+// locale with numbers for names (flatpickr#3139)
+const longestFirst = (names: string[]) =>
+  names
+    .slice()
+    .sort((a, b) => b.length - a.length)
+    .join("|");
+
+// D, F, K, M and l match the names of the locale a date is parsed with, so
+// each pattern is a function of that locale, as the formats and revFormat of
+// these tokens are (flatpickr#2188)
 export const tokenRegex: TokenRegex = {
-  D: "", // locale-dependent, setup on runtime
-  F: "", // locale-dependent, setup on runtime
-  G: "(\\d\\d|\\d)",
-  H: "(\\d\\d|\\d)",
-  J: "(\\d\\d|\\d)\\w+",
-  K: "", // locale-dependent, setup on runtime
-  M: "", // locale-dependent, setup on runtime
-  S: "(\\d\\d|\\d)",
-  U: "(.+)",
-  W: "(\\d\\d|\\d)",
-  Y: "(\\d{4})",
-  Z: "(.+)",
-  d: "(\\d\\d|\\d)",
-  h: "(\\d\\d|\\d)",
-  i: "(\\d\\d|\\d)",
-  j: "(\\d\\d|\\d)",
-  l: "", // locale-dependent, setup on runtime
-  m: "(\\d\\d|\\d)",
-  n: "(\\d\\d|\\d)",
-  s: "(\\d\\d|\\d)",
-  u: "(.+)",
-  w: "(\\d\\d|\\d)",
-  y: "(\\d{2})",
+  D: (locale) => `(${locale.weekdays.shorthand.join("|")})`,
+  F: (locale) => `(${longestFirst(locale.months.longhand)})`,
+  G: oneOrTwoDigits,
+  H: oneOrTwoDigits,
+  J: () => "(\\d\\d|\\d)\\w+",
+  K: (locale) => `(${locale.amPM[0]}|${locale.amPM[1]})`,
+  M: (locale) => `(${longestFirst(locale.months.shorthand)})`,
+  S: oneOrTwoDigits,
+  U: anything,
+  W: oneOrTwoDigits,
+  Y: () => "(\\d{4})",
+  Z: anything,
+  d: oneOrTwoDigits,
+  h: oneOrTwoDigits,
+  i: oneOrTwoDigits,
+  j: oneOrTwoDigits,
+  l: (locale) => `(${locale.weekdays.longhand.join("|")})`,
+  m: oneOrTwoDigits,
+  n: oneOrTwoDigits,
+  s: oneOrTwoDigits,
+  u: anything,
+  w: oneOrTwoDigits,
+  y: () => "(\\d{2})",
 };
 
 export type Formats = Record<
