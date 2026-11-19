@@ -74,13 +74,35 @@ const setMonth = setInRange(1, 12, (dateObj, month) => {
   dateObj.setMonth(month - 1, 1);
 });
 
-const setHours = setInRange(0, 23, (dateObj, hour) => {
-  dateObj.setHours(hour);
-});
+// The hour (H, h, G) and its AM/PM half (K) are two fields of one hour, so the
+// parser writes it once from both, after the other fields: written apart, the
+// date passes through the hour one of them gives alone, which the day may not
+// have (the hour DST skips), and is moved out of it (flatpickr#2145)
+export type HourFields = { hour?: string; amPM?: string };
 
-const setHours12 = setInRange(0, 23, (dateObj, hour) => {
-  dateObj.setHours((dateObj.getHours() >= 12 ? 12 : 0) + hour);
-});
+export const hourTokens: { [t in token]?: keyof HourFields } = {
+  G: "hour",
+  H: "hour",
+  h: "hour",
+  K: "amPM",
+};
+
+export const setHour = (
+  dateObj: Date,
+  { hour, amPM }: HourFields,
+  locale: Locale
+): Date | void => {
+  if (hour === undefined && amPM === undefined) return;
+
+  const value = hour === undefined ? dateObj.getHours() : parseFloat(hour);
+  if (value < 0 || value > 23) return invalidDate();
+
+  dateObj.setHours(
+    amPM === undefined
+      ? value
+      : (value % 12) + 12 * int(new RegExp(locale.amPM[1], "i").test(amPM))
+  );
+};
 
 const setSeconds = setInRange(0, 59, (dateObj, seconds) => {
   dateObj.setSeconds(seconds);
@@ -93,15 +115,7 @@ export const revFormat: RevFormat = {
   F: function (dateObj: Date, monthName: string, locale: Locale) {
     dateObj.setMonth(monthIndex(locale.months.longhand, monthName), 1);
   },
-  G: setHours12,
-  H: setHours,
   J: setDay,
-  K: (dateObj: Date, amPM: string, locale: Locale) => {
-    dateObj.setHours(
-      (dateObj.getHours() % 12) +
-        12 * int(new RegExp(locale.amPM[1], "i").test(amPM))
-    );
-  },
   M: function (dateObj: Date, shortMonth: string, locale: Locale) {
     dateObj.setMonth(monthIndex(locale.months.shorthand, shortMonth), 1);
   },
@@ -129,7 +143,6 @@ export const revFormat: RevFormat = {
   Z: (_: Date, ISODate: string) => new Date(ISODate),
 
   d: setDay,
-  h: setHours12,
   i: setInRange(0, 59, (dateObj, minutes) => {
     dateObj.setMinutes(minutes);
   }),

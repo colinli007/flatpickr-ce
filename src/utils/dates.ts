@@ -5,13 +5,17 @@ import {
   token,
   revFormat,
   formats,
+  HourFields,
+  hourTokens,
+  setHour,
 } from "./formatting";
 import { defaults, ParsedOptions } from "../types/options";
 import { english } from "../l10n/default";
 
 // The parsed fields are written one by one into a Date, which rolls a day its
 // month doesn't have (February 30th) over into the next month, so the year is
-// written first, then the month, then the rest in format order
+// written first, then the month, then the rest in format order, and the hour
+// last, at once (see setHour)
 const writeOrder: { [t in token]?: number } = {
   Y: 0,
   y: 0,
@@ -93,6 +97,7 @@ export const createDateParser = ({ config = defaults, l10n = english }) => (
       parsedDate = new Date(date);
     } else {
       let matched,
+        hour: HourFields = {},
         ops: { fn: RevFormatFn; val: string }[][] = [[], [], []];
 
       for (let i = 0, matchIndex = 0, regexStr = ""; i < format.length; i++) {
@@ -104,10 +109,11 @@ export const createDateParser = ({ config = defaults, l10n = english }) => (
           regexStr += tokenRegex[token];
           const match = new RegExp(regexStr, "i").exec(date);
           if (match && (matched = true)) {
-            ops[writeOrder[token] ?? 2].push({
-              fn: revFormat[token],
-              val: match[++matchIndex],
-            });
+            const val = match[++matchIndex];
+            const hourField = hourTokens[token];
+            if (hourField) hour[hourField] = val;
+            else
+              ops[writeOrder[token] ?? 2].push({ fn: revFormat[token], val });
           }
         } else if (!isBackSlash) regexStr += "."; // don't really care
       }
@@ -123,6 +129,7 @@ export const createDateParser = ({ config = defaults, l10n = english }) => (
             (parsedDate = fn(parsedDate as Date, val, locale) || parsedDate)
         )
       );
+      parsedDate = setHour(parsedDate, hour, locale) || parsedDate;
 
       parsedDate = matched ? parsedDate : undefined;
     }

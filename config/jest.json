@@ -1,6 +1,7 @@
 {
   "preset": "ts-jest",
   "testEnvironment": "jsdom",
+  "globalSetup": "<rootDir>/config/jest-timezone.ts",
   "rootDir": "../",
   "moduleDirectories": [
     "node_modules",

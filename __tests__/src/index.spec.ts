@@ -751,6 +751,53 @@ describe("flatpickr", () => {
         consoleWarn.mockRestore();
       });
     });
+
+    describe("a 12-hour time on the day DST starts (flatpickr#2145)", () => {
+      it("runs where 2:30 AM doesn't exist on March 8th, 2020", () => {
+        expect(new Date(2020, 2, 8, 2, 30).getHours()).toBe(3);
+      });
+
+      it.each([
+        ["3/08/2020 2:30 PM", "m/d/Y h:i K", new Date(2020, 2, 8, 14, 30)],
+        ["3/08/2020 2:30 PM", "m/d/Y G:i K", new Date(2020, 2, 8, 14, 30)],
+        ["3/08/2020 02:30 PM", "m/d/Y H:i K", new Date(2020, 2, 8, 14, 30)],
+        ["3/08/2020 2:30 AM", "m/d/Y h:i K", new Date(2020, 2, 8, 3, 30)],
+        ["3/08/2020 1:30 PM", "m/d/Y h:i K", new Date(2020, 2, 8, 13, 30)],
+        ["3/08/2020 14:30", "m/d/Y h:i K", new Date(2020, 2, 8, 14, 30)],
+        // the hour comes before the date: April 1st, 2001 is both the 1st of
+        // its month and the day DST started
+        ["02:30 15/04/2001", "H:i d/m/Y", new Date(2001, 3, 15, 2, 30)],
+        ["2:30 PM 15/04/2001", "h:i K d/m/Y", new Date(2001, 3, 15, 14, 30)],
+      ])("parses %s with %s", (value, format, date) => {
+        createInstance();
+
+        expect(fp.parseDate(value, format)).toEqual(date);
+      });
+
+      it("selects and shows the hour given to setDate", () => {
+        createInstance({ enableTime: true, dateFormat: "m/d/Y h:i K" });
+        fp.setDate("3/08/2020 2:30 PM");
+
+        expect(fp.selectedDates).toEqual([new Date(2020, 2, 8, 14, 30)]);
+        expect(fp.input.value).toEqual("03/08/2020 2:30 PM");
+      });
+    });
+
+    describe("AM/PM before the hour", () => {
+      it.each([
+        ["AM 12:30", "K h:i", 0],
+        ["PM 12:30", "K h:i", 12],
+        ["PM 2:30", "K h:i", 14],
+        ["PM 02:30", "K H:i", 14],
+        ["PM 13:30", "K h:i", 13],
+      ])("parses %s with %s", (value, format, hours) => {
+        createInstance();
+
+        expect(fp.parseDate(value, format)).toEqual(
+          new Date(new Date().getFullYear(), 0, 1, hours, 30)
+        );
+      });
+    });
   });
 
   describe("date formatting", () => {
