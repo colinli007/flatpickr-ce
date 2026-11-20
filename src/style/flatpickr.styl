@@ -405,6 +405,10 @@
     outline: none
     padding: 0 0 0 0.5ch
     position: relative
+    // Declared, as span.cur-month and the year's .numInputWrapper declare it,
+    // to keep the year on the month's line against a page's
+    // select { display: block }
+    display: inline-block
     vertical-align: initial
     box-sizing: border-box
     -webkit-appearance: menulist
