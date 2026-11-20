@@ -2351,6 +2351,45 @@ describe("flatpickr", () => {
           expect(fp.input.value).toEqual("2001-01-01 ");
         });
       });
+
+      describe("closing with the time inputs (flatpickr#2371)", () => {
+        it.each([{}, { altInput: true }])(
+          "doesn't make a date from them over a preloaded value it can't read (%p)",
+          (extra) => {
+            const input = document.createElement("input");
+            input.value = "0000-00-00 00:00:00";
+            document.body.appendChild(input);
+            const errorHandler = jest.fn();
+            createInstance({ enableTime: true, errorHandler, ...extra }, input);
+
+            fp.open();
+            pressOutside();
+
+            expect(fp.selectedDates).toEqual([]);
+            expect(fp.input.value).toEqual("0000-00-00 00:00:00");
+
+            input.remove();
+          }
+        );
+
+        it("leaves an input the page emptied empty", () => {
+          const onValueUpdate = jest.fn();
+          createInstance({
+            enableTime: true,
+            defaultDate: "2020-05-12 10:30",
+            onValueUpdate,
+          });
+          onValueUpdate.mockClear();
+
+          // as a form reset does
+          fp.input.value = "";
+          fp.open();
+          pressOutside();
+
+          expect(fp.input.value).toEqual("");
+          expect(onValueUpdate).not.toHaveBeenCalled();
+        });
+      });
     });
 
     describe("documentClick", () => {

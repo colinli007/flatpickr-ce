@@ -1790,12 +1790,16 @@ function FlatpickrInstance(
     if (lostFocus && isIgnored) {
       const committed = self.config.allowInput ? commitTypedValue() : undefined;
 
-      // a typed value has already overwritten the time inputs
+      // a typed value has already overwritten the time inputs. Closing
+      // applies the time inputs to the selected date, so with none it doesn't
+      // make one, even when the input holds a preloaded value flatpickr
+      // couldn't read (#2371); an input the page emptied stays empty
       if (
         committed === undefined &&
         self.timeContainer !== undefined &&
         self.minuteElement !== undefined &&
         self.hourElement !== undefined &&
+        self.selectedDates.length > 0 &&
         self.input.value !== "" &&
         self.input.value !== undefined
       ) {
