@@ -19,11 +19,13 @@ const defaultConfig: Config = {
 
 function confirmDatePlugin(pluginConfig: Config): Plugin {
   const config = { ...defaultConfig, ...pluginConfig };
-  let confirmContainer: HTMLDivElement;
   const confirmButtonCSSClass = "flatpickr-confirm";
 
   return function (fp: Instance) {
     if (fp.config.noCalendar) return {};
+    // one plugin value can serve several pickers, through a selector matching
+    // several inputs or setDefaults: each keeps its own button (#2298)
+    let confirmContainer: HTMLDivElement;
     return {
       onKeyDown(_: Date[], __: string, ___: Instance, e: KeyboardEvent) {
         const eventTarget = getEventTarget(e);
@@ -66,26 +68,18 @@ function confirmDatePlugin(pluginConfig: Config): Plugin {
       ...(!config.showAlways
         ? {
             onChange: function (_: Date[], dateStr: string) {
+              // on mobile, onReady builds no button
+              if (!confirmContainer) return;
+
               const showCondition =
                 fp.config.enableTime ||
                 fp.config.mode === "multiple" ||
                 fp.loadedPlugins.indexOf("monthSelect") !== -1;
 
-              const localConfirmContainer = fp.calendarContainer?.querySelector(
-                `.${confirmButtonCSSClass}`
-              );
+              if (dateStr && !fp.config.inline && showCondition)
+                return confirmContainer.classList.add("visible");
 
-              if (!localConfirmContainer) return;
-
-              if (
-                dateStr &&
-                !fp.config.inline &&
-                showCondition &&
-                localConfirmContainer
-              )
-                return localConfirmContainer.classList.add("visible");
-
-              localConfirmContainer.classList.remove("visible");
+              confirmContainer.classList.remove("visible");
             },
           }
         : {}),
