@@ -42,6 +42,30 @@ npm install flatpickr@npm:flatpickr-ce
 
 ## What's changed since flatpickr 4.6.13
 
+### 4.13.0
+
+- With a `parseDate` or `formatDate` option, as from moment or date-fns, a date picked in the native mobile input is selected instead of rejected with "Invalid date provided", the input on phones gets the page's format instead of flatpickr's tokens applied to it, and `minTime` and `maxTime` strings are kept instead of dropped ([#2170](https://github.com/flatpickr/flatpickr/issues/2170))
+- `flatpickr.parseDate()` reads AM/PM and month names before any instance is created, so "Jan 1 1970 12:00 AM" with `"M j Y h:i K"` is midnight, and each instance reads its own locale's names whatever instances are created after it ([#2188](https://github.com/flatpickr/flatpickr/issues/2188))
+- A 12-hour time is read once from its hour and AM/PM: on the day DST starts the skipped hour parses as given, and AM/PM written before the hour, as in `"K h:i"`, is applied ([#2145](https://github.com/flatpickr/flatpickr/issues/2145))
+- Stepping a minute or second past 59 carries the rest into the next hour or minute, so with `minuteIncrement: 50`, 07:50 steps up to 08:40 instead of 08:00 ([#2166](https://github.com/flatpickr/flatpickr/issues/2166))
+- With `enableTime` and no date selected, opening the calendar and clicking outside no longer turns a value flatpickr couldn't read, such as a database's `"0000-00-00 00:00:00"`, into today at the default time ([#2371](https://github.com/flatpickr/flatpickr/issues/2371))
+- With one `confirmDatePlugin(Ellipsis)` given to several pickers, through a selector matching several inputs or `flatpickr.setDefaults()`, Tab and Enter reach each picker's own confirm button ([#2298](https://github.com/flatpickr/flatpickr/issues/2298))
+- A page rule such as `select { display: block }` no longer pushes the year below the month in the header, where it was hidden ([#2293](https://github.com/flatpickr/flatpickr/issues/2293))
+- A page with Prototype.js 1.7.0 no longer throws "Cannot read property '-1' of undefined" at init ([#2096](https://github.com/flatpickr/flatpickr/issues/2096))
+- Locales: new Occitan (`oc`, [#2071](https://github.com/flatpickr/flatpickr/pull/2071)) and Romansh (`rm`, [#2169](https://github.com/flatpickr/flatpickr/pull/2169)); Bulgarian month and weekday names are in lower case ([#2100](https://github.com/flatpickr/flatpickr/issues/2100)), and Malaysian Sunday is abbreviated "Ahd" ([#2079](https://github.com/flatpickr/flatpickr/issues/2079))
+
+Behavior changes to check when upgrading:
+
+- On phones, a `formatDate` option writes the input, the altInput, the `dateStr` the hooks get and `fp.formatDate()`, as on desktop. With a `parseDate` option, `minTime` and `maxTime` strings are read by flatpickr as `H:i[:S]`, so a value only the page's parser read, such as `"9:30 PM"`, is read as 09:30.
+- minMaxTimePlugin with a `formatDate` option keys its table by its own `Y-m-d` without a `tableDateFormat`, on desktop too; a `tableDateFormat` goes to the page's `formatDate`, on phones too. A page whose table keys follow a `formatDate` that ignores the format needs to give that format as `tableDateFormat`.
+- `flatpickr.parseDate()` reads English names, no longer those of the instance created last; for another locale's weekday names, use the instance's `parseDate()`.
+- With AM/PM before the hour, "AM 12:30" parses as 00:30 and "PM 02:30" with `"K H:i"` as 14:30; on the day DST starts the skipped hour parses as given instead of one off.
+- With an increment that doesn't divide 60, or a value off the step, stepping past 59 gives the remainder: `minuteIncrement: 60` keeps 07:30 → 08:30, and a `maxTime` holds the step at the limit.
+- With no date selected and the focus in a time input, clicking outside still makes a date, now after `onClose` instead of before, so `onClose` gets no selected date and `onValueUpdate` fires once. With `allowInput`, a value flatpickr couldn't read is still emptied when the input is left.
+- The month dropdown declares `display: inline-block`, so a page rule setting its display with fewer than two classes, or two loaded before flatpickr's CSS, and without `!important` no longer applies; Materialize's `select { display: none }` no longer hides the month.
+- Bulgarian names are written in lower case, and Malaysian Sunday as "Ahd": a value written with "Aha" no longer parses with a format that has `D`.
+- From `dist/esm/utils`: `createDateFormatter` takes `builtIn` instead of `isMobile`, `tokenRegex` maps each token to a function of the locale, and `revFormat` no longer has the `G`, `H`, `K` and `h` entries.
+
 ### 4.12.1
 
 - With `enableTime` and an `altFormat` or `dateFormat` without the time, such as `"M j, Y"`, changing the time with the time inputs fires `onChange`; so do changing the end's time with rangePlugin and pressing "a" or "p" on the AM/PM toggle ([#2487](https://github.com/flatpickr/flatpickr/issues/2487))
