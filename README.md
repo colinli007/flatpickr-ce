@@ -251,8 +251,6 @@ Browsers' native date and time inputs are inconsistent and limited, and most oth
 - Numerous plugins
 - Libraries available for React, Angular, Vue, Ember, and more
 
-![](https://user-images.githubusercontent.com/11352152/36033089-f37dc1d0-0d7d-11e8-8ec4-c7a56d1ff92e.png)
-
 
 ## Compatibility
 IE9 and up, Edge, iOS Safari 6+, Chrome 8+, Firefox 6+
