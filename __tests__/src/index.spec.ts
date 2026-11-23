@@ -8,6 +8,7 @@ import { Kurdish } from "l10n/ckb";
 import { German } from "l10n/de";
 import English from "l10n/default";
 import { Basque } from "l10n/eu";
+import { Finnish } from "l10n/fi";
 import { French } from "l10n/fr";
 import { Irish } from "l10n/ga";
 import { Greek } from "l10n/gr";
@@ -7467,6 +7468,11 @@ describe("flatpickr", () => {
       const sunday = new Date(2025, 1, 2);
       expect(fp.formatDate(sunday, "D l")).toEqual("Ahd Ahad");
       expect(fp.parseDate("Ahd 2 Feb 2025", "D j M Y")).toEqual(sunday);
+    });
+
+    it("abbreviates the week as Vko in Finnish (flatpickr#1673)", () => {
+      createInstance({ locale: Finnish, weekNumbers: true });
+      expect(fp.weekWrapper!.children[0].textContent).toEqual("Vko");
     });
 
     it("writes Bulgarian month and weekday names in lower case (flatpickr#2100)", () => {

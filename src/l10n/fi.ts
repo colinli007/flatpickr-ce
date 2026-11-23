@@ -61,6 +61,7 @@ export const Finnish: CustomLocale = {
   },
   time_24hr: true,
   rangeSeparator: "–",
+  weekAbbreviation: "Vko",
   yearAriaLabel: "vuosi",
   monthAriaLabel: "kuukausi",
   hourAriaLabel: "tunti",
