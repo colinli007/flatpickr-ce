@@ -29,13 +29,13 @@ description: >
 
 ## 第 1 步：排任务队列
 
-用户给了编号就用编号。否则读清单 `gh issue view 13 -R colinli007/flatpickr-ce --json body --jq .body`，按未勾选项所在小节归类（只需回复的 Usage questions、Won't fix、No action needed 三节因正文超长放在首条评论里，不用读）：
+用户给了编号就用编号。否则读清单 `gh issue view 13 -R colinli007/flatpickr-ce --json body --jq .body`，按未勾选项所在小节归类（无需改代码的 Usage questions、Won't fix、No action needed 三节因正文超长放在首条评论里，不用读）：
 
 | 小节 / 标记 | 归为 |
 | --- | --- |
 | Port from upstream PRs、Locales、Fix in flatpickr-ce | 修复任务 |
 | Needs a repro or a decision，或行内写了 verify with a repro | 调查任务：执行者只复现、出候选方案，不改代码 |
-| Already fixed (reply only)、Usage questions、Won't fix、No action needed、Needs a repro（等报告者补复现）、结论是 close 的、标了 deferred 的 | 跳过：只需回复，发版后统一做 |
+| Already fixed、Usage questions、Won't fix、No action needed、Needs a repro（等报告者补复现）、结论是 close 的、标了 deferred 的 | 跳过：无需改代码，清单上的结论就是记录（不在上游回复） |
 
 按清单顺序取前 N 个，用一行告诉用户这批跑哪些，然后直接开跑，不等确认。
 
