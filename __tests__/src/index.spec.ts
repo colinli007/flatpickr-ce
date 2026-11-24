@@ -5819,6 +5819,58 @@ describe("flatpickr", () => {
           expectTime("08", "45");
         });
       });
+
+      describe("set('defaultHour'), set('defaultMinute') and set('defaultSeconds') with nothing selected #2015", () => {
+        it("put the new default time on the inputs, which a day picked gets", () => {
+          createInstance({ enableTime: true, now: "2023-06-01" });
+
+          fp.set("defaultHour", 15);
+          fp.set("defaultMinute", 30);
+          expectTime("03", "30");
+          expect(fp.amPM!.textContent).toEqual("PM");
+
+          clickOn(
+            Array.from(
+              fp.days.querySelectorAll<DayElement>(".flatpickr-day")
+            ).find(
+              (day) => fp.formatDate(day.dateObj, "Y-m-d") === "2023-06-07"
+            )!
+          );
+          expect(fp.selectedDates[0]).toEqual(new Date(2023, 5, 7, 15, 30));
+        });
+
+        it("take them together, held within minDate's time on its day", () => {
+          createInstance({
+            enableTime: true,
+            enableSeconds: true,
+            time_24hr: true,
+            minDate: "2023-06-01 16:00",
+          });
+
+          fp.set({ defaultHour: 18, defaultMinute: 15, defaultSeconds: 45 });
+          expectTime("18", "15");
+          expect(fp.secondElement!.value).toEqual("45");
+
+          fp.set({ defaultHour: 9, defaultMinute: 0, defaultSeconds: 0 });
+          expectTime("16", "00");
+          expect(fp.secondElement!.value).toEqual("00");
+        });
+
+        it("leave the time of a selected date", () => {
+          createInstance({
+            enableTime: true,
+            time_24hr: true,
+            defaultDate: "2023-06-07 08:45",
+          });
+
+          fp.set({ defaultHour: 15, defaultMinute: 30 });
+          expectTime("08", "45");
+          expect(fp.selectedDates[0]).toEqual(new Date(2023, 5, 7, 8, 45));
+
+          fp.clear();
+          expectTime("15", "30");
+        });
+      });
     });
 
     describe("default time within minTime and maxTime #2547", () => {

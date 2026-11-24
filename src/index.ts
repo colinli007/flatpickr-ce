@@ -2904,11 +2904,20 @@ function FlatpickrInstance(
     if (getSelectedTimes() !== prevTimes) triggerChange();
   }
 
+  // with none selected, the time inputs show the default time, which a day
+  // picked gets, as after clear() (#2015)
+  function updateDefaultHours() {
+    if (!self.selectedDates.length) setDefaultHours();
+  }
+
   const CALLBACKS: { [k in keyof Options]: Function[] } = {
     locale: [setupLocale, updateWeekdays, rebuildTime],
     showMonths: [buildMonths, setCalendarWidth, buildWeekdays],
     minDate: [jumpToDate],
     maxDate: [jumpToDate],
+    defaultHour: [updateDefaultHours],
+    defaultMinute: [updateDefaultHours],
+    defaultSeconds: [updateDefaultHours],
     positionElement: [updatePositionElement],
     enableTime: [updateDefaultFormats, rebuildTime],
     enableSeconds: [updateDefaultFormats, rebuildTime],
