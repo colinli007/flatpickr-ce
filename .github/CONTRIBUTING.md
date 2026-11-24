@@ -13,7 +13,7 @@ If at any point you are having trouble navigating/understanding the code base, p
 
 If you'd like to see a certain feature in flatpickr, file an issue first with request for consideration.
 
-While a lot of feature requests often don't make it to the core, they can be implemented as [plugins](https://github.com/chmln/flatpickr/tree/master/src/plugins).
+While a lot of feature requests often don't make it to the core, they can be implemented as [plugins](https://github.com/colinli007/flatpickr-ce/tree/main/src/plugins).
 
 ### How to submit a pull request
 
@@ -21,8 +21,8 @@ While a lot of feature requests often don't make it to the core, they can be imp
 2. Setup the necessary dependencies by running `npm install`. 
 3. Then, `npm start` to launch the dev environment. 
 4. `src/index.ts` is the entry point, `index.html` is where you can experiment with options. 
-5. Make desired changes and push.
-6. Go to https://github.com/flatpickr/flatpickr/compare?expand=1
+5. Make desired changes, then run `npm test` (typecheck and the jest tests in `__tests__/`).
+6. Push, then go to https://github.com/colinli007/flatpickr-ce/compare?expand=1
 
 ### How to debug in vscode
 
