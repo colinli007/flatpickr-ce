@@ -1191,6 +1191,137 @@ describe("flatpickr", () => {
           expect(formatsGiven(config.parseDate)).not.toContain(format);
       });
     });
+
+    describe("formatDate and parseDate from setDefaults() (flatpickr#1939)", () => {
+      // A page's day.month.year, which flatpickr's own parser misreads
+      const dmyFormat = (date: Date) =>
+        `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
+      const dmyParse = (str: string) => {
+        const [day, month, year] = str.split(".").map(Number);
+        return new Date(year, month - 1, day);
+      };
+      const jan = (day: number) => new Date(2020, 0, day);
+      const withDefaults = (defaults: Options, test: () => void) => {
+        flatpickr.setDefaults(defaults);
+        try {
+          test();
+        } finally {
+          delete flatpickr.defaultConfig.formatDate;
+          delete flatpickr.defaultConfig.parseDate;
+        }
+      };
+
+      it("formats and parses with them", () => {
+        withDefaults({ formatDate: dmyFormat, parseDate: dmyParse }, () => {
+          createInstance({ defaultDate: "2.1.2020" });
+          expect(fp.selectedDates).toEqual([jan(2)]);
+          expect(fp.input.value).toEqual("2.1.2020");
+
+          fp.setDate("3.1.2020");
+          expect(fp.selectedDates).toEqual([jan(3)]);
+          expect(fp.input.value).toEqual("3.1.2020");
+        });
+      });
+
+      it("takes an instance's own over them, each on its own", () => {
+        const defaultFormat = jest.fn(dmyFormat);
+        const defaultParse = jest.fn(dmyParse);
+        withDefaults(
+          { formatDate: defaultFormat, parseDate: defaultParse },
+          () => {
+            createInstance({
+              formatDate: (date: Date) => `day ${date.getDate()}`,
+              defaultDate: "2.1.2020",
+            });
+            expect(fp.selectedDates).toEqual([jan(2)]);
+            expect(fp.input.value).toEqual("day 2");
+            expect(defaultFormat).not.toHaveBeenCalled();
+
+            defaultParse.mockClear();
+            createInstance({
+              parseDate: (str: string) => jan(Number(str.slice(4))),
+              defaultDate: "day 3",
+            });
+            expect(fp.selectedDates).toEqual([jan(3)]);
+            expect(fp.input.value).toEqual("3.1.2020");
+            expect(defaultParse).not.toHaveBeenCalled();
+          }
+        );
+      });
+
+      it("parses with flatpickr's own parser given parseDate: undefined", () => {
+        const defaultParse = jest.fn(dmyParse);
+        withDefaults({ parseDate: defaultParse }, () => {
+          createInstance({
+            minDate: "2020-01-05",
+            parseDate: undefined,
+            defaultDate: "2020-01-06",
+          });
+          expect(fp.config.minDate).toEqual(jan(5));
+          expect(fp.selectedDates).toEqual([jan(6)]);
+          expect(defaultParse).not.toHaveBeenCalled();
+        });
+      });
+
+      it("reads the date options given before an instance's own parseDate with it", () => {
+        const config = {
+          minDate: "5.1.2020",
+          maxDate: "20.1.2020",
+          disable: ["10.1.2020"],
+          enable: [{ from: "1.1.2020", to: "25.1.2020" }],
+          parseDate: dmyParse,
+        };
+        const expectRead = () => {
+          expect(fp.config.minDate).toEqual(jan(5));
+          expect(fp.config.maxDate).toEqual(jan(20));
+          expect(fp.config.disable).toEqual([jan(10)]);
+          expect(fp.config.enable).toEqual([{ from: jan(1), to: jan(25) }]);
+        };
+
+        createInstance(config);
+        expectRead();
+
+        // over a default that reads them otherwise
+        withDefaults({ parseDate: () => jan(1) }, () => {
+          createInstance(config);
+          expectRead();
+        });
+      });
+
+      it("reads a date in a data attribute with an instance's own parseDate", () => {
+        const input = document.createElement("input");
+        input.setAttribute("data-min-date", "5.1.2020");
+        createInstance({ parseDate: dmyParse }, input);
+        expect(fp.config.minDate).toEqual(jan(5));
+      });
+
+      it("keeps flatpickr's tokens for the native mobile input (flatpickr#2170)", () => {
+        mockAgent = "Android";
+        const defaultFormat = jest.fn(dmyFormat);
+        const defaultParse = jest.fn(dmyParse);
+        withDefaults(
+          { formatDate: defaultFormat, parseDate: defaultParse },
+          () => {
+            createInstance({ dateFormat: "j.n.Y", minDate: "1.5.2020" });
+            const mobileInput = fp.mobileInput as HTMLInputElement;
+            expect(mobileInput.min).toBe("2020-05-01");
+
+            mobileInput.value = "2020-05-12";
+            simulate("change", mobileInput);
+            expect(fp.selectedDates).toEqual([new Date(2020, 4, 12)]);
+            expect(fp.input.value).toBe("12.5.2020");
+            expect(mobileInput.value).toBe("2020-05-12");
+
+            for (const fn of [defaultFormat, defaultParse] as jest.Mock[]) {
+              expect(fn).toHaveBeenCalled();
+              expect(fn.mock.calls.map(([, format]) => format)).not.toContain(
+                "Y-m-d"
+              );
+            }
+          }
+        );
+      });
+    });
   });
 
   describe("API", () => {

@@ -2402,8 +2402,10 @@ function FlatpickrInstance(
       instanceConfig
     );
 
-    self.config.parseDate = userConfig.parseDate;
-    self.config.formatDate = userConfig.formatDate;
+    // the date options below are parsed as they're assigned, in the order
+    // given, so an instance's own parseDate goes in first; without one, the
+    // one from setDefaults() stays (#1939)
+    if ("parseDate" in userConfig) self.config.parseDate = userConfig.parseDate;
 
     Object.defineProperty(self.config, "enable", {
       get: () => self.config._enable,
