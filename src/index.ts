@@ -881,10 +881,13 @@ function FlatpickrInstance(
       );
 
       if (self.config.inline) {
+        // after the wrap element with wrap, as the input is inside it (#1868)
+        const anchor = self.config.wrap ? self.element : self._input;
+
         if (!customAppend && self.element.parentNode)
           self.element.parentNode.insertBefore(
             self.calendarContainer,
-            self._input.nextSibling
+            anchor.nextSibling
           );
         else if (self.config.appendTo)
           self.config.appendTo.appendChild(self.calendarContainer);

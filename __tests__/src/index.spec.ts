@@ -3952,6 +3952,84 @@ describe("flatpickr", () => {
       });
     });
 
+    describe("an inline calendar with wrap (flatpickr#1868)", () => {
+      function wrapElement(inner: string) {
+        const container = document.createElement("div");
+        container.innerHTML = `<div class="group">${inner}</div><p></p>`;
+        document.body.appendChild(container);
+        return container.firstChild as HTMLElement;
+      }
+
+      for (const config of [{}, { altInput: true }]) {
+        const altInput = config.altInput ? " and altInput" : "";
+
+        it(`puts it after the wrap element with a toggle after the input${altInput}`, () => {
+          const element = wrapElement(
+            "<input data-input><a data-toggle></a><a data-clear></a>"
+          );
+
+          createInstance({ ...config, wrap: true, inline: true }, element);
+
+          expect(fp.calendarContainer.previousSibling).toBe(element);
+          expect(fp._input.parentNode).toBe(element);
+
+          fp.destroy();
+          (element.parentNode as Element).remove();
+        });
+
+        it(`puts it after the wrap element with the input last${altInput}`, () => {
+          const element = wrapElement("<input data-input>");
+
+          createInstance({ ...config, wrap: true, inline: true }, element);
+
+          expect(fp.calendarContainer.previousSibling).toBe(element);
+          expect(fp.calendarContainer.nextSibling).toBe(
+            (element.parentNode as Element).lastChild
+          );
+
+          fp.destroy();
+          (element.parentNode as Element).remove();
+        });
+      }
+
+      it("puts it after the wrap element in the static wrapper with a toggle after the input", () => {
+        const element = wrapElement("<input data-input><a data-toggle></a>");
+
+        createInstance({ wrap: true, inline: true, static: true }, element);
+
+        expect(fp.calendarContainer.previousSibling).toBe(element);
+        expect(
+          (fp.calendarContainer.parentNode as Element).classList.contains(
+            "flatpickr-wrapper"
+          )
+        ).toBe(true);
+
+        fp.destroy();
+        (element.parentNode as Element).remove();
+      });
+
+      it("puts it after the altInput without wrap", () => {
+        const container = document.createElement("div");
+        container.innerHTML = "<input><p></p>";
+        document.body.appendChild(container);
+
+        createInstance(
+          { altInput: true, inline: true },
+          container.firstChild as HTMLElement
+        );
+
+        expect(Array.from(container.childNodes)).toEqual([
+          fp.input,
+          fp.altInput,
+          fp.calendarContainer,
+          container.lastChild,
+        ]);
+
+        fp.destroy();
+        container.remove();
+      });
+    });
+
     describe("autocomplete with altInput (flatpickr#2577)", () => {
       it.each(["off", "nope"])(
         'gives the altInput the input\'s autocomplete="%s"',
