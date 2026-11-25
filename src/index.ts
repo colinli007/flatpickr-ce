@@ -1719,14 +1719,15 @@ function FlatpickrInstance(
     }
 
     if (self.altInput) {
-      self.input.type = "text";
       if (self.altInput.parentNode)
         self.altInput.parentNode.removeChild(self.altInput);
       delete self.altInput;
     }
 
     if (self.input) {
-      self.input.type = (self.input as any)._type;
+      const type: string | null = (self.input as any)._type;
+      if (type === null) self.input.removeAttribute("type");
+      else self.input.setAttribute("type", type);
       self.input.classList.remove("flatpickr-input");
       self.input.removeAttribute("readonly");
     }
@@ -3144,9 +3145,11 @@ function FlatpickrInstance(
   function setupInputs() {
     self.input = getInputElem();
 
-    // hack: store previous type to restore it after destroy()
-    (self.input as any)._type = (self.input as any).type;
-    (self.input as any).type = "text";
+    // hack: store the type attribute to restore it after destroy(). The type
+    // property reads "text" for a type the browser doesn't support, such as
+    // datetime-local before Firefox 93, and for an input without one (#2055)
+    (self.input as any)._type = self.input.getAttribute("type");
+    self.input.type = "text";
 
     self.input.classList.add("flatpickr-input");
     self._input = self.input;

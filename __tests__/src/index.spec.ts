@@ -1394,6 +1394,49 @@ describe("flatpickr", () => {
       expect(fired).toEqual(false);
     });
 
+    describe("the input's type after destroy() (flatpickr#2055)", () => {
+      const configs: [string, Options, string?][] = [
+        ["with the calendar", {}],
+        ["with altInput", { altInput: true }],
+        ["on mobile", {}, "Android"],
+        ["on mobile with altInput", { altInput: true }, "Android"],
+        ["on mobile with enableTime", { enableTime: true }, "Android"],
+      ];
+
+      // "foo" stands for a type the browser doesn't support, such as
+      // datetime-local before Firefox 93: its type property reads "text"
+      describe.each(configs)("%s", (_, config, agent) => {
+        it.each(["foo", "datetime-local", "date", "text", "hidden"])(
+          'puts back type="%s"',
+          (type) => {
+            const input = document.createElement("input");
+            input.setAttribute("type", type);
+            document.body.appendChild(input);
+            mockAgent = agent;
+
+            createInstance(config, input);
+            expect(fp.isMobile).toBe(agent !== undefined);
+            fp.destroy();
+
+            expect(input.getAttribute("type")).toBe(type);
+            input.remove();
+          }
+        );
+
+        it("leaves an input without a type attribute without one", () => {
+          const input = document.createElement("input");
+          document.body.appendChild(input);
+          mockAgent = agent;
+
+          createInstance(config, input);
+          fp.destroy();
+
+          expect(input.hasAttribute("type")).toBe(false);
+          input.remove();
+        });
+      });
+    });
+
     it("set (option, value)", () => {
       createInstance();
       fp.set("minDate", "2016-10-20");
