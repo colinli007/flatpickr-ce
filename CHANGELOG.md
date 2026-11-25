@@ -2,6 +2,22 @@
 
 What's changed in flatpickr-ce since flatpickr 4.6.13, newest first. Fixes link the flatpickr issue or pull request they resolve.
 
+## 4.14.0
+
+- With `enableTime` and nothing selected, `set("defaultHour", …)`, `set("defaultMinute", …)` and `set("defaultSeconds", …)` put the new default time on the time inputs, so the next day picked gets it, instead of taking effect only after `clear()` ([#2015](https://github.com/flatpickr/flatpickr/issues/2015))
+- A `formatDate` and `parseDate` given to `flatpickr.setDefaults()` apply to the instances that don't give their own instead of being dropped ([#1939](https://github.com/flatpickr/flatpickr/issues/1939))
+- With `wrap` and `inline`, a wrap element with a `data-toggle` or `data-clear` link after the input no longer throws "Failed to execute 'insertBefore' on 'Node'", and the calendar goes right after the wrap element ([#1868](https://github.com/flatpickr/flatpickr/issues/1868))
+- `destroy()` gives the input back its `type` as written, so a `datetime-local`, `month` or `week` input in a browser that doesn't support the type no longer becomes `type="text"`, and an input without a type isn't given one ([#2055](https://github.com/flatpickr/flatpickr/issues/2055))
+- Locales: the Finnish week-number column reads "Vko" instead of "Wk" ([#1673](https://github.com/flatpickr/flatpickr/pull/1673))
+
+Behavior changes to check when upgrading:
+
+- A `formatDate` or `parseDate` given to `setDefaults()` formats and parses for every instance without its own, plugins' formats such as monthSelect's `"F Y"` included; an instance giving only one takes the other from the defaults. An instance uses flatpickr's own with `formatDate: undefined` or `parseDate: undefined`.
+- With `enableTime` and nothing selected, `set("defaultHour")`, `set("defaultMinute")` and `set("defaultSeconds")` change the time inputs and the AM/PM label, held within `minDate`, `maxDate`, `minTime` and `maxTime`. In `multiple` mode with every date deselected, where the inputs keep the last date's time, they now show the default time. A selected date keeps its time.
+- With `wrap` and `inline`, the calendar comes right after the wrap element instead of at the end of the wrap element's parent.
+- After `destroy()`, an input that had no `type` attribute has none, so `input[type="text"]` no longer matches it, and a type the browser doesn't support is written back as it was.
+- With the Finnish locale and `weekNumbers`, the week-number column's header reads "Vko".
+
 ## 4.13.0
 
 - With a `parseDate` or `formatDate` option, as from moment or date-fns, a date picked in the native mobile input is selected instead of rejected with "Invalid date provided", the input on phones gets the page's format instead of flatpickr's tokens applied to it, and `minTime` and `maxTime` strings are kept instead of dropped ([#2170](https://github.com/flatpickr/flatpickr/issues/2170))
